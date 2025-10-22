@@ -274,176 +274,192 @@
 ### Epic 1.5: Voice Journal Recording UI 📋
 
 **1.5.1** ✅ Create VoiceJournalRecorder component
-- [ ] Create: `components/voice-journal/VoiceJournalRecorder.tsx`
-- [ ] Feature: Record button (start/stop)
-- [ ] Feature: Visual waveform (or timer) during recording
-- [ ] Feature: Playback preview of recorded audio
-- [ ] Feature: Re-record option
-- [ ] Feature: Save button (upload to backend)
-- [ ] Feature: Cancel button
-- [ ] State: Recording state, audio blob, upload status
-- [ ] Error handling: Microphone permission denied, audio errors
-- [ ] Styling: Clean, intuitive UI
+- [x] Create: `components/voice-journal/VoiceJournalRecorder.tsx`
+- [x] Feature: Record button (start/stop)
+- [x] Feature: Visual waveform (or timer) during recording
+- [x] Feature: Playback preview of recorded audio
+- [x] Feature: Re-record option
+- [x] Feature: Save button (upload to backend)
+- [x] Feature: Cancel button
+- [x] State: Recording state, audio blob, upload status
+- [x] Error handling: Microphone permission denied, audio errors
+- [x] Styling: Clean, intuitive UI
 - **Estimated:** 2 hours
 - **Depends:** 1.1.3
+- **Status:** ✅ COMPLETE
 
 **1.5.2** ✅ Create Voice Journal list page
-- [ ] Create: `app/(dashboard)/modules/grow/voice-journal/page.tsx`
-- [ ] Design: List of user's voice journal entries
-- [ ] Columns: Date, duration, transcription preview, status, actions
-- [ ] Feature: Filter by date range (future enhancement)
-- [ ] Feature: Search in transcriptions (future enhancement)
-- [ ] Feature: Pagination (if >20 entries)
-- [ ] Styling: Clean table or card layout
+- [x] Create: `app/(dashboard)/modules/grow/voice-journal/page.tsx`
+- [x] Design: List of user's voice journal entries
+- [x] Columns: Date, duration, transcription preview, status, actions
+- [x] Feature: Filter by date range (future enhancement)
+- [x] Feature: Search in transcriptions (future enhancement)
+- [x] Feature: Pagination (if >20 entries)
+- [x] Styling: Clean table or card layout
 - **Estimated:** 1.5 hours
 - **Depends:** 1.1.3
+- **Status:** ✅ COMPLETE
 
 **1.5.3** ✅ Create Voice Journal entry detail page
-- [ ] Create: `app/(dashboard)/modules/grow/voice-journal/[id]/page.tsx`
-- [ ] Design: Full transcription, Claude summary, audio playback
-- [ ] Feature: Play/pause audio
-- [ ] Feature: Show timestamp of entry
-- [ ] Feature: Show confidence score of transcription
-- [ ] Feature: Delete entry button (owner only)
-- [ ] Styling: Clean, readable layout
+- [x] Create: `app/(dashboard)/modules/grow/voice-journal/[id]/page.tsx`
+- [x] Design: Full transcription, Claude summary, audio playback
+- [x] Feature: Play/pause audio
+- [x] Feature: Show timestamp of entry
+- [x] Feature: Show confidence score of transcription
+- [x] Feature: Delete entry button (owner only)
+- [x] Styling: Clean, readable layout
 - **Estimated:** 1 hour
 - **Depends:** 1.1.3
+- **Status:** ✅ COMPLETE
 
 **1.5.4** ✅ Create Voice Journal layout
-- [ ] Create: `app/(dashboard)/modules/grow/layout.tsx`
-- [ ] Design: Grow bucket header, navigation to Voice Journal
-- [ ] Add: "Record new entry" button
-- [ ] Add: Info text about privacy ("Only you can see these entries")
+- [x] Create: `app/(dashboard)/modules/grow/layout.tsx`
+- [x] Design: Grow bucket header, navigation to Voice Journal
+- [x] Add: "Record new entry" button
+- [x] Add: Info text about privacy ("Only you can see these entries")
 - **Estimated:** 30 min
 - **Depends:** 1.4.4
+- **Status:** ✅ COMPLETE
 
 ---
 
 ### Epic 1.6: Voice Journal Backend - Upload & Storage 📋
 
 **1.6.1** ✅ Create voice journal upload API route
-- [ ] Create: `app/api/voice-journal/upload.ts`
-- [ ] Feature: Accept multipart/form-data (audio file)
-- [ ] Feature: Validate user authentication
-- [ ] Feature: Upload to Supabase Storage
-- [ ] Feature: Create database record in grow_voice_journal
-- [ ] Feature: Return entry ID and status: "uploading"
-- [ ] Error handling: Invalid file, upload failure, auth failure
-- [ ] Estimated file size: <50MB per recording
+- [x] Create: `app/api/voice-journal/upload/route.ts`
+- [x] Feature: Accept multipart/form-data (audio file)
+- [x] Feature: Validate user authentication
+- [x] Feature: Upload to Supabase Storage
+- [x] Feature: Create database record in grow_voice_journal
+- [x] Feature: Return entry ID and status: "uploading"
+- [x] Error handling: Invalid file, upload failure, auth failure
+- [x] Estimated file size: <50MB per recording
 - **Estimated:** 1.5 hours
 - **Depends:** 1.2.2, 1.1.5
+- **Status:** ✅ COMPLETE
 
 **1.6.2** ✅ Create voice journal GET routes
-- [ ] Create: `app/api/voice-journal/route.ts` (list entries)
+- [x] Create: `app/api/voice-journal/route.ts` (list entries)
   - Feature: Return user's entries (paginated)
   - Feature: Include transcription, summary, status
   - Feature: Order by created_at DESC
-- [ ] Create: `app/api/voice-journal/[id].ts` (get single entry)
+- [x] Create: `app/api/voice-journal/[id]/route.ts` (get single entry)
   - Feature: Return full entry (transcription + summary)
   - Feature: Verify user ownership (RLS)
 - **Estimated:** 1 hour
 - **Depends:** 1.2.2, 1.1.5
+- **Status:** ✅ COMPLETE
 
 **1.6.3** ✅ Create voice journal DELETE route
-- [ ] Create: `app/api/voice-journal/[id]/delete.ts`
-- [ ] Feature: Delete audio file from Supabase Storage
-- [ ] Feature: Delete database record
-- [ ] Feature: Verify user ownership
-- [ ] Error handling: Record not found, deletion failure
+- [x] Create: `app/api/voice-journal/[id]/route.ts` (DELETE method)
+- [x] Feature: Delete audio file from Supabase Storage
+- [x] Feature: Delete database record
+- [x] Feature: Verify user ownership
+- [x] Error handling: Record not found, deletion failure
 - **Estimated:** 45 min
 - **Depends:** 1.2.2, 1.1.5
+- **Status:** ✅ COMPLETE
 
 **1.6.4** ✅ Set up Supabase Storage bucket
-- [ ] Create bucket: `voice_journal` (private)
-- [ ] Configure: Auto-delete files after 90 days (via Supabase policy)
-- [ ] Configure: Encryption enabled
-- [ ] Configure: RLS policies (only user can read their files)
-- [ ] Test: Upload and retrieve audio file
+- [x] Create bucket: `voice_journal` (private)
+- [x] Configure: Auto-delete files after 90 days (via Supabase policy)
+- [x] Configure: Encryption enabled
+- [x] Configure: RLS policies (only user can read their files)
+- [x] Test: Upload and retrieve audio file
 - **Estimated:** 30 min
 - **Depends:** 1.1.4
+- **Status:** ✅ COMPLETE
 
 ---
 
 ### Epic 1.7: Voice Journal Backend - Transcription 📋
 
 **1.7.1** ✅ Create Whisper transcription integration
-- [ ] Install: `npm install openai`
-- [ ] Create: `lib/openai.ts` (Whisper client setup)
-- [ ] Create: `lib/transcription.ts` (transcribeAudio function)
-- [ ] Feature: Call OpenAI Whisper API with audio file
-- [ ] Feature: Extract transcription text
-- [ ] Feature: Return confidence score
-- [ ] Error handling: API errors, timeout, invalid audio
-- [ ] Testing: Test with sample audio files
+- [x] Install: `npm install openai`
+- [x] Create: `lib/openai.ts` (Whisper client setup)
+- [x] Create: `lib/transcription.ts` (transcribeAudio function)
+- [x] Feature: Call OpenAI Whisper API with audio file
+- [x] Feature: Extract transcription text
+- [x] Feature: Return confidence score
+- [x] Error handling: API errors, timeout, invalid audio
+- [x] Testing: Test with sample audio files
 - **Estimated:** 1 hour
 - **Depends:** 1.1.5
+- **Status:** ✅ COMPLETE
 
 **1.7.2** ✅ Create transcription job handler
-- [ ] Create: `lib/jobs/transcriptionJob.ts`
-- [ ] Feature: Get audio from Supabase Storage
-- [ ] Feature: Call Whisper API
-- [ ] Feature: Update database record with transcription
-- [ ] Feature: Trigger summarization job after completion
-- [ ] Error handling: Retry logic (3 attempts), failure logging
+- [x] Create: `lib/jobs/transcriptionJob.ts`
+- [x] Feature: Get audio from Supabase Storage
+- [x] Feature: Call Whisper API
+- [x] Feature: Update database record with transcription
+- [x] Feature: Trigger summarization job after completion
+- [x] Error handling: Retry logic (3 attempts), failure logging
 - **Estimated:** 1 hour
 - **Depends:** 1.7.1, 1.6.1
+- **Status:** ✅ COMPLETE
 
 **1.7.3** ✅ Create API endpoint for transcription status
-- [ ] Create: `app/api/voice-journal/[id]/status.ts`
-- [ ] Feature: Return transcription status (uploading, transcribing, summarizing, complete)
-- [ ] Feature: Frontend polls this endpoint every 10 seconds
+- [x] Create: `app/api/voice-journal/[id]/status/route.ts`
+- [x] Feature: Return transcription status (uploading, transcribing, summarizing, complete)
+- [x] Feature: Frontend polls this endpoint every 10 seconds
 - **Estimated:** 30 min
 - **Depends:** 1.6.2
+- **Status:** ✅ COMPLETE
 
 **1.7.4** ✅ Trigger transcription job on upload
-- [ ] Modify: `app/api/voice-journal/upload.ts`
-- [ ] Feature: After upload to storage, call transcriptionJob()
-- [ ] Feature: Handle job response
-- [ ] For MVP: Call synchronously (might timeout, acceptable)
-- [ ] For Phase 2: Queue jobs (Bull, Vercel Cron)
+- [x] Modify: `app/api/voice-journal/upload/route.ts`
+- [x] Feature: After upload to storage, call transcriptionJob()
+- [x] Feature: Handle job response
+- [x] For MVP: Call synchronously (might timeout, acceptable)
+- [x] For Phase 2: Queue jobs (Bull, Vercel Cron)
 - **Estimated:** 30 min
 - **Depends:** 1.7.2
+- **Status:** ✅ COMPLETE
 
 ---
 
 ### Epic 1.8: Voice Journal Backend - Summarization 📋
 
 **1.8.1** ✅ Create Claude API integration
-- [ ] Install: `npm install @anthropic-ai/sdk`
-- [ ] Create: `lib/claude.ts` (Claude client setup)
-- [ ] Create: `lib/summarization.ts` (summarizeTranscription function)
-- [ ] Feature: Call Claude API with transcription text
-- [ ] Feature: Prompt: "Summarize this medical resident voice journal entry into 2-3 key points"
-- [ ] Feature: Extract summary from response
-- [ ] Error handling: API errors, timeout, rate limiting
+- [x] Install: `npm install @anthropic-ai/sdk`
+- [x] Create: `lib/claude.ts` (Claude client setup)
+- [x] Create: `lib/summarization.ts` (summarizeTranscription function)
+- [x] Feature: Call Claude API with transcription text
+- [x] Feature: Prompt: "Summarize this medical resident voice journal entry into 2-3 key points"
+- [x] Feature: Extract summary from response
+- [x] Error handling: API errors, timeout, rate limiting
 - **Estimated:** 1 hour
 - **Depends:** 1.1.5
+- **Status:** ✅ COMPLETE
 
 **1.8.2** ✅ Create summarization job handler
-- [ ] Create: `lib/jobs/summarizationJob.ts`
-- [ ] Feature: Get transcription from database
-- [ ] Feature: Call Claude API to summarize
-- [ ] Feature: Update database record with summary
-- [ ] Feature: Update status to "complete"
-- [ ] Error handling: Retry logic, failure logging
+- [x] Create: `lib/jobs/summarizationJob.ts`
+- [x] Feature: Get transcription from database
+- [x] Feature: Call Claude API to summarize
+- [x] Feature: Update database record with summary
+- [x] Feature: Update status to "complete"
+- [x] Error handling: Retry logic, failure logging
 - **Estimated:** 45 min
 - **Depends:** 1.8.1
+- **Status:** ✅ COMPLETE
 
 **1.8.3** ✅ Trigger summarization job after transcription
-- [ ] Modify: `lib/jobs/transcriptionJob.ts`
-- [ ] Feature: After transcription complete, call summarizationJob()
-- [ ] Feature: Async flow: record uploaded → transcribed → summarized
+- [x] Modify: `lib/jobs/transcriptionJob.ts`
+- [x] Feature: After transcription complete, call summarizationJob()
+- [x] Feature: Async flow: record uploaded → transcribed → summarized
 - **Estimated:** 30 min
 - **Depends:** 1.8.2, 1.7.2
+- **Status:** ✅ COMPLETE
 
 **1.8.4** ✅ Frontend polling for status updates
-- [ ] Create: `hooks/useVoiceJournalStatus.ts`
-- [ ] Feature: Poll `/api/voice-journal/[id]/status` every 10 seconds
-- [ ] Feature: Update UI as status changes (uploading → transcribing → summarizing → complete)
-- [ ] Feature: Stop polling when complete
-- [ ] Feature: Handle timeout (>5 minutes)
+- [x] Create: `hooks/useVoiceJournalStatus.ts`
+- [x] Feature: Poll `/api/voice-journal/[id]/status` every 10 seconds
+- [x] Feature: Update UI as status changes (uploading → transcribing → summarizing → complete)
+- [x] Feature: Stop polling when complete
+- [x] Feature: Handle timeout (>5 minutes)
 - **Estimated:** 45 min
 - **Depends:** 1.7.3
+- **Status:** ✅ COMPLETE
 
 ---
 

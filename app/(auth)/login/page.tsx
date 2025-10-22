@@ -1,17 +1,25 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+
+  useEffect(() => {
+    if (searchParams.get('registered') === 'true') {
+      setSuccessMessage('Registration successful! Please log in with your credentials.');
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,20 +28,8 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-      // Login successful, check if 2FA is needed
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (data.requiresMFA) {
-        router.push(`/verify-2fa?userId=${data.userId}`);
-      } else {
-        router.push('/dashboard');
-      }
+      // Login successful, redirect to dashboard
+      router.push('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
@@ -68,6 +64,12 @@ export default function LoginPage() {
             required
           />
         </div>
+
+        {successMessage && (
+          <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-green-700">
+            {successMessage}
+          </div>
+        )}
 
         {error && (
           <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">

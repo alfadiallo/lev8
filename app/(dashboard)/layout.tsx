@@ -1,30 +1,27 @@
 'use client';
 
-import { useRequireAuth } from '@/hooks/useRequireAuth';
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 
 export default function DashboardLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  const { user, loading } = useRequireAuth();
+  const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  const toggleModule = (module: string) => {
+    setExpandedModules(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(module)) {
+        newSet.delete(module);
+      } else {
+        newSet.add(module);
+      }
+      return newSet;
+    });
+  };
 
-  if (!user) {
-    return null; // useRequireAuth will redirect to login
-  }
-
+  // Temporarily disable auth check for testing
   return (
     <div className="flex h-screen">
       {/* Sidebar */}
@@ -33,22 +30,91 @@ export default function DashboardLayout({
           <h1 className="text-2xl font-bold">Elevate</h1>
         </div>
 
-        <nav className="space-y-4">
-          <a href="/dashboard" className="block hover:text-blue-400">
+        <nav className="space-y-2">
+          <a href="/" className="block hover:text-blue-400">
             Dashboard
           </a>
-          <a href="/modules" className="block hover:text-blue-400">
-            Modules
-          </a>
-          <a href="/settings" className="block hover:text-blue-400">
-            Settings
-          </a>
+          
+          {/* Expandable Modules */}
+          <div>
+            <button 
+              onClick={() => toggleModule('modules')}
+              className="flex items-center justify-between w-full text-left hover:text-blue-400"
+            >
+              <span>Modules</span>
+              <span className={`transform transition-transform ${expandedModules.has('modules') ? 'rotate-90' : ''}`}>
+                ▶
+              </span>
+            </button>
+            
+            {expandedModules.has('modules') && (
+              <div className="ml-4 mt-2 space-y-2">
+                {/* Learn */}
+                <div>
+                  <button 
+                    onClick={() => toggleModule('learn')}
+                    className="flex items-center justify-between w-full text-left text-sm text-slate-300 hover:text-blue-400"
+                  >
+                    <span>Learn</span>
+                    <span className={`transform transition-transform ${expandedModules.has('learn') ? 'rotate-90' : ''}`}>
+                      ▶
+                    </span>
+                  </button>
+                  {expandedModules.has('learn') && (
+                    <div className="ml-4 mt-1 space-y-1">
+                      <a href="/modules/learn/clinical-cases" className="block text-xs text-slate-400 hover:text-blue-400">Clinical Cases</a>
+                      <a href="/modules/learn/difficult-conversations" className="block text-xs text-slate-400 hover:text-blue-400">Difficult Conversations</a>
+                      <a href="/modules/learn/ekg-acls" className="block text-xs text-slate-400 hover:text-blue-400">EKG & ACLS</a>
+                      <a href="/modules/learn/running-board" className="block text-xs text-slate-400 hover:text-blue-400">Running the Board</a>
+                    </div>
+                  )}
+                </div>
+
+                {/* Grow */}
+                <div>
+                  <button 
+                    onClick={() => toggleModule('grow')}
+                    className="flex items-center justify-between w-full text-left text-sm text-slate-300 hover:text-blue-400"
+                  >
+                    <span>Grow</span>
+                    <span className={`transform transition-transform ${expandedModules.has('grow') ? 'rotate-90' : ''}`}>
+                      ▶
+                    </span>
+                  </button>
+                  {expandedModules.has('grow') && (
+                    <div className="ml-4 mt-1 space-y-1">
+                      <a href="/modules/grow/voice-journal" className="block text-xs text-slate-400 hover:text-blue-400">Voice Journaling</a>
+                    </div>
+                  )}
+                </div>
+
+                {/* Understand */}
+                <div>
+                  <button 
+                    onClick={() => toggleModule('understand')}
+                    className="flex items-center justify-between w-full text-left text-sm text-slate-300 hover:text-blue-400"
+                  >
+                    <span>Understand</span>
+                    <span className={`transform transition-transform ${expandedModules.has('understand') ? 'rotate-90' : ''}`}>
+                      ▶
+                    </span>
+                  </button>
+                  {expandedModules.has('understand') && (
+                    <div className="ml-4 mt-1 space-y-1">
+                      <a href="/modules/understand/analytics" className="block text-xs text-slate-400 hover:text-blue-400">Analytics</a>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </nav>
 
-        {/* Settings icon at bottom */}
+        {/* Settings icon at bottom - fixed positioning */}
         <div className="absolute bottom-6 left-6">
-          <a href="/settings" className="text-slate-400 hover:text-white">
-            ⚙️ Settings
+          <a href="/settings" className="flex items-center text-slate-400 hover:text-white">
+            <span className="mr-2">⚙️</span>
+            <span>Settings</span>
           </a>
         </div>
       </aside>

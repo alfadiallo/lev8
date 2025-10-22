@@ -54,28 +54,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+      // Sign in directly with Supabase client
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
 
-      if (!response.ok) {
-        throw new Error('Login failed');
+      if (error) {
+        throw new Error(error.message || 'Login failed');
       }
 
-      const data = await response.json();
-
-      if (data.requiresMFA) {
-        // Redirect to 2FA page (handled in component)
-        setUser({ id: data.userId, email: data.email });
-      } else {
-        // Logged in successfully, no 2FA needed
-        setUser({ id: data.userId, email: data.email });
-        // Store session token if provided
-        if (data.session) {
-          localStorage.setItem('sb-auth-token', data.session);
-        }
+      if (data.user) {
+        setUser({
+          id: data.user.id,
+          email: data.user.email || '',
+        });
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -94,11 +87,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify(data),
       });
 
+      const result = await response.json();
+
       if (!response.ok) {
-        throw new Error('Registration failed');
+        // Throw with the actual error message from the API
+        throw new Error(result.error || result.details || 'Registration failed');
       }
 
-      const result = await response.json();
       setUser({ id: result.userId, email: result.email });
     } catch (error) {
       console.error('Register error:', error);

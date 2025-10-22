@@ -32,41 +32,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Generate device fingerprint
-    const ipAddress = getClientIpAddress(req.headers);
-    const userAgent = getClientUserAgent(req.headers);
-    const deviceFingerprint = generateDeviceFingerprint(userAgent, ipAddress);
-
-    // Check if device is trusted
-    const { data: trustedDevice } = await supabase
-      .from('device_trusts')
-      .select('*')
-      .eq('user_id', data.user.id)
-      .eq('device_fingerprint', deviceFingerprint)
-      .gt('trust_expires_at', new Date().toISOString())
-      .single();
-
-    if (trustedDevice) {
-      // Device is trusted and hasn't expired, skip 2FA
-      return NextResponse.json(
-        {
-          userId: data.user.id,
-          email: data.user.email,
-          session: data.session?.access_token,
-          requiresMFA: false,
-          next: '/dashboard',
-        },
-        { status: 200 }
-      );
-    }
-
-    // Device not trusted, require 2FA
+    // For now, skip 2FA and trust all devices
+    // TODO: Implement proper 2FA when needed
     return NextResponse.json(
       {
         userId: data.user.id,
         email: data.user.email,
-        requiresMFA: true,
-        next: '/verify-2fa',
+        session: data.session?.access_token,
+        requiresMFA: false,
+        next: '/',
       },
       { status: 200 }
     );

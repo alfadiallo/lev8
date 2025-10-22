@@ -97,41 +97,42 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get resident info to find institution_id
-    const { data: residentData, error: residentError } = await supabase
-      .from('residents')
-      .select('id, user_id, program_id')
-      .eq('user_id', userId)
-      .single();
-
-    if (residentError || !residentData) {
-      console.error('Resident lookup error:', residentError);
-      return NextResponse.json(
-        { error: 'Resident record not found. Please ensure your account is properly set up.' },
-        { status: 404 }
-      );
-    }
+    // SIMPLIFIED: Just use the user's ID directly
+    // Voice journal only needs authenticated user, not resident/faculty record
+    console.log('[Upload] Using user ID for voice journal:', userId);
     
-    residentId = residentData.id;
-
-    // Get program to find institution_id
-    const { data: programData } = await supabase
-      .from('programs')
+    // Try to get institution from user profile or use default
+    const { data: userProfile } = await supabase
+      .from('user_profiles')
       .select('health_system_id')
-      .eq('id', residentData.program_id)
+      .eq('id', userId)
       .single();
-
-    const institutionId = programData?.health_system_id;
-
+    
+    let institutionId = userProfile?.health_system_id;
+    
+    // If no institution in profile, use the first one available
     if (!institutionId) {
-      console.error('[Upload] Institution not found for program:', residentData.program_id);
+      const { data: healthSystem } = await supabase
+        .from('health_systems')
+        .select('id')
+        .limit(1)
+        .single();
+      
+      institutionId = healthSystem?.id;
+      console.log('[Upload] Using default institution:', institutionId);
+    }
+    
+    if (!institutionId) {
+      console.error('[Upload] No institution found');
       return NextResponse.json(
-        { error: 'Institution not found. Please contact support.' },
-        { status: 404 }
+        { error: 'System not configured. Please contact administrator.' },
+        { status: 500 }
       );
     }
     
-    console.log('[Upload] Found institution:', institutionId);
+    // Use userId directly as the "resident_id" for voice journal
+    // This allows ANY authenticated user to create voice journals
+    residentId = userId;
 
     // Upload audio file to Supabase Storage
     console.log('[Upload] Starting storage upload for user:', userId);
@@ -300,7 +301,7 @@ async function summarizeTranscription(entryId: string, transcription: string) {
       body: JSON.stringify({
         model: 'claude-3-5-sonnet-20241022',
         max_tokens: 256,
-        system: 'Summarize this medical resident voice journal entry into 2-3 key reflection points. Be concise and focus on clinical learning.',
+        system: 'Summarize this healthcare professional\'s voice journal entry into 2-3 key reflection points. Be concise and focus on clinical learning and professional development.',
         messages: [
           {
             role: 'user',

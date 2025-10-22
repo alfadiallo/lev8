@@ -1,0 +1,52 @@
+# Elevate (lev8.ai) - Project Context for Claude/Cursor
+
+## Project Overview
+Healthcare platform for medical residency programs. Emergency Medicine focus.
+Voice journal with AI transcription (Whisper) and summarization (Claude).
+
+## Tech Stack
+- Next.js 14 (App Router)
+- TypeScript (strict mode)
+- Supabase (PostgreSQL + Auth + Storage)
+- Tailwind CSS
+- OpenAI Whisper API (transcription)
+- Claude API (summarization)
+
+## Key Directories
+- `app/api/` - API routes (use route.ts inside folders)
+- `app/(dashboard)/` - Protected dashboard pages
+- `app/(auth)/` - Login/register pages
+- `components/` - React components
+- `lib/` - Utilities (supabase.ts, etc.)
+
+## Coding Standards
+- TypeScript strict mode always
+- Use `console.log('[ComponentName]', ...)` for debugging
+- API routes must be in `route.ts` files (Next.js 14 requirement)
+- User profiles use `full_name` column (not first_name/last_name)
+- Residents table required for voice journal functionality
+
+## Database Schema Notes
+- `user_profiles` - base user info (all roles)
+- `residents` - resident-specific data (links to programs)
+- `grow_voice_journal` - voice entries (owner-only via RLS)
+- `programs` - residency programs
+- `health_systems` - institutions
+
+## Common Issues
+- Residents table must exist for voice journal
+- Storage bucket `voice_journal` must be created in Supabase
+- API routes need SERVICE_KEY not ANON_KEY for full access
+- Audio MIME type varies by browser (webm/ogg/mp4)
+
+## Current State
+- Registration working
+- Voice journal UI complete
+- Need to test end-to-end: record → transcribe → summarize
+- Authentication temporarily simplified (2FA disabled)
+
+## References
+- See `/Users/alfadiallo/lev8/SETUP-GUIDE.md` for setup
+- See `/Users/alfadiallo/lev8/versions.md` for changelog
+- See `/Users/alfadiallo/lev8/prd.md` for product requirements
+

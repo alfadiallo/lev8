@@ -22,7 +22,7 @@ export default function Verify2FAPage() {
 
     try {
       await verify2FA(token, trustDevice);
-      router.push('/dashboard');
+      router.push('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : '2FA verification failed');
     } finally {

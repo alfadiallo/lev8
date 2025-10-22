@@ -34,7 +34,8 @@ export default function RegisterPage() {
 
     try {
       await register(formData);
-      router.push('/dashboard');
+      // Redirect to login page after successful registration
+      router.push('/login?registered=true');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {

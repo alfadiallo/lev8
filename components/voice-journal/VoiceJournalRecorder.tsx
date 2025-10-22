@@ -16,6 +16,8 @@ export default function VoiceJournalRecorder({ onSave }: VoiceJournalRecorderPro
   const analyserRef = useRef<AnalyserNode | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const audioElementRef = useRef<HTMLAudioElement | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
   const startRecording = async () => {
     try {
@@ -33,12 +35,21 @@ export default function VoiceJournalRecorder({ onSave }: VoiceJournalRecorderPro
       chunksRef.current = [];
 
       mediaRecorder.ondataavailable = (e) => {
-        chunksRef.current.push(e.data);
+        if (e.data.size > 0) {
+          chunksRef.current.push(e.data);
+        }
       };
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/wav' });
+        // Use the native MIME type from the MediaRecorder
+        const mimeType = mediaRecorder.mimeType || 'audio/webm';
+        const blob = new Blob(chunksRef.current, { type: mimeType });
         setAudioBlob(blob);
+        
+        // Create audio URL for playback
+        const url = URL.createObjectURL(blob);
+        setAudioUrl(url);
+        
         stream.getTracks().forEach((track) => track.stop());
       };
 
@@ -67,18 +78,30 @@ export default function VoiceJournalRecorder({ onSave }: VoiceJournalRecorderPro
   };
 
   const handlePlayback = () => {
-    if (!audioBlob) return;
+    if (!audioUrl) return;
 
-    if (isPlaying) {
-      const audio = document.getElementById('preview-audio') as HTMLAudioElement;
-      audio?.pause();
+    if (isPlaying && audioElementRef.current) {
+      audioElementRef.current.pause();
       setIsPlaying(false);
     } else {
-      const audio = new Audio(URL.createObjectURL(audioBlob));
-      audio.id = 'preview-audio';
-      audio.play();
-      setIsPlaying(true);
-      audio.onended = () => setIsPlaying(false);
+      // Create or reuse audio element
+      if (!audioElementRef.current) {
+        audioElementRef.current = new Audio(audioUrl);
+        audioElementRef.current.onended = () => setIsPlaying(false);
+        audioElementRef.current.onerror = (e) => {
+          console.error('Audio playback error:', e);
+          alert('Could not play audio. The recording may be corrupted.');
+          setIsPlaying(false);
+        };
+      }
+      
+      audioElementRef.current.play()
+        .then(() => setIsPlaying(true))
+        .catch((error) => {
+          console.error('Play error:', error);
+          alert('Could not play audio. Please try recording again.');
+          setIsPlaying(false);
+        });
     }
   };
 
@@ -89,6 +112,16 @@ export default function VoiceJournalRecorder({ onSave }: VoiceJournalRecorderPro
   };
 
   const handleRestart = () => {
+    // Clean up audio element and URL
+    if (audioElementRef.current) {
+      audioElementRef.current.pause();
+      audioElementRef.current = null;
+    }
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl);
+      setAudioUrl(null);
+    }
+    
     setAudioBlob(null);
     setDuration(0);
     setIsPlaying(false);
@@ -107,7 +140,7 @@ export default function VoiceJournalRecorder({ onSave }: VoiceJournalRecorderPro
       {!audioBlob ? (
         // Recording mode
         <div className="text-center space-y-6">
-          <p className="text-slate-600">Click the button below and start speaking. Your reflection will be private and only visible to you.</p>
+          <p className="text-slate-600">Click the button below and start speaking. Your reflections are private and only visible to you.</p>
 
           <div className="bg-slate-100 p-12 rounded-lg">
             <div className="text-6xl font-mono font-bold text-blue-600">

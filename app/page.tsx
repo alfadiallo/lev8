@@ -1,103 +1,204 @@
-import Image from "next/image";
+'use client';
+
+import { ReactNode, useState, useEffect } from 'react';
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
+  
+  const getTimeBasedGreeting = () => {
+    const now = new Date();
+    const hour = now.getHours();
+    
+    if (hour >= 8 && hour < 12) {
+      return "Good morning.";
+    } else if (hour >= 12 && hour < 17) {
+      return "Good afternoon.";
+    } else if (hour >= 17 && hour < 24) {
+      return "Good evening.";
+    } else if (hour >= 0 && hour < 5) {
+      return "Aren't you up late?";
+    } else if (hour >= 5 && hour < 8) {
+      return "The early bird gets the worm.";
+    }
+    
+    return "Welcome to Elevate!";
+  };
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
+  const [currentGreeting, setCurrentGreeting] = useState<string>(getTimeBasedGreeting());
+
+  const toggleModule = (module: string) => {
+    setExpandedModules(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(module)) {
+        newSet.delete(module);
+      } else {
+        newSet.add(module);
+      }
+      return newSet;
+    });
+  };
+
+  // Update greeting on component mount and every minute
+  useEffect(() => {
+    setCurrentGreeting(getTimeBasedGreeting());
+    
+    const interval = setInterval(() => {
+      setCurrentGreeting(getTimeBasedGreeting());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="flex h-screen">
+      {/* Sidebar */}
+      <aside className="w-64 bg-slate-900 text-white p-6">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold">Elevate</h1>
+        </div>
+
+        <nav className="space-y-2">
+          <a href="/" className="block hover:text-blue-400">
+            Dashboard
           </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
+          
+          {/* Expandable Modules */}
+          <div>
+            <button 
+              onClick={() => toggleModule('modules')}
+              className="flex items-center justify-between w-full text-left hover:text-blue-400"
+            >
+              <span>Modules</span>
+              <span className={`transform transition-transform ${expandedModules.has('modules') ? 'rotate-90' : ''}`}>
+                ▶
+              </span>
+            </button>
+            
+            {expandedModules.has('modules') && (
+              <div className="ml-4 mt-2 space-y-2">
+                {/* Learn */}
+                <div>
+                  <button 
+                    onClick={() => toggleModule('learn')}
+                    className="flex items-center justify-between w-full text-left text-sm text-slate-300 hover:text-blue-400"
+                  >
+                    <span>Learn</span>
+                    <span className={`transform transition-transform ${expandedModules.has('learn') ? 'rotate-90' : ''}`}>
+                      ▶
+                    </span>
+                  </button>
+                  {expandedModules.has('learn') && (
+                    <div className="ml-4 mt-1 space-y-1">
+                      <a href="/modules/learn/clinical-cases" className="block text-xs text-slate-400 hover:text-blue-400">Clinical Cases</a>
+                      <a href="/modules/learn/difficult-conversations" className="block text-xs text-slate-400 hover:text-blue-400">Difficult Conversations</a>
+                      <a href="/modules/learn/ekg-acls" className="block text-xs text-slate-400 hover:text-blue-400">EKG & ACLS</a>
+                      <a href="/modules/learn/running-board" className="block text-xs text-slate-400 hover:text-blue-400">Running the Board</a>
+                    </div>
+                  )}
+                </div>
+
+                {/* Grow */}
+                <div>
+                  <button 
+                    onClick={() => toggleModule('grow')}
+                    className="flex items-center justify-between w-full text-left text-sm text-slate-300 hover:text-blue-400"
+                  >
+                    <span>Grow</span>
+                    <span className={`transform transition-transform ${expandedModules.has('grow') ? 'rotate-90' : ''}`}>
+                      ▶
+                    </span>
+                  </button>
+                  {expandedModules.has('grow') && (
+                    <div className="ml-4 mt-1 space-y-1">
+                      <a href="/modules/grow/voice-journal" className="block text-xs text-slate-400 hover:text-blue-400">Voice Journaling</a>
+                    </div>
+                  )}
+                </div>
+
+                {/* Understand */}
+                <div>
+                  <button 
+                    onClick={() => toggleModule('understand')}
+                    className="flex items-center justify-between w-full text-left text-sm text-slate-300 hover:text-blue-400"
+                  >
+                    <span>Understand</span>
+                    <span className={`transform transition-transform ${expandedModules.has('understand') ? 'rotate-90' : ''}`}>
+                      ▶
+                    </span>
+                  </button>
+                  {expandedModules.has('understand') && (
+                    <div className="ml-4 mt-1 space-y-1">
+                      <a href="/modules/understand/analytics" className="block text-xs text-slate-400 hover:text-blue-400">Analytics</a>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <a href="/settings" className="block hover:text-blue-400">
+            Settings
+          </a>
+        </nav>
+
+        {/* Settings icon at bottom */}
+        <div className="absolute bottom-6 left-6">
+          <a href="/settings" className="text-slate-400 hover:text-white">
+            ⚙️ Settings
           </a>
         </div>
+      </aside>
+
+      {/* Main content */}
+      <main className="flex-1 overflow-auto bg-slate-50">
+        <div className="p-8">
+          <h1 className="text-3xl font-bold mb-6">{currentGreeting}</h1>
+          
+          <div className="grid grid-cols-3 gap-6">
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h2 className="text-lg font-semibold mb-2">Quick Actions</h2>
+              <ul className="space-y-2">
+                <li>
+                  <a href="/modules/grow/voice-journal" className="text-blue-600 hover:underline">
+                    Record Voice Journal
+                  </a>
+                </li>
+                <li>
+                  <a href="/settings" className="text-blue-600 hover:underline">
+                    Manage Profile
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h2 className="text-lg font-semibold mb-2">Action Items</h2>
+              <ul className="space-y-2">
+                <li>
+                  <a href="/modules/learn" className="text-blue-600 hover:underline">
+                    Learn
+                  </a>
+                </li>
+                <li>
+                  <a href="/modules/grow" className="text-blue-600 hover:underline">
+                    Grow
+                  </a>
+                </li>
+                <li>
+                  <a href="/modules/understand" className="text-blue-600 hover:underline">
+                    Understand
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h2 className="text-lg font-semibold mb-2">Resources</h2>
+              <p className="text-sm text-slate-600">Documentation and guides coming soon</p>
+            </div>
+          </div>
+        </div>
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
   );
 }

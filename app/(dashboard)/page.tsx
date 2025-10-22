@@ -1,13 +1,7 @@
-'use client';
-
-import { useAuth } from '@/context/AuthContext';
-
 export default function Dashboard() {
-  const { user } = useAuth();
-
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6">Welcome, {user?.email}</h1>
+      <h1 className="text-3xl font-bold mb-6">Welcome to Elevate!</h1>
       
       <div className="grid grid-cols-3 gap-6">
         <div className="bg-white p-6 rounded-lg shadow">
@@ -27,7 +21,7 @@ export default function Dashboard() {
         </div>
 
         <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-lg font-semibold mb-2">Module Buckets</h2>
+          <h2 className="text-lg font-semibold mb-2">Action Items</h2>
           <ul className="space-y-2">
             <li>
               <a href="/modules/learn" className="text-blue-600 hover:underline">

@@ -7,8 +7,9 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const params = await context.params;
   try {
     const { id } = params;
 

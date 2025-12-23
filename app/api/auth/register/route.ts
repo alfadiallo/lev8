@@ -43,6 +43,37 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Get institution_id (required for user_profiles)
+    // Use the known institution ID from seed data
+    const institutionId = '7a617a6d-c0e7-4c30-bcf7-12bd123432e9';
+    
+    // Verify institution exists
+    const { data: institutionData } = await supabase
+      .from('health_systems')
+      .select('id')
+      .eq('id', institutionId)
+      .single();
+    
+    let finalInstitutionId = institutionId;
+    
+    if (!institutionData) {
+      console.error('[Register] Institution not found, trying to get any institution');
+      const { data: anyInstitution } = await supabase
+        .from('health_systems')
+        .select('id')
+        .limit(1)
+        .single();
+      
+      if (!anyInstitution) {
+        return NextResponse.json(
+          { error: 'No institution configured. Please contact administrator.' },
+          { status: 500 }
+        );
+      }
+      
+      finalInstitutionId = anyInstitution.id;
+    }
+
     // Create user_profiles record - match actual schema
     const fullName = `${firstName} ${lastName}`.trim();
     const profileData: any = {
@@ -51,6 +82,7 @@ export async function POST(req: NextRequest) {
       full_name: fullName,
       display_name: firstName,
       role: 'resident',
+      institution_id: finalInstitutionId,
       is_active: true,
       phone: phone || null,
     };
@@ -72,50 +104,81 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Find any available program
+    // Find any available program for the institution
     const { data: programs, error: programQueryError } = await supabase
       .from('programs')
       .select('id, name')
+      .eq('health_system_id', finalInstitutionId)
       .limit(1)
       .maybeSingle();
+
+    let programId: string | null = null;
 
     if (programQueryError) {
       console.error('[Register] Program query error:', programQueryError);
     }
 
     if (!programs || !programs.id) {
-      console.error('[Register] No program found in database');
-      return NextResponse.json(
-        { 
-          error: 'No program configured. Please contact administrator.',
-          hint: 'Database may need seeding: POST /api/seed-data'
-        },
-        { status: 500 }
-      );
+      console.error('[Register] No program found for institution, trying to find any program');
+      // Fallback: try to find any program
+      const { data: anyProgram } = await supabase
+        .from('programs')
+        .select('id, name')
+        .limit(1)
+        .maybeSingle();
+      
+      if (anyProgram?.id) {
+        programId = anyProgram.id;
+        console.log('[Register] Using fallback program:', anyProgram.name, 'ID:', programId);
+      } else {
+        console.error('[Register] No program found in database at all');
+        // Don't fail registration - resident record creation is optional
+        console.log('[Register] Continuing without program (resident record may not be created)');
+      }
+    } else {
+      programId = programs.id;
+      console.log('[Register] Using program:', programs.name, 'ID:', programId);
     }
-    
-    const programId = programs.id;
-    console.log('[Register] Using program:', programs.name, 'ID:', programId);
 
     // Create resident record (optional - needed for voice journal)
-    console.log('[Register] Attempting to create resident record...');
-    
-    const { error: residentError } = await supabase
-      .from('residents')
-      .insert({
-        user_id: authData.user?.id,
-        program_id: programId,
-        medical_school: medicalSchool || 'Not specified',
-        specialty: specialty || 'Emergency Medicine',
-      });
+    // Only create if we have a program_id
+    if (programId) {
+      console.log('[Register] Attempting to create resident record...');
+      
+      // First, we need a class_id - get the first active class for the program
+      const { data: academicClass } = await supabase
+        .from('academic_classes')
+        .select('id')
+        .eq('program_id', programId)
+        .eq('is_active', true)
+        .limit(1)
+        .maybeSingle();
+      
+      if (academicClass?.id) {
+        const { error: residentError } = await supabase
+          .from('residents')
+          .insert({
+            user_id: authData.user?.id,
+            program_id: programId,
+            class_id: academicClass.id,
+            medical_school: medicalSchool || 'Not specified',
+            specialty: specialty || 'Emergency Medicine',
+          });
 
-    if (residentError) {
-      console.error('[Register] Resident creation failed:', residentError.code, residentError.message);
-      console.log('[Register] Voice Journal may not work without resident record');
-      console.log('[Register] Run SQL to create residents table: See SETUP-GUIDE.md');
-      // Don't fail registration - profile was created successfully
+        if (residentError) {
+          console.error('[Register] Resident creation failed:', residentError.code, residentError.message);
+          console.log('[Register] Voice Journal may not work without resident record');
+          // Don't fail registration - profile was created successfully
+        } else {
+          console.log('[Register] ✅ Resident record created successfully!');
+        }
+      } else {
+        console.log('[Register] No academic class found - skipping resident record creation');
+        console.log('[Register] Voice Journal may not work without resident record');
+      }
     } else {
-      console.log('[Register] ✅ Resident record created successfully!');
+      console.log('[Register] No program_id available - skipping resident record creation');
+      console.log('[Register] Voice Journal may not work without resident record');
     }
 
     return NextResponse.json(

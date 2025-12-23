@@ -1,0 +1,481 @@
+// Conversation Interface Component - v2 with phase-based engine
+// Integrates PhaseManager, EmotionalStateTracker, and v2 API
+
+'use client';
+
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { Vignette, Message } from '@/lib/types/modules';
+import { isVignetteV2 } from '@/lib/types/modules';
+import { ConversationSessionState, VignetteV2 } from '@/lib/types/difficult-conversations';
+import { Send, Download, X } from 'lucide-react';
+import PhaseIndicator from './PhaseIndicator';
+import EmotionalStateIndicator from './EmotionalStateIndicator';
+import BranchingHint from './BranchingHint';
+import AssessmentResults from './AssessmentResults';
+import { useAuth } from '@/context/AuthContext';
+
+interface ConversationInterfaceProps {
+  vignette: Vignette;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  onEnd: () => void;
+}
+
+export default function ConversationInterface({ vignette, difficulty, onEnd }: ConversationInterfaceProps) {
+  const { user } = useAuth();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [sessionState, setSessionState] = useState<ConversationSessionState | null>(null);
+  const [showHints, setShowHints] = useState(true);
+  const [phaseTransition, setPhaseTransition] = useState<{ from: string; to: string; reason: string } | null>(null);
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Check if vignette is v2 - use useMemo to prevent recalculation
+  const isV2 = isVignetteV2(vignette);
+  
+  // Use useMemo to stabilize vignetteV2 reference
+  const vignetteV2 = useMemo(() => {
+    if (!isV2) return null;
+    try {
+      return vignette.vignette_data as any as VignetteV2;
+    } catch {
+      return null;
+    }
+  }, [isV2, vignette.id]); // Only depend on vignette.id, not the whole object
+
+  // Initialize messages once on mount
+  useEffect(() => {
+    // Reset messages when vignette changes
+    if (isV2 && vignetteV2) {
+      // Initialize with opening phase message
+      const currentPhase = vignetteV2.conversation?.phases?.find((p: any) => p.id === 'opening') || vignetteV2.conversation?.phases?.[0];
+      const openingLine = currentPhase?.avatarState?.openingLine || vignette.description || 'Hello, how can I help you?';
+      
+      const initialMessage: Message = {
+        id: 'initial',
+        text: openingLine,
+        sender: 'avatar',
+        avatarId: vignetteV2.avatars?.primaryAvatar ? Object.keys(vignetteV2.avatars.primaryAvatar)[0] : undefined,
+        timestamp: new Date(),
+        phaseId: currentPhase?.id,
+      };
+
+      setMessages([initialMessage]);
+    } else {
+      // Fallback for v1 vignettes
+      const vignetteData = vignette.vignette_data || {};
+      const initialPrompt = vignetteData.initialPrompt || vignette.description || 'Hello, how can I help you?';
+      
+      const initialMessage: Message = {
+        id: 'initial',
+        avatarId: vignetteData.primaryAvatar?.id,
+        text: initialPrompt,
+        sender: 'avatar',
+        timestamp: new Date(),
+      };
+
+      setMessages([initialMessage]);
+    }
+    // Only re-run if vignette.id changes, not the whole vignette object
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vignette.id]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const handleSend = async () => {
+    if (!input.trim() || isLoading) return;
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      text: input,
+      sender: 'user',
+      timestamp: new Date(),
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    const currentInput = input;
+    setInput('');
+    setIsLoading(true);
+
+    try {
+      // Get auth token
+      const { supabaseClient } = await import('@/lib/supabase-client');
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      
+      if (!session) {
+        throw new Error('Not authenticated');
+      }
+
+      if (isV2 && vignetteV2) {
+        // Use v2 API
+        const response = await fetch('/api/conversations/v2/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            vignetteId: vignette.id,
+            message: currentInput,
+            difficulty,
+            sessionState: sessionState, // Pass existing session state
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to get response');
+        }
+
+        const data = await response.json();
+
+        // Add avatar response
+        const avatarMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          text: data.response,
+          sender: 'avatar',
+          avatarId: Object.keys(vignetteV2.avatars.primaryAvatar)[0],
+          timestamp: new Date(),
+          phaseId: data.sessionState?.currentPhase?.currentPhaseId,
+          emotionalImpact: data.emotionDelta,
+        };
+
+        setMessages(prev => [...prev, avatarMessage]);
+        setSessionState(data.sessionState);
+
+        // Update assessment scores if provided
+        if (data.assessmentUpdate) {
+          // Scores are already in sessionState, but we can trigger a re-render
+        }
+
+        // Handle phase transition
+        if (data.phaseTransition) {
+          setPhaseTransition(data.phaseTransition);
+          setTimeout(() => setPhaseTransition(null), 5000); // Clear after 5 seconds
+        }
+      } else {
+        // Fallback to v1 API
+        const vignetteData = vignette.vignette_data || {};
+        const v1Response = await fetch('/api/conversations/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            message: currentInput,
+            conversationHistory: messages,
+            vignetteContext: {
+              context: vignetteData.context || vignette.description || '',
+              facts: vignetteData.facts || [],
+              escalationTriggers: vignetteData.escalationTriggers || [],
+            },
+            avatarPersonality: vignetteData.primaryAvatar || {
+              name: 'Patient/Family Member',
+              role: 'Patient/Family',
+            },
+            difficulty,
+          }),
+        });
+
+        if (!v1Response.ok) {
+          throw new Error('Failed to get response');
+        }
+
+        const v1Data = await v1Response.json();
+
+        const avatarMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          avatarId: vignetteData.primaryAvatar?.id,
+          text: v1Data.response,
+          sender: 'avatar',
+          timestamp: new Date(),
+        };
+
+        setMessages(prev => [...prev, avatarMessage]);
+      }
+    } catch (error: any) {
+      console.error('[ConversationInterface] Error:', error);
+      // Show error message to user
+      const errorMessage: Message = {
+        id: `error-${Date.now()}`,
+        text: `Error: ${error.message || 'Failed to get response. Please try again.'}`,
+        sender: 'avatar',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const downloadChat = () => {
+    const chatData = {
+      vignette: vignette.title,
+      difficulty,
+      timestamp: new Date().toISOString(),
+      sessionState: sessionState,
+      conversation: messages,
+    };
+
+    const blob = new Blob([JSON.stringify(chatData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `conversation-${vignette.id}-${new Date().toISOString()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Get avatar info
+  const getAvatarInfo = () => {
+    if (isV2 && vignetteV2) {
+      const primaryAvatars = vignetteV2.avatars.primaryAvatar;
+      const avatarKey = Object.keys(primaryAvatars)[0];
+      const avatar = primaryAvatars[avatarKey];
+      return {
+        name: avatar.identity.name,
+        role: avatar.identity.relationship || avatar.identity.occupation || 'Family Member',
+        color: '#7EC8E3',
+      };
+    } else {
+      const vignetteData = vignette.vignette_data || {};
+      const primaryAvatar = vignetteData.primaryAvatar;
+      return {
+        name: primaryAvatar?.name || 'Patient/Family',
+        role: primaryAvatar?.role || 'Family Member',
+        color: primaryAvatar?.color || '#7EC8E3',
+      };
+    }
+  };
+
+  const avatarInfo = getAvatarInfo();
+
+  // Get phases for phase indicator (v2 only)
+  const getPhases = () => {
+    if (!isV2 || !vignetteV2) return [];
+    
+    const currentPhaseId = sessionState?.currentPhase?.currentPhaseId || 'opening';
+    
+    return vignetteV2.conversation.phases
+      .filter(p => p.id !== 'preparation')
+      .map((phase, index) => {
+        const allPhases = vignetteV2.conversation.phases.filter(p => p.id !== 'preparation');
+        const currentIndex = allPhases.findIndex(p => p.id === currentPhaseId);
+        return {
+          id: phase.id,
+          name: phase.name,
+          objective: phase.objective,
+          completed: index < currentIndex,
+          current: phase.id === currentPhaseId,
+        };
+      });
+  };
+
+  // Get hints based on current phase (v2 only)
+  const getHints = (): string[] => {
+    if (!isV2 || !vignetteV2 || !sessionState) return [];
+    
+    const currentPhase = vignetteV2.conversation.phases.find(
+      p => p.id === sessionState.currentPhase.currentPhaseId
+    );
+    
+    if (!currentPhase) return [];
+
+    // Get hints from escalation prevention
+    const escalationPrevention = vignetteV2.conversation.conversationMechanics.adaptiveDifficulty.escalationPrevention;
+    return escalationPrevention?.supportPrompts || [];
+  };
+
+  // Get emotional trajectory
+  const getEmotionalTrajectory = (): 'improving' | 'stable' | 'worsening' => {
+    if (!sessionState) return 'stable';
+    
+    const history = sessionState.emotionalState.history;
+    if (history.length < 3) return 'stable';
+    
+    const recent = history.slice(-3);
+    const firstValue = recent[0].value;
+    const lastValue = recent[recent.length - 1].value;
+    const difference = lastValue - firstValue;
+    
+    if (difference < -0.1) return 'improving';
+    if (difference > 0.1) return 'worsening';
+    return 'stable';
+  };
+
+  return (
+    <div className="flex flex-col h-[calc(100vh-300px)] max-w-6xl mx-auto gap-4">
+      {/* Header */}
+      <div className="bg-white/60 backdrop-blur-sm rounded-t-2xl shadow-md border border-white/30 p-4">
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h2 className="text-xl font-semibold text-neutral-800">{vignette.title}</h2>
+            <p className="text-sm text-neutral-600">Difficulty: {difficulty}</p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={downloadChat}
+              className="px-4 py-2 border border-white/40 text-neutral-700 rounded-xl hover:bg-white/20 transition-colors flex items-center gap-2"
+            >
+              <Download size={18} />
+              Download
+            </button>
+            <button
+              onClick={onEnd}
+              className="px-4 py-2 bg-[#F4A5A5] text-white rounded-xl hover:bg-[#E89595] transition-colors"
+            >
+              End Session
+            </button>
+          </div>
+        </div>
+
+        {/* Avatar Info */}
+        <div className="flex items-center gap-3">
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
+            style={{ backgroundColor: avatarInfo.color }}
+          >
+            {avatarInfo.name.charAt(0)}
+          </div>
+          <div>
+            <p className="font-medium text-neutral-800">{avatarInfo.name}</p>
+            <p className="text-sm text-neutral-600">{avatarInfo.role}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Phase Transition Notification */}
+      {phaseTransition && (
+        <div className="bg-gradient-to-r from-[#7EC8E3]/80 to-[#FFB5A7]/80 backdrop-blur-sm rounded-xl border border-[#7EC8E3]/40 p-4 flex items-center justify-between">
+          <div>
+            <p className="font-semibold text-sm text-neutral-800">Phase Transition</p>
+            <p className="text-xs text-neutral-700">{phaseTransition.reason}</p>
+          </div>
+          <button
+            onClick={() => setPhaseTransition(null)}
+            className="text-neutral-600 hover:text-neutral-800"
+          >
+            <X size={18} />
+          </button>
+        </div>
+      )}
+
+      {/* Sidebar Layout: Phase Indicator and Emotional State */}
+      <div className="flex gap-4 flex-1 min-h-0">
+        {/* Left Sidebar - Phase Indicator */}
+        {isV2 && (
+          <div className="w-80 flex-shrink-0">
+            <PhaseIndicator
+              phases={getPhases()}
+              currentPhaseId={sessionState?.currentPhase?.currentPhaseId || 'opening'}
+              objectivesCompleted={sessionState?.currentPhase?.objectivesCompleted || []}
+              objectivesPending={sessionState?.currentPhase?.objectivesPending || []}
+            />
+            
+            {/* Emotional State Indicator */}
+            {sessionState && (
+              <div className="mt-4">
+                <EmotionalStateIndicator
+                  emotionalState={sessionState.emotionalState}
+                  trajectory={getEmotionalTrajectory()}
+                  showByDefault={false}
+                />
+              </div>
+            )}
+
+            {/* Assessment Results */}
+            {sessionState && sessionState.assessmentScores && (
+              <div className="mt-4">
+                <AssessmentResults
+                  scores={sessionState.assessmentScores}
+                  passingScore={vignetteV2.passingScore}
+                  excellenceScore={vignetteV2.excellenceScore}
+                  showDetails={true}
+                  compact={false}
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Main Content - Messages */}
+        <div className="flex-1 flex flex-col min-h-0">
+          {/* Branching Hints */}
+          {isV2 && showHints && getHints().length > 0 && (
+            <div className="mb-4">
+              <BranchingHint
+                hints={getHints()}
+                phaseName={sessionState?.currentPhase?.currentPhaseId}
+                onDismiss={() => setShowHints(false)}
+              />
+            </div>
+          )}
+
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto bg-white/60 backdrop-blur-sm rounded-2xl shadow-md border border-white/30 p-6 mb-4 space-y-4">
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`max-w-[80%] p-4 rounded-2xl ${
+                    message.sender === 'user'
+                      ? 'bg-gradient-to-r from-[#FFB5A7] to-[#7EC8E3] text-white'
+                      : 'bg-white/80 border border-white/40 text-neutral-800'
+                  }`}
+                >
+                  <p className="whitespace-pre-wrap">{message.text}</p>
+                  <p className="text-xs mt-2 opacity-70">
+                    {new Date(message.timestamp).toLocaleTimeString()}
+                  </p>
+                </div>
+              </div>
+            ))}
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="bg-white/80 border border-white/40 p-4 rounded-2xl">
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Input */}
+          <div className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-md border border-white/30 p-4">
+            <div className="flex gap-3">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
+                placeholder="Type your response..."
+                className="flex-1 px-4 py-2 rounded-xl border border-white/40 bg-white/30 text-neutral-700 focus:outline-none focus:ring-2 focus:ring-[#7EC8E3]"
+                disabled={isLoading}
+              />
+              <button
+                onClick={handleSend}
+                disabled={!input.trim() || isLoading}
+                className="bg-gradient-to-r from-[#FFB5A7] to-[#7EC8E3] text-white px-6 py-2 rounded-xl font-medium hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                <Send size={18} />
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

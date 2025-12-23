@@ -1,0 +1,298 @@
+@import "tailwindcss";
+
+/* Force theme styles to override Tailwind */
+@layer base {
+  /* Clinical theme background - must be in base layer to override */
+  html[data-theme="clinical"] {
+    background: #F8FAFC !important;
+    background-image: none !important;
+    background-color: #F8FAFC !important;
+  }
+  
+  html[data-theme="clinical"] body {
+    background: transparent !important;
+    background-image: none !important;
+    background-color: transparent !important;
+  }
+}
+
+/* =====================================================
+   THEME SYSTEM: Dual-theme CSS variables
+   - Default: Pastel gradient (current design)
+   - Clinical: Add ?theme=clinical to URL
+   ===================================================== */
+
+:root {
+  /* ===== PASTEL THEME (Default) ===== */
+  
+  /* Legacy variables (keep for backward compatibility) */
+  --warm-peach: #FFE5D9;
+  --warm-pink: #FFD7CC;
+  --cool-mint: #D4F1F4;
+  --cool-blue: #B8E0E8;
+  --primary-warm: #FFB5A7;
+  --primary-cool: #7EC8E3;
+  --neutral-50: #FAFAFA;
+  --neutral-100: #F5F5F5;
+  --neutral-200: #E5E5E5;
+  --neutral-300: #D4D4D4;
+  --neutral-400: #A3A3A3;
+  --neutral-500: #737373;
+  --neutral-600: #525252;
+  --neutral-700: #404040;
+  --neutral-800: #262626;
+  --neutral-900: #171717;
+  --success: #86C5A8;
+  --error: #F4A5A5;
+  --warning: #FFD89B;
+  --info: #A8D5E2;
+  --foreground: #171717;
+  
+  /* ===== THEME VARIABLES (switchable) ===== */
+  
+  /* Backgrounds */
+  --theme-bg: linear-gradient(135deg, #FFE5D9 0%, #FFD7CC 25%, #D4F1F4 75%, #B8E0E8 100%);
+  --theme-bg-color: transparent;
+  
+  /* Surfaces */
+  --theme-surface: rgba(255, 255, 255, 0.25);
+  --theme-surface-solid: #FFFFFF;
+  --theme-surface-hover: rgba(255, 229, 217, 0.5);
+  --theme-surface-active: rgba(212, 241, 244, 0.4);
+  
+  /* Borders */
+  --theme-border: rgba(255, 255, 255, 0.3);
+  --theme-border-solid: #E5E5E5;
+  
+  /* Primary colors */
+  --theme-primary: #7EC8E3;
+  --theme-primary-dark: #5BA8C4;
+  --theme-primary-soft: rgba(126, 200, 227, 0.2);
+  --theme-primary-gradient: linear-gradient(to right, #FFB5A7, #7EC8E3);
+  
+  /* Accent colors */
+  --theme-accent-warm: #FFB5A7;
+  --theme-accent-cool: #7EC8E3;
+  
+  /* Text colors */
+  --theme-text: #404040;
+  --theme-text-muted: #737373;
+  --theme-text-inverted: #FFFFFF;
+  
+  /* Semantic colors */
+  --theme-success: #86C5A8;
+  --theme-error: #F4A5A5;
+  --theme-warning: #FFD89B;
+  --theme-info: #A8D5E2;
+  
+  /* Effects */
+  --theme-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  --theme-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+  --theme-blur: blur(10px) saturate(150%);
+  
+  /* Logo gradient */
+  --theme-logo-gradient: linear-gradient(to right, #D66B5C, #4A90A8);
+  
+  /* Chart colors */
+  --theme-chart-1: #7EC8E3;
+  --theme-chart-2: #FFB5A7;
+  --theme-chart-3: #86C5A8;
+  --theme-chart-4: #FFD89B;
+  --theme-chart-5: #A8D5E2;
+}
+
+/* ===== CLINICAL THEME ===== */
+html[data-theme="clinical"],
+:root[data-theme="clinical"] {
+  /* Backgrounds */
+  --theme-bg: none !important;
+  --theme-bg-color: #F8FAFC !important;
+  
+  /* Surfaces (Slate-based) */
+  --theme-surface: #FFFFFF;
+  --theme-surface-solid: #FFFFFF;
+  --theme-surface-hover: #FFFFFF;
+  --theme-surface-active: #E0F2FE;
+  
+  /* Borders */
+  --theme-border: #E2E8F0;
+  --theme-border-solid: #E2E8F0;
+  
+  /* Primary colors (Sky blue) */
+  --theme-primary: #0EA5E9;
+  --theme-primary-dark: #0284C7;
+  --theme-primary-soft: #E0F2FE;
+  --theme-primary-gradient: linear-gradient(to right, #0EA5E9, #2DD4BF);
+  
+  /* Accent colors */
+  --theme-accent-warm: #FDA4AF;
+  --theme-accent-cool: #2DD4BF;
+  
+  /* Text colors (High contrast) */
+  --theme-text: #0F172A;
+  --theme-text-muted: #64748B;
+  --theme-text-inverted: #FFFFFF;
+  
+  /* Semantic colors (Vibrant) */
+  --theme-success: #10B981;
+  --theme-error: #EF4444;
+  --theme-warning: #F59E0B;
+  --theme-info: #0EA5E9;
+  
+  /* Effects (Subtle) */
+  --theme-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --theme-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.06);
+  --theme-blur: none;
+  
+  /* Logo gradient */
+  --theme-logo-gradient: linear-gradient(to right, #0EA5E9, #2DD4BF);
+  
+  /* Chart colors */
+  --theme-chart-1: #0EA5E9;
+  --theme-chart-2: #2DD4BF;
+  --theme-chart-3: #10B981;
+  --theme-chart-4: #F59E0B;
+  --theme-chart-5: #8B5CF6;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  
+  /* Legacy Tailwind colors */
+  --color-warm-peach: #FFE5D9;
+  --color-warm-pink: #FFD7CC;
+  --color-cool-mint: #D4F1F4;
+  --color-cool-blue: #B8E0E8;
+  --color-primary-warm: #FFB5A7;
+  --color-primary-cool: #7EC8E3;
+  --color-success: #86C5A8;
+  --color-error: #F4A5A5;
+  --color-warning: #FFD89B;
+  --color-info: #A8D5E2;
+  
+  /* Clinical theme Tailwind colors */
+  --color-surface-50: #F8FAFC;
+  --color-surface-100: #F1F5F9;
+  --color-surface-200: #E2E8F0;
+  --color-surface-white: #FFFFFF;
+  --color-primary: #0EA5E9;
+  --color-primary-dark: #0284C7;
+  --color-primary-soft: #E0F2FE;
+  --color-accent-warm: #FDA4AF;
+  --color-accent-cool: #2DD4BF;
+}
+
+/* ===== BASE STYLES ===== */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+}
+
+/* Pastel theme: gradient background */
+html {
+  background-color: #FFE5D9;
+  background-image: linear-gradient(135deg, #FFE5D9 0%, #FFD7CC 25%, #D4F1F4 75%, #B8E0E8 100%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+/* Clinical theme: solid slate background */
+html[data-theme="clinical"] {
+  background-color: #F8FAFC !important;
+  background-image: none !important;
+}
+
+body {
+  background: transparent !important;
+  background-image: none !important;
+  color: var(--theme-text);
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ===== UTILITY CLASSES ===== */
+
+/* Glass panel effect (works in both themes) */
+.glass-panel {
+  background: var(--theme-surface);
+  backdrop-filter: var(--theme-blur);
+  -webkit-backdrop-filter: var(--theme-blur);
+  border: 1px solid var(--theme-border);
+  box-shadow: var(--theme-shadow);
+}
+
+/* Brand gradient (buttons, headers) */
+.brand-gradient {
+  background: var(--theme-primary-gradient);
+}
+
+/* Logo text gradient */
+.logo-gradient {
+  background: var(--theme-logo-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ===== SIDEBAR STYLES ===== */
+
+/* Pastel theme: glassmorphism sidebar */
+aside[class*="w-64"] {
+  background: rgba(255, 255, 255, 0.25) !important;
+  backdrop-filter: blur(10px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(150%) !important;
+}
+
+/* Clinical theme: solid sidebar background */
+html[data-theme="clinical"] aside[class*="w-64"] {
+  background: #F1F5F9 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-right: 1px solid #E2E8F0 !important;
+}
+
+/* ===== CLINICAL THEME DIRECT OVERRIDES ===== */
+/* These are explicit overrides to ensure clinical theme applies */
+
+html[data-theme="clinical"] {
+  background: #F8FAFC !important;
+  background-image: none !important;
+}
+
+html[data-theme="clinical"] body {
+  background: transparent !important;
+  background-image: none !important;
+  background-color: transparent !important;
+  color: #0F172A !important;
+}
+
+html[data-theme="clinical"] .logo-gradient {
+  background: linear-gradient(to right, #0EA5E9, #2DD4BF) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+}
+
+html[data-theme="clinical"] .glass-panel {
+  background: #FFFFFF !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid #E2E8F0 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+}
+
+html[data-theme="clinical"] .brand-gradient {
+  background: linear-gradient(to right, #0EA5E9, #2DD4BF) !important;
+}
+
+
+

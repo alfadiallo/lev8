@@ -1,11 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { supabaseClient as supabase } from '@/lib/supabase-client';
 
 interface User {
   id: string;
@@ -17,6 +13,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
+  role: string | undefined;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (data: any) => Promise<void>;
@@ -33,27 +30,89 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Check if user is logged in on mount
   useEffect(() => {
     const checkAuth = async () => {
+      console.log('[AuthContext] Starting auth check...');
+      
       try {
-        const { data } = await supabase.auth.getSession();
+        // Just call getSession directly without timeout racing
+        console.log('[AuthContext] Calling getSession...');
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('[AuthContext] getSession error:', error);
+          setLoading(false);
+          return;
+        }
+        
+        console.log('[AuthContext] getSession returned:', data?.session?.user?.email || 'no session');
+
         if (data.session?.user) {
+          // Fetch user profile to get role
+          console.log('[AuthContext] Fetching user profile...');
+          const { data: profile, error: profileError } = await supabase
+            .from('user_profiles')
+            .select('role, full_name, email, phone')
+            .eq('id', data.session.user.id)
+            .single();
+          console.log('[AuthContext] Profile fetched:', profile?.email || 'error', profileError?.message || 'OK');
+
+          if (profileError) {
+            console.error('[AuthContext] Profile fetch error:', profileError);
+          }
+
           setUser({
             id: data.session.user.id,
-            email: data.session.user.email || '',
+            email: data.session.user.email || profile?.email || '',
+            role: profile?.role || undefined,
+            firstName: profile?.full_name?.split(' ')[0],
+            lastName: profile?.full_name?.split(' ').slice(1).join(' '),
           });
         }
       } catch (error) {
-        console.error('Auth check failed:', error);
+        console.error('[AuthContext] Auth check failed:', error);
+        setUser(null);
       } finally {
         setLoading(false);
       }
     };
 
     checkAuth();
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('[AuthContext] Auth state changed:', event, session?.user?.email);
+      if (session?.user) {
+        // Fetch user profile to get role
+        const { data: profile, error: profileError } = await supabase
+          .from('user_profiles')
+          .select('role, full_name, email, phone')
+          .eq('id', session.user.id)
+          .single();
+
+        console.log('[AuthContext] onAuthStateChange profile:', profile?.role, 'error:', profileError?.message);
+
+        setUser({
+          id: session.user.id,
+          email: session.user.email || profile?.email || '',
+          role: profile?.role || undefined,
+          firstName: profile?.full_name?.split(' ')[0],
+          lastName: profile?.full_name?.split(' ').slice(1).join(' '),
+        });
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
+      console.log('[AuthContext] Starting login for:', email);
+
       // Sign in directly with Supabase client
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -65,9 +124,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (data.user) {
+        console.log('[AuthContext] Login successful, fetching profile...');
+        
+        // Try to fetch user profile, but don't block login if it fails
+        let profile = null;
+        try {
+          const profilePromise = supabase
+            .from('user_profiles')
+            .select('role, full_name')
+            .eq('id', data.user.id)
+            .single();
+          
+          const profileTimeout = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Profile fetch timeout')), 5000)
+          );
+          
+          const { data: profileData } = await Promise.race([profilePromise, profileTimeout]) as any;
+          profile = profileData;
+          console.log('[AuthContext] Profile fetched:', profile?.full_name || 'no profile');
+        } catch (profileError) {
+          console.warn('[AuthContext] Profile fetch failed, continuing without profile:', profileError);
+        }
+
         setUser({
           id: data.user.id,
           email: data.user.email || '',
+          role: profile?.role || undefined,
+          firstName: profile?.full_name?.split(' ')[0],
+          lastName: profile?.full_name?.split(' ').slice(1).join(' '),
         });
       }
     } catch (error) {
@@ -104,17 +188,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    setLoading(true);
+    // Clear local state immediately
+    setUser(null);
+    
+    // Clear all storage
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-      setUser(null);
       localStorage.removeItem('sb-auth-token');
-    } catch (error) {
-      console.error('Logout error:', error);
-      throw error;
-    } finally {
-      setLoading(false);
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch (e) {
+      // Ignore storage errors
     }
+    
+    // Sign out with timeout (don't let it hang)
+    try {
+      const signOutPromise = supabase.auth.signOut();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Signout timeout')), 2000)
+      );
+      await Promise.race([signOutPromise, timeoutPromise]);
+    } catch (error) {
+      console.error('Logout error (continuing anyway):', error);
+    }
+    
+    // Fire and forget API call
+    fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
   };
 
   const verify2FA = async (token: string, trustDevice: boolean) => {
@@ -144,7 +242,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, verify2FA }}>
+    <AuthContext.Provider value={{ user, role: user?.role, loading, login, register, logout, verify2FA }}>
       {children}
     </AuthContext.Provider>
   );

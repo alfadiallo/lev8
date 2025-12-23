@@ -1,0 +1,6 @@
+I want the Welcome to Elevate to change to time specific greetings (like Claude does):
+For 8a - 11:59p: Good morning.
+12:00 - 5:00p Good afternoon.
+5:01p to 11:59p Good evening.
+12:00a - 5:00a Aren't  you up late?
+5:01a - 7:59a The early bird gets the worm..

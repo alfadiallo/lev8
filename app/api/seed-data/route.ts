@@ -1,11 +1,18 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { requireSuperAdmin } from '@/lib/auth/checkApiPermission';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-export async function POST() {
+export async function POST(request: NextRequest) {
+  // Require super_admin authentication
+  const authResult = await requireSuperAdmin(request);
+  if (!authResult.authorized) {
+    return authResult.response;
+  }
+
   try {
     console.log('[Seed] Starting database seed...');
     
@@ -88,17 +95,18 @@ export async function POST() {
       console.log('[Seed] Program created with ID:', programId);
     }
 
-    // Insert academic classes
-    console.log('[Seed] Creating academic classes...');
+    // Insert classes (using graduation year)
+    console.log('[Seed] Creating classes...');
+    const currentYear = new Date().getFullYear();
     const classesData = [
-      { program_id: programId, class_year: 'PGY-1', start_date: '2024-07-01', is_active: true },
-      { program_id: programId, class_year: 'PGY-2', start_date: '2023-07-01', is_active: true },
-      { program_id: programId, class_year: 'PGY-3', start_date: '2022-07-01', is_active: true },
+      { program_id: programId, graduation_year: currentYear + 3, name: `Class of ${currentYear + 3}` }, // PGY-1
+      { program_id: programId, graduation_year: currentYear + 2, name: `Class of ${currentYear + 2}` }, // PGY-2
+      { program_id: programId, graduation_year: currentYear + 1, name: `Class of ${currentYear + 1}` }, // PGY-3
     ];
 
     for (const classData of classesData) {
       const { error: classError } = await supabase
-        .from('academic_classes')
+        .from('classes')
         .insert(classData);
       
       if (classError && classError.code !== '23505') {
@@ -113,7 +121,7 @@ export async function POST() {
     console.log('[Seed] Creating module buckets...');
     const bucketsData = [
       { institution_id: healthSystemId, name: 'Learn', description: 'Educational content and clinical learning modules', display_order: 1, is_active: true },
-      { institution_id: healthSystemId, name: 'Grow', description: 'Personal development and reflection tools', display_order: 2, is_active: true },
+      { institution_id: healthSystemId, name: 'Reflect', description: 'Personal development and reflection tools', display_order: 2, is_active: true },
       { institution_id: healthSystemId, name: 'Understand', description: 'Assessment and comprehension modules', display_order: 3, is_active: true },
     ];
 

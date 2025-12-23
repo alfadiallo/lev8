@@ -1,50 +1,21 @@
-export default function Dashboard() {
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+
+export default function RootPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    // Redirect to Dashboard as the default landing page
+    router.replace('/dashboard');
+  }, [router]);
+
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-6">Welcome to Elevate!</h1>
-      
-      <div className="grid grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-lg font-semibold mb-2">Quick Actions</h2>
-          <ul className="space-y-2">
-            <li>
-              <a href="/modules/grow/voice-journal" className="text-blue-600 hover:underline">
-                Record Voice Journal
-              </a>
-            </li>
-            <li>
-              <a href="/settings" className="text-blue-600 hover:underline">
-                Manage Profile
-              </a>
-            </li>
-          </ul>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-lg font-semibold mb-2">Action Items</h2>
-          <ul className="space-y-2">
-            <li>
-              <a href="/modules/learn" className="text-blue-600 hover:underline">
-                Learn
-              </a>
-            </li>
-            <li>
-              <a href="/modules/grow" className="text-blue-600 hover:underline">
-                Grow
-              </a>
-            </li>
-            <li>
-              <a href="/modules/understand" className="text-blue-600 hover:underline">
-                Understand
-              </a>
-            </li>
-          </ul>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-lg font-semibold mb-2">Resources</h2>
-          <p className="text-sm text-slate-600">Documentation and guides coming soon</p>
-        </div>
+    <div className="flex items-center justify-center min-h-[50vh]">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600 mx-auto mb-4"></div>
+        <p className="text-gray-500">Redirecting...</p>
       </div>
     </div>
   );

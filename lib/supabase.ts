@@ -1,22 +1,13 @@
-import { createClient } from '@supabase/supabase-js';
+// Server-side Supabase client (uses SERVICE_KEY)
+// For client-side use, import from '@/lib/supabase-client' instead
+
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY!;
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+// Export a singleton instance
+export const supabase = createSupabaseClient(supabaseUrl, supabaseKey);
 
-// Test connection
-async function testConnection() {
-  const { data, error } = await supabase
-    .from('information_schema.tables')
-    .select('*')
-    .limit(1);
-  
-  if (error) {
-    console.error('Connection failed:', error);
-  } else {
-    console.log('✓ Supabase connected successfully');
-  }
-}
-
-testConnection();
+// Export a function to create a new client (useful if we need fresh state, though less relevant for service role)
+export const createClient = () => createSupabaseClient(supabaseUrl, supabaseKey);

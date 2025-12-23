@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { Button } from '@/components/ui/Button';
 
-export default function Verify2FAPage() {
+function Verify2FAContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const userId = searchParams.get('userId');
@@ -31,20 +32,40 @@ export default function Verify2FAPage() {
   };
 
   return (
-    <div className="bg-white p-8 rounded-lg shadow-lg">
-      <h1 className="text-2xl font-bold mb-2">Two-Factor Authentication</h1>
-      <p className="text-slate-600 mb-6">Enter the 6-digit code from your authenticator app</p>
+    <div className="p-8 rounded-2xl shadow-lg glass-panel">
+      <h1 
+        className="text-2xl font-bold mb-2"
+        style={{ color: 'var(--theme-text)' }}
+      >
+        Two-Factor Authentication
+      </h1>
+      <p 
+        className="mb-6"
+        style={{ color: 'var(--theme-text-muted)' }}
+      >
+        Enter the 6-digit code from your authenticator app
+      </p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Authentication Code</label>
+          <label 
+            className="block text-sm font-medium mb-1.5"
+            style={{ color: 'var(--theme-text)' }}
+          >
+            Authentication Code
+          </label>
           <input
             type="text"
             value={token}
             onChange={(e) => setToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
             maxLength={6}
             placeholder="000000"
-            className="w-full px-4 py-2 text-2xl text-center tracking-widest border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-3 text-2xl text-center tracking-widest rounded-xl transition-all duration-200"
+            style={{
+              border: '1px solid var(--theme-border-solid)',
+              background: 'var(--theme-surface-solid)',
+              color: 'var(--theme-text)',
+            }}
             required
           />
         </div>
@@ -55,34 +76,73 @@ export default function Verify2FAPage() {
             id="trustDevice"
             checked={trustDevice}
             onChange={(e) => setTrustDevice(e.target.checked)}
-            className="w-4 h-4 rounded border-slate-300"
+            className="w-4 h-4 rounded"
+            style={{ 
+              borderColor: 'var(--theme-border-solid)',
+              accentColor: 'var(--theme-primary)'
+            }}
           />
-          <label htmlFor="trustDevice" className="ml-2 text-sm text-slate-600">
+          <label 
+            htmlFor="trustDevice" 
+            className="ml-2 text-sm"
+            style={{ color: 'var(--theme-text-muted)' }}
+          >
             Trust this device for 30 days
           </label>
         </div>
 
         {error && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+          <div 
+            className="p-4 rounded-lg border"
+            style={{ 
+              background: 'rgba(239, 68, 68, 0.1)',
+              borderColor: 'var(--theme-error)',
+              color: 'var(--theme-error)'
+            }}
+          >
             {error}
           </div>
         )}
 
-        <button
+        <Button
           type="submit"
+          variant="primary"
+          size="lg"
+          className="w-full"
           disabled={loading || token.length !== 6}
-          className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
+          isLoading={loading}
         >
           {loading ? 'Verifying...' : 'Verify'}
-        </button>
+        </Button>
       </form>
 
-      <p className="text-center text-sm text-slate-600 mt-6">
-        Don't have an authenticator app?{' '}
-        <a href="#" className="text-blue-600 hover:underline">
+      <p 
+        className="text-center text-sm mt-6"
+        style={{ color: 'var(--theme-text-muted)' }}
+      >
+        Don&apos;t have an authenticator app?{' '}
+        <a 
+          href="#" 
+          className="transition-colors"
+          style={{ color: 'var(--theme-primary)' }}
+          onMouseEnter={(e) => e.currentTarget.style.color = 'var(--theme-primary-dark)'}
+          onMouseLeave={(e) => e.currentTarget.style.color = 'var(--theme-primary)'}
+        >
           Recovery codes (coming soon)
         </a>
       </p>
     </div>
+  );
+}
+
+export default function Verify2FAPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-8 rounded-2xl shadow-lg glass-panel">
+        <div style={{ color: 'var(--theme-text-muted)' }}>Loading...</div>
+      </div>
+    }>
+      <Verify2FAContent />
+    </Suspense>
   );
 }

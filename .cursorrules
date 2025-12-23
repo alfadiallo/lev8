@@ -1,52 +1,49 @@
-# Elevate (lev8.ai) - Project Context for Claude/Cursor
+# Elevate (lev8.ai) - Project Context
 
 ## Project Overview
 Healthcare platform for medical residency programs. Emergency Medicine focus.
-Voice journal with AI transcription (Whisper) and summarization (Claude).
+Resident analytics, SWOT analysis, EQ/PQ/IQ scoring, and CCC meeting management.
 
 ## Tech Stack
-- Next.js 14 (App Router)
-- TypeScript (strict mode)
-- Supabase (PostgreSQL + Auth + Storage)
-- Tailwind CSS
-- OpenAI Whisper API (transcription)
-- Claude API (summarization)
+- Next.js 15 (App Router), TypeScript, Supabase, Tailwind CSS, D3.js, Recharts
+
+## Module Structure
+- learn/ - Clinical cases, conversations, EKG/ACLS, running board
+- reflect/ - Voice journaling with AI transcription
+- understand/ - Resident analytics, class cohorts, CCC meetings
 
 ## Key Directories
-- `app/api/` - API routes (use route.ts inside folders)
-- `app/(dashboard)/` - Protected dashboard pages
-- `app/(auth)/` - Login/register pages
-- `components/` - React components
-- `lib/` - Utilities (supabase.ts, etc.)
+- app/(dashboard)/modules/ - Module pages
+- app/api/ - API routes (REST endpoints)
+- components/analytics/ - Shared analytics (SWOT, Scores, D3 Charts)
+- components/modules/understand/ - OverviewPane
+- lib/ - Utilities and services
+
+## Understand Module Routes
+- /modules/understand - Main page with tiles (Residents, Class Cohort, Program-Wide, CCC Meetings)
+- /modules/understand/residents - Individual resident analytics with SWOT, EQ/PQ/IQ
+- /modules/understand/class - Class cohort analytics (placeholder)
+- /modules/understand/program - Program-wide analytics (placeholder)
+- /modules/understand/[sessionId] - CCC session detail
+
+## Key API Endpoints
+- /api/analytics/scores/resident/[id] - Resident EQ/PQ/IQ scores
+- /api/analytics/swot/resident/[id] - Resident SWOT analysis
+- /api/analytics/trendlines/resident/[id] - Attribute trendlines
+- /api/forms/structured-rating - EQ/PQ/IQ rating submissions (GET/POST)
+- /api/resident-notes - Resident notes CRUD
+
+## Database Schema (Key Tables)
+- residents - Resident profiles (FK to classes via class_id)
+- classes - Graduation year cohorts (graduation_year INT, replaces academic_classes)
+- swot_summaries - AI-generated SWOT analysis
+- period_scores - Aggregated EQ/PQ/IQ scores by period
+- structured_ratings - Faculty/self EQ/PQ/IQ submissions
+- ite_scores - In-Training Exam scores
+- imported_comments - MedHub evaluation comments
 
 ## Coding Standards
-- TypeScript strict mode always
-- Use `console.log('[ComponentName]', ...)` for debugging
-- API routes must be in `route.ts` files (Next.js 14 requirement)
-- User profiles use `full_name` column (not first_name/last_name)
-- Residents table required for voice journal functionality
-
-## Database Schema Notes
-- `user_profiles` - base user info (all roles)
-- `residents` - resident-specific data (links to programs)
-- `grow_voice_journal` - voice entries (owner-only via RLS)
-- `programs` - residency programs
-- `health_systems` - institutions
-
-## Common Issues
-- Residents table must exist for voice journal
-- Storage bucket `voice_journal` must be created in Supabase
-- API routes need SERVICE_KEY not ANON_KEY for full access
-- Audio MIME type varies by browser (webm/ogg/mp4)
-
-## Current State
-- Registration working
-- Voice journal UI complete
-- Need to test end-to-end: record → transcribe → summarize
-- Authentication temporarily simplified (2FA disabled)
-
-## References
-- See `/Users/alfadiallo/lev8/SETUP-GUIDE.md` for setup
-- See `/Users/alfadiallo/lev8/versions.md` for changelog
-- See `/Users/alfadiallo/lev8/prd.md` for product requirements
-
+- TypeScript strict mode
+- console.log('[ComponentName]', ...) for debugging
+- PGY levels from graduation_year via lib/utils/pgy-calculator.ts
+- All class lookups use classes table (not academic_classes)

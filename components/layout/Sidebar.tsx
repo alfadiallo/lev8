@@ -1,0 +1,352 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { 
+  ChevronRight, 
+  ChevronDown
+} from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { usePermissions } from '@/lib/hooks/usePermissions';
+
+interface NavItem {
+  name: string;
+  href?: string;
+  children?: { name: string; href: string }[];
+  adminOnly?: boolean;
+  leadershipOnly?: boolean;  // Program Director, Asst PD, Clerkship Director, Admin, Super Admin
+}
+
+const BASE_NAVIGATION: NavItem[] = [
+  { 
+    name: 'Dashboard',
+    href: '/dashboard',
+  },
+  { 
+    name: 'Learn',
+    children: [
+      { name: 'Clinical Cases', href: '/modules/learn/clinical-cases' },
+      { name: 'Difficult Conversations', href: '/modules/learn/difficult-conversations' },
+      { name: 'EKG & ACLS', href: '/modules/learn/ekg-acls' },
+      { name: 'Running the Board', href: '/modules/learn/running-board' },
+    ]
+  },
+  { 
+    name: 'Reflect',
+    children: [
+      { name: 'Voice Journaling', href: '/modules/reflect/voice-journal' },
+    ]
+  },
+  { 
+    name: 'Understand',
+    children: [
+      { name: 'Residents', href: '/modules/understand/residents' },
+      { name: 'Class Cohort', href: '/modules/understand/class' },
+      { name: 'Program-Wide', href: '/modules/understand/program' },
+      { name: 'CCC Meetings', href: '/modules/understand' },
+    ]
+  },
+  { 
+    name: 'Truths',
+    children: [
+      { name: 'Uploads', href: '/truths/uploads' },
+      { name: 'Scores', href: '/truths/scores' },
+    ]
+  },
+  { 
+    name: 'Expectations',
+    leadershipOnly: true,
+    children: [
+      { name: 'Dashboard', href: '/expectations' },
+      { name: 'Requirements', href: '/expectations/requirements' },
+      { name: 'Action Items', href: '/expectations/action-items' },
+      { name: 'Site Visits', href: '/expectations/site-visits' },
+    ]
+  },
+  { 
+    name: 'Admin Portal',
+    adminOnly: true,
+    children: [
+      { name: 'Dashboard', href: '/admin/dashboard' },
+      { name: 'Access Requests', href: '/admin/requests' },
+      { name: 'User Management', href: '/admin/users' },
+    ]
+  },
+];
+
+export function Sidebar() {
+  const pathname = usePathname();
+  const { logout, user } = useAuth();
+  const { canAccessAdminPortal, isProgramLeadership, isSuperAdmin, role } = usePermissions();
+  const [expandedModules, setExpandedModules] = useState<string[]>(['learn']);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // Expectations is only visible to Program Leadership, Admin, Super Admin
+  const canAccessExpectations = isProgramLeadership || isSuperAdmin;
+
+  // Filter navigation based on permissions
+  const navigation = BASE_NAVIGATION.filter(item => {
+    if (item.adminOnly) return canAccessAdminPortal;
+    if (item.leadershipOnly) return canAccessExpectations;
+    return true;
+  });
+
+  // Ensure modules are expanded based on current pathname
+  useEffect(() => {
+    const expanded = new Set(['learn']); // Always keep learn expanded by default
+    
+    // Check which sections should be expanded based on current path
+    if (pathname?.startsWith('/admin')) {
+      expanded.add('admin portal');
+    }
+    if (pathname?.startsWith('/truths')) {
+      expanded.add('truths');
+    }
+    if (pathname?.startsWith('/expectations')) {
+      expanded.add('expectations');
+    }
+    if (pathname?.startsWith('/modules/reflect')) {
+      expanded.add('reflect');
+    }
+    if (pathname?.startsWith('/modules/understand')) {
+      expanded.add('understand');
+    }
+    if (pathname?.startsWith('/modules/learn')) {
+      expanded.add('learn');
+    }
+    
+    setExpandedModules(prev => {
+      // Merge with existing expanded modules to preserve user's manual expansions
+      const merged = new Set([...prev, ...expanded]);
+      return Array.from(merged);
+    });
+  }, [pathname]);
+
+  const handleLogout = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    
+    logout().catch(console.error);
+    
+    setTimeout(() => {
+      window.location.href = '/login';
+    }, 500);
+  };
+
+  const toggleModule = (module: string) => {
+    setExpandedModules(prev => {
+      if (prev.includes(module)) {
+        return prev.filter(m => m !== module);
+      } else {
+        return [...prev, module];
+      }
+    });
+  };
+
+  const isExpanded = (module: string) => expandedModules.includes(module);
+  
+  const isActive = (href: string) => pathname === href;
+  
+  const isChildActive = (item: NavItem) => {
+    if (!item.children) return false;
+    return item.children.some(child => pathname === child.href || pathname.startsWith(child.href + '/'));
+  };
+
+  return (
+    <aside 
+      className="w-64 flex flex-col"
+      style={{
+        background: 'var(--theme-surface)',
+        backdropFilter: 'var(--theme-blur)',
+        WebkitBackdropFilter: 'var(--theme-blur)',
+        borderRight: '1px solid rgba(0,0,0,0.06)',
+        minHeight: '100vh',
+      }}
+    >
+      {/* Header */}
+      <div 
+        className="flex h-16 items-center px-6"
+        style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}
+      >
+        <div className="mr-3 flex items-center justify-center">
+          <img 
+            src="/logo-small.png" 
+            alt="Logo" 
+            className="h-8 w-auto rounded-lg shadow-sm"
+          />
+        </div>
+        <span 
+          className="text-xl font-bold tracking-tight logo-gradient"
+          style={{ textShadow: '0 1px 2px rgba(0,0,0,0.1)' }}
+        >
+          Elevate
+        </span>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+        {navigation.map((item) => {
+          const hasChildren = !!item.children;
+          const expanded = hasChildren && isExpanded(item.name.toLowerCase());
+          const active = item.href ? isActive(item.href) : isChildActive(item);
+          
+          return (
+            <div key={item.name}>
+              {/* Parent item */}
+              {item.href ? (
+                <Link
+                  href={item.href}
+                  className="flex items-center px-3 py-2.5 rounded-xl transition-all duration-200"
+                  style={{
+                    background: 'transparent',
+                    color: active ? 'var(--theme-primary)' : 'var(--theme-text)',
+                    fontWeight: active ? 600 : 400,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!active) {
+                      e.currentTarget.style.background = 'var(--theme-surface-hover)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!active) {
+                      e.currentTarget.style.background = 'transparent';
+                    }
+                  }}
+                >
+                  <span className="text-sm">{item.name}</span>
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => toggleModule(item.name.toLowerCase())}
+                  className="flex items-center justify-between w-full text-left px-3 py-2.5 rounded-xl transition-all duration-200 cursor-pointer"
+                  style={{
+                    background: 'transparent',
+                    color: active ? 'var(--theme-primary)' : 'var(--theme-text)',
+                    fontWeight: active ? 600 : 400,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!active) {
+                      e.currentTarget.style.background = 'var(--theme-surface-hover)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!active) {
+                      e.currentTarget.style.background = 'transparent';
+                    }
+                  }}
+                >
+                  <span className="text-sm">{item.name}</span>
+                  {expanded ? (
+                    <ChevronDown size={16} style={{ color: 'var(--theme-text-muted)' }} />
+                  ) : (
+                    <ChevronRight size={16} style={{ color: 'var(--theme-text-muted)' }} />
+                  )}
+                </button>
+              )}
+              
+              {/* Children */}
+              {hasChildren && expanded && (
+                <div className="ml-4 mt-1 space-y-1">
+                  {item.children!.map((child) => {
+                    const childActive = isActive(child.href);
+                    return (
+                      <Link
+                        key={child.href}
+                        href={child.href}
+                        className="block text-sm px-3 py-1.5 transition-colors duration-200"
+                        style={{
+                          background: 'none',
+                          backgroundColor: 'transparent',
+                          color: childActive ? 'var(--theme-primary)' : 'var(--theme-text-muted)',
+                          fontWeight: childActive ? 600 : 400,
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!childActive) {
+                            e.currentTarget.style.color = 'var(--theme-primary)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!childActive) {
+                            e.currentTarget.style.color = 'var(--theme-text-muted)';
+                          }
+                        }}
+                      >
+                        {child.name}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </nav>
+
+      {/* Footer */}
+      <div 
+        className="p-4"
+        style={{ 
+          background: 'var(--theme-surface)',
+        }}
+      >
+        {/* User Info - at top */}
+        <div 
+          className="px-3 py-2 mb-2 pb-3"
+          style={{ borderBottom: '1px solid rgba(200, 200, 200, 0.3)' }}
+        >
+          <p className="text-sm font-medium truncate" style={{ color: 'var(--theme-text)' }}>
+            {user?.email}
+          </p>
+          <p className="text-xs uppercase tracking-wider mt-0.5" style={{ color: 'var(--theme-text-muted)' }}>
+            {role?.replace(/_/g, ' ') || 'Loading...'}
+          </p>
+        </div>
+
+        <div className="pt-1">
+          <Link 
+            href="/settings" 
+            className="flex items-center px-3 py-2 rounded-xl transition-colors"
+            style={{ color: 'var(--theme-text-muted)' }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--theme-surface-hover)';
+              e.currentTarget.style.color = 'var(--theme-text)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = 'var(--theme-text-muted)';
+            }}
+          >
+            <span className="text-sm">Settings</span>
+          </Link>
+          <button
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            className="w-full flex items-center px-3 py-2 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ color: 'var(--theme-text-muted)' }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+              e.currentTarget.style.color = 'var(--theme-error)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = 'var(--theme-text-muted)';
+            }}
+          >
+            <span className="text-sm">{isLoggingOut ? 'Logging out...' : 'Logout'}</span>
+          </button>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+export default Sidebar;
+
+
+
+

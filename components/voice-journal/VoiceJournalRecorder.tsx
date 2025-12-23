@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { Mic, Square, Play, Pause, RotateCcw, Save } from 'lucide-react';
 
 interface VoiceJournalRecorderProps {
   onSave?: (audioBlob: Blob, duration: number) => void;
@@ -134,16 +135,16 @@ export default function VoiceJournalRecorder({ onSave }: VoiceJournalRecorderPro
   };
 
   return (
-    <div className="bg-white p-8 rounded-lg shadow-lg max-w-2xl mx-auto">
-      <h2 className="text-2xl font-bold mb-6">Record Voice Journal Entry</h2>
+    <div className="bg-white/90 backdrop-blur-sm p-8 rounded-2xl shadow-lg max-w-2xl mx-auto border border-white/30">
+      <h2 className="text-2xl font-bold mb-6 bg-gradient-to-r from-[#FFB5A7] to-[#7EC8E3] bg-clip-text text-transparent">Record Voice Journal Entry</h2>
 
       {!audioBlob ? (
         // Recording mode
         <div className="text-center space-y-6">
-          <p className="text-slate-600">Click the button below and start speaking. Your reflections are private and only visible to you.</p>
+          <p className="text-neutral-600">Click the button below and start speaking. Your reflections are private and only visible to you.</p>
 
-          <div className="bg-slate-100 p-12 rounded-lg">
-            <div className="text-6xl font-mono font-bold text-blue-600">
+          <div className="bg-gradient-to-br from-[#FFE5D9]/50 to-[#D4F1F4]/50 p-12 rounded-2xl border border-white/30">
+            <div className="text-6xl font-mono font-bold bg-gradient-to-r from-[#FFB5A7] to-[#7EC8E3] bg-clip-text text-transparent">
               {formatTime(duration)}
             </div>
           </div>
@@ -152,16 +153,18 @@ export default function VoiceJournalRecorder({ onSave }: VoiceJournalRecorderPro
             {!isRecording ? (
               <button
                 onClick={startRecording}
-                className="bg-red-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-red-700"
+                className="bg-gradient-to-r from-[#FFB5A7] to-[#7EC8E3] text-white px-8 py-3 rounded-2xl font-medium hover:shadow-lg transition-all duration-300 hover:scale-105 flex items-center gap-2"
               >
-                🎤 Start Recording
+                <Mic size={20} />
+                Start Recording
               </button>
             ) : (
               <button
                 onClick={stopRecording}
-                className="bg-slate-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-slate-700"
+                className="bg-neutral-600 text-white px-8 py-3 rounded-2xl font-medium hover:bg-neutral-700 transition-all duration-300 hover:scale-105 flex items-center gap-2"
               >
-                ⏹ Stop Recording
+                <Square size={20} />
+                Stop Recording
               </button>
             )}
           </div>
@@ -169,34 +172,46 @@ export default function VoiceJournalRecorder({ onSave }: VoiceJournalRecorderPro
       ) : (
         // Preview mode
         <div className="space-y-6">
-          <div className="bg-blue-50 p-6 rounded-lg">
-            <p className="text-sm text-slate-600 mb-4">Duration: {formatTime(duration)}</p>
+          <div className="bg-[#D4F1F4]/50 backdrop-blur-sm p-6 rounded-2xl border border-[#7EC8E3]/30">
+            <p className="text-sm text-neutral-600 mb-4">Duration: {formatTime(duration)}</p>
             <div className="flex gap-4">
               <button
                 onClick={handlePlayback}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="px-6 py-2 bg-gradient-to-r from-[#FFB5A7] to-[#7EC8E3] text-white rounded-2xl hover:shadow-lg transition-all duration-300 hover:scale-105 flex items-center gap-2"
               >
-                {isPlaying ? '⏸ Pause' : '▶ Play Preview'}
+                {isPlaying ? (
+                  <>
+                    <Pause size={18} />
+                    Pause
+                  </>
+                ) : (
+                  <>
+                    <Play size={18} />
+                    Play Preview
+                  </>
+                )}
               </button>
               <button
                 onClick={handleRestart}
-                className="px-6 py-2 bg-slate-300 text-slate-800 rounded-lg hover:bg-slate-400"
+                className="px-6 py-2 bg-neutral-300 text-neutral-800 rounded-2xl hover:bg-neutral-400 transition-all duration-300 flex items-center gap-2"
               >
-                🔄 Re-record
+                <RotateCcw size={18} />
+                Re-record
               </button>
             </div>
           </div>
 
-          <div className="border-t pt-6">
-            <h3 className="font-semibold mb-4">Ready to save?</h3>
-            <p className="text-sm text-slate-600 mb-4">
+          <div className="border-t border-neutral-200 pt-6">
+            <h3 className="font-semibold mb-4 text-neutral-800">Ready to save?</h3>
+            <p className="text-sm text-neutral-600 mb-4">
               Your recording will be uploaded, transcribed, and summarized using AI. This process typically takes 2-3 minutes.
             </p>
             <button
               onClick={handleSave}
-              className="w-full bg-green-600 text-white py-3 rounded-lg font-medium hover:bg-green-700"
+              className="w-full bg-gradient-to-r from-[#86C5A8] to-[#7EC8E3] text-white py-3 rounded-2xl font-medium hover:shadow-lg transition-all duration-300 hover:scale-[1.02] flex items-center justify-center gap-2"
             >
-              💾 Save to Journal
+              <Save size={18} />
+              Save to Journal
             </button>
           </div>
         </div>

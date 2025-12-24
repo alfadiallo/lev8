@@ -33,14 +33,17 @@ function LoginForm() {
 
     try {
       await login(email, password);
-      // Check for redirect parameter, otherwise go to home
-      const redirectTo = searchParams.get('redirect') || '/';
-      router.push(redirectTo);
+      // Check for redirect parameter, otherwise go to dashboard
+      const redirectParam = searchParams.get('redirect');
+      const redirectTo = redirectParam && redirectParam !== '/' ? redirectParam : '/dashboard';
+      console.log('[Login] Redirecting to:', redirectTo);
+      // Use replace to prevent back button issues
+      router.replace(redirectTo);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
-    } finally {
       setLoading(false);
     }
+    // Don't set loading to false on success - let the redirect happen
   };
 
   return (

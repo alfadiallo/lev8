@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 import { UserRole, ROLE_HIERARCHY } from '@/lib/hooks/usePermissions';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -26,13 +28,53 @@ export async function checkApiPermission(
   } = {}
 ): Promise<AuthResult> {
   try {
-    // Get the authorization header
-    const authHeader = request.headers.get('authorization');
+    let user = null;
+    let authError = null;
+
+    // 1. Try to get user from cookies (Browser session)
+    const cookieStore = await cookies();
+    const supabaseCookie = createServerClient(
+      supabaseUrl,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            // Read-only in API routes usually
+          },
+        },
+      }
+    );
+
+    const { data: cookieData, error: cookieError } = await supabaseCookie.auth.getUser();
     
-    if (!authHeader?.startsWith('Bearer ')) {
+    if (!cookieError && cookieData.user) {
+      user = cookieData.user;
+    } else {
+      // 2. Fallback to Bearer token (API/External access)
+      const authHeader = request.headers.get('authorization');
+      
+      if (authHeader?.startsWith('Bearer ')) {
+        const token = authHeader.replace('Bearer ', '');
+        const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+          auth: { persistSession: false }
+        });
+        const { data: tokenData, error: tokenError } = await supabaseAdmin.auth.getUser(token);
+        
+        if (!tokenError && tokenData.user) {
+          user = tokenData.user;
+        } else {
+          authError = tokenError;
+        }
+      }
+    }
+
+    if (!user) {
       return {
         authorized: false,
-        error: 'Missing or invalid authorization header',
+        error: 'Unauthorized',
         response: NextResponse.json(
           { error: 'Unauthorized' },
           { status: 401 }
@@ -40,26 +82,10 @@ export async function checkApiPermission(
       };
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    
-    // Create admin client
+    // Create admin client for profile fetch (bypassing RLS)
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { persistSession: false }
     });
-
-    // Verify the token and get user
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-
-    if (authError || !user) {
-      return {
-        authorized: false,
-        error: 'Invalid token',
-        response: NextResponse.json(
-          { error: 'Unauthorized' },
-          { status: 401 }
-        ),
-      };
-    }
 
     // Get user's role from profile
     const { data: profile, error: profileError } = await supabaseAdmin
@@ -171,4 +197,3 @@ export async function requireSuperAdmin(request: NextRequest): Promise<AuthResul
     requiredRoles: ['super_admin', 'admin']
   });
 }
-

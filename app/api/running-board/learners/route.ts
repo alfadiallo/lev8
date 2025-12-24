@@ -2,11 +2,8 @@
 // GET /api/running-board/learners - List available residents as learners
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
 // Helper to calculate PGY level from graduation year
 function calculatePGYLevel(graduationYear: number): number {
@@ -26,14 +23,25 @@ function calculatePGYLevel(graduationYear: number): number {
 
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              // We don't need to set cookies in this GET request usually
+            });
+          },
+        },
+      }
     );
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -44,70 +52,36 @@ export async function GET(request: NextRequest) {
     const search = url.searchParams.get('search');
     const pgyLevel = url.searchParams.get('pgy_level');
 
-    // Try to fetch from residents_with_pgy view first (if it exists)
-    let residents: any[] = [];
-    let fetchError = null;
-
-    // Method 1: Try the view
-    const { data: viewData, error: viewError } = await supabase
-      .from('residents_with_pgy')
-      .select('*');
-
-    if (!viewError && viewData && viewData.length > 0) {
-      residents = viewData;
-      console.log('[RunningBoardLearners] Using residents_with_pgy view');
-    } else {
-      // Method 2: Direct query with simpler joins
-      const { data: directData, error: directError } = await supabase
-        .from('residents')
-        .select(`
-          id,
-          user_id,
-          full_name,
-          anon_code,
-          class_id
-        `);
-
-      if (directError) {
-        console.error('[RunningBoardLearners] Error fetching residents:', directError);
-        
-        // Method 3: Try even simpler query
-        const { data: simpleData, error: simpleError } = await supabase
-          .from('residents')
-          .select('*');
-        
-        if (simpleError) {
-          fetchError = simpleError;
-        } else {
-          residents = simpleData || [];
-        }
-      } else {
-        residents = directData || [];
-      }
-    }
+    // Fetch residents directly (simplified logic)
+    const { data: residents, error: fetchError } = await supabase
+      .from('residents')
+      .select(`
+        id,
+        user_id,
+        user_profiles!inner(full_name, email),
+        classes(graduation_year)
+      `);
 
     if (fetchError) {
-      console.error('[RunningBoardLearners] All fetch methods failed:', fetchError);
+      console.error('[RunningBoardLearners] Error fetching residents:', fetchError);
       return NextResponse.json({ error: 'Failed to fetch learners' }, { status: 500 });
     }
 
-    console.log('[RunningBoardLearners] Found residents:', residents.length);
-
     // Transform residents to learners format
-    let learners = residents.map((r: any) => {
-      // Try to get graduation year from various possible fields
-      const graduationYear = r.graduation_year || r.class_graduation_year || new Date().getFullYear() + 2;
-      const pgy = r.pgy_level || calculatePGYLevel(graduationYear);
+    let learners = (residents || []).map((r: any) => {
+      // Get graduation year
+      const graduationYear = r.classes?.graduation_year || new Date().getFullYear() + 2;
+      const pgy = calculatePGYLevel(graduationYear);
       
-      // Get name from various possible fields
-      const name = r.full_name || r.name || r.anon_code || `Resident ${r.id?.slice(0, 8)}`;
+      // Get name
+      const name = r.user_profiles?.full_name || `Resident ${r.id?.slice(0, 8)}`;
       
       return {
         id: r.id,
         resident_id: r.id,
         user_id: r.user_id || r.id,
         full_name: name,
-        email: r.email || '',
+        email: r.user_profiles?.email || '',
         pgy_level: pgy,
         graduation_year: graduationYear,
       };
@@ -133,7 +107,7 @@ export async function GET(request: NextRequest) {
       a.full_name.localeCompare(b.full_name)
     );
 
-    // Get recent learners (those who have been in recent sessions with this facilitator)
+    // Get recent learners
     const { data: recentSessions } = await supabase
       .from('running_board_sessions')
       .select('learner_id')
@@ -143,14 +117,14 @@ export async function GET(request: NextRequest) {
 
     const recentLearnerIds = [...new Set((recentSessions || []).map(s => s.learner_id))];
 
-    // Mark recent learners and create new typed array
-    const learnersWithRecent = learners.map(l => ({
+    // Mark recent learners
+    const learnersWithRecent = learners.map((l: any) => ({
       ...l,
       is_recent: recentLearnerIds.includes(l.id),
     }));
 
     // Sort recent learners to top
-    learnersWithRecent.sort((a, b) => {
+    learnersWithRecent.sort((a: any, b: any) => {
       if (a.is_recent && !b.is_recent) return -1;
       if (!a.is_recent && b.is_recent) return 1;
       return a.full_name.localeCompare(b.full_name);
@@ -162,7 +136,3 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
-
-
-
-

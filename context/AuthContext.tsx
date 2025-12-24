@@ -199,31 +199,24 @@ export function AuthProvider({
   };
 
   const logout = async () => {
-    // Clear local state immediately
+    // 1. Clear local state immediately
     setUser(null);
-    
-    // Clear all storage
+    setLoading(true); // Prevent flashing content
+
     try {
-      localStorage.removeItem('sb-auth-token');
-      localStorage.clear();
-      sessionStorage.clear();
-    } catch (e) {
-      // Ignore storage errors
-    }
-    
-    // Sign out with timeout (don't let it hang)
-    try {
-      const signOutPromise = supabase.auth.signOut();
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Signout timeout')), 2000)
-      );
-      await Promise.race([signOutPromise, timeoutPromise]);
+      // 2. Call server-side logout to clear cookies
+      await fetch('/api/auth/logout', { method: 'POST' });
+      
+      // 3. Clear client-side Supabase session
+      await supabase.auth.signOut();
+      
+      // 4. Hard reload to clear any in-memory state and reset the app
+      window.location.href = '/login';
     } catch (error) {
-      console.error('Logout error (continuing anyway):', error);
+      console.error('Logout error:', error);
+      // Force redirect even on error
+      window.location.href = '/login';
     }
-    
-    // Fire and forget API call
-    fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
   };
 
   const verify2FA = async (token: string, trustDevice: boolean) => {

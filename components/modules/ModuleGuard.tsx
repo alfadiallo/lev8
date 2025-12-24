@@ -15,22 +15,44 @@ interface ModuleGuardProps {
 }
 
 export default function ModuleGuard({ children, availableToRoles, fallback }: ModuleGuardProps) {
-  const { loading } = useAuth();
+  const { loading, user } = useAuth();
   const { hasModuleAccess, userRole } = useModuleAccess();
   const router = useRouter();
   
   // Memoize the access check to prevent unnecessary re-renders
   const hasAccess = useMemo(
-    () => hasModuleAccess(availableToRoles),
-    [hasModuleAccess, availableToRoles.join(',')]
+    () => {
+      const access = hasModuleAccess(availableToRoles);
+      console.log('[ModuleGuard] Access check:', { 
+        userRole, 
+        availableToRoles, 
+        hasAccess: access,
+        loading,
+        hasUser: !!user
+      });
+      return access;
+    },
+    [hasModuleAccess, availableToRoles.join(','), userRole, loading, user]
   );
 
-  // useEffect MUST be called before any early returns to follow Rules of Hooks
+  // Wait for auth to finish loading before checking access
+  // Don't redirect until we're absolutely sure auth is loaded AND user has no access
   useEffect(() => {
-    if (!loading && userRole && !hasAccess && !fallback) {
+    // Only redirect if:
+    // 1. Auth is NOT loading (we've finished checking)
+    // 2. User exists (we have auth state)
+    // 3. User has a role (we've loaded their profile)
+    // 4. User does NOT have access
+    // 5. No fallback is provided
+    if (!loading && user && userRole && !hasAccess && !fallback) {
+      console.log('[ModuleGuard] Access denied, redirecting to dashboard', {
+        userRole,
+        availableToRoles,
+        hasAccess
+      });
       router.push('/dashboard');
     }
-  }, [hasAccess, fallback, loading, userRole, router]);
+  }, [hasAccess, fallback, loading, user, userRole, router]);
 
   // Wait for auth to finish loading before checking access
   if (loading) {
@@ -41,10 +63,19 @@ export default function ModuleGuard({ children, availableToRoles, fallback }: Mo
     );
   }
 
-  // If no user role, allow access (for testing/development)
-  // In production, you might want to redirect to login
+  // If no user, don't redirect - let middleware handle it
+  // This prevents flashing/redirect loops
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#7EC8E3]"></div>
+      </div>
+    );
+  }
+
+  // If no user role yet, wait a bit more (profile might still be loading)
   if (!userRole) {
-    console.warn('[ModuleGuard] No user role found, allowing access for testing');
+    console.warn('[ModuleGuard] No user role found yet, allowing access temporarily');
     return <>{children}</>;
   }
 

@@ -48,9 +48,14 @@ export default function ForgotPasswordPage() {
           <p className="mb-6" style={{ color: 'var(--theme-text-muted)' }}>
             If an account exists with <strong>{email}</strong>, you&apos;ll receive a password reset link shortly.
           </p>
-          <p className="text-sm mb-6" style={{ color: 'var(--theme-text-muted)' }}>
-            Don&apos;t see it? Check your spam folder.
-          </p>
+          <div className="mb-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+            <p className="text-sm font-medium text-yellow-800">
+              ⚠️ Don&apos;t see the email?
+            </p>
+            <p className="text-sm text-yellow-700 mt-1">
+              Please check your <strong>Junk</strong> or <strong>Spam</strong> folder.
+            </p>
+          </div>
           <Link href="/login">
             <Button variant="secondary" className="w-full">
               Back to Login

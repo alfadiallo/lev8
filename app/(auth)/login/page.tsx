@@ -10,12 +10,22 @@ import { Input } from '@/components/ui/Input';
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+
+  // Auto-redirect if user is detected
+  useEffect(() => {
+    if (user) {
+      console.log('[Login] User detected, redirecting to dashboard...');
+      const redirectParam = searchParams.get('redirect');
+      const redirectTo = redirectParam && redirectParam !== '/' ? redirectParam : '/dashboard';
+      window.location.href = redirectTo;
+    }
+  }, [user, searchParams]);
 
   useEffect(() => {
     if (searchParams.get('registered') === 'true') {

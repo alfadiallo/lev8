@@ -51,11 +51,12 @@ export async function middleware(request: NextRequest) {
   // Routes that should redirect to dashboard if authenticated
   const authRoutes = ['/login', '/register', '/forgot-password', '/request-access'];
   const adminRoutes = ['/admin'];
+  const debugRoutes = ['/debug'];
 
   // Check if the route needs protection (exact match for root, prefix for others)
   const isProtectedRoute = protectedRoutes.some((route) =>
     route === '/' ? pathname === '/' : pathname.startsWith(route)
-  );
+  ) && !debugRoutes.some(route => pathname.startsWith(route));
   
   const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
   const isAdminRoute = adminRoutes.some((route) => pathname.startsWith(route));

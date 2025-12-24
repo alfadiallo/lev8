@@ -37,8 +37,8 @@ function LoginForm() {
       const redirectParam = searchParams.get('redirect');
       const redirectTo = redirectParam && redirectParam !== '/' ? redirectParam : '/dashboard';
       console.log('[Login] Redirecting to:', redirectTo);
-      // Use replace to prevent back button issues
-      router.replace(redirectTo);
+      // Force a full page navigation instead of client-side routing
+      window.location.href = redirectTo;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
       setLoading(false);

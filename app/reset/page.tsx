@@ -1,11 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { supabaseClient } from '@/lib/supabase-client';
 
 export default function ResetPage() {
-  const router = useRouter();
   const [status, setStatus] = useState('Initializing reset...');
 
   useEffect(() => {
@@ -17,10 +15,19 @@ export default function ResetPage() {
         sessionStorage.clear();
 
         setStatus('Signing out from Supabase...');
-        // 2. Force sign out
-        await supabaseClient.auth.signOut();
+        // 2. Force sign out with timeout (don't let it hang)
+        try {
+          const signOutPromise = supabaseClient.auth.signOut();
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout')), 3000)
+          );
+          await Promise.race([signOutPromise, timeoutPromise]);
+        } catch (e) {
+          console.log('Sign out timeout or error, continuing anyway:', e);
+        }
 
-        // 3. Clear cookies (rudimentary check)
+        setStatus('Clearing cookies...');
+        // 3. Clear all cookies
         document.cookie.split(";").forEach((c) => {
           document.cookie = c
             .replace(/^ +/, "")
@@ -28,13 +35,18 @@ export default function ResetPage() {
         });
 
         setStatus('Done! Redirecting to login...');
+        // Use window.location for a full page reload
         setTimeout(() => {
           window.location.href = '/login';
-        }, 1000);
+        }, 500);
 
       } catch (error) {
         console.error('Reset failed:', error);
-        setStatus('Error during reset. Please manually clear site data.');
+        setStatus('Redirecting anyway...');
+        // Even if there's an error, redirect to login
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 1000);
       }
     };
 
@@ -53,6 +65,7 @@ export default function ResetPage() {
     </div>
   );
 }
+
 
 
 

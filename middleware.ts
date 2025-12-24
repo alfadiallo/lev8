@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 
 // Routes that require authentication
 const protectedRoutes = [
+  '/',
   '/dashboard',
   '/modules',
   '/settings',
@@ -23,7 +24,7 @@ export async function middleware(request: NextRequest) {
 
   // Check if the route needs protection
   const isProtectedRoute = protectedRoutes.some((route) =>
-    pathname.startsWith(route)
+    route === '/' ? pathname === '/' : pathname.startsWith(route)
   );
   const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
   const isAdminRoute = adminRoutes.some((route) => pathname.startsWith(route));

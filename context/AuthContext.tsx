@@ -135,26 +135,22 @@ export function AuthProvider({
       }
 
       if (data.user) {
-        console.log('[AuthContext] Login successful, fetching profile...');
+        console.log('[AuthContext] Login successful, user:', data.user.id);
         
-        // Try to fetch user profile, but don't block login if it fails
+        // Force session refresh to ensure cookies are set
+        await supabase.auth.getSession();
+        
+        // Fetch profile
         let profile = null;
         try {
-          const profilePromise = supabase
+          const { data: profileData } = await supabase
             .from('user_profiles')
             .select('role, full_name')
             .eq('id', data.user.id)
             .single();
-          
-          const profileTimeout = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Profile fetch timeout')), 5000)
-          );
-          
-          const { data: profileData } = await Promise.race([profilePromise, profileTimeout]) as any;
           profile = profileData;
-          console.log('[AuthContext] Profile fetched:', profile?.full_name || 'no profile');
-        } catch (profileError) {
-          console.warn('[AuthContext] Profile fetch failed, continuing without profile:', profileError);
+        } catch (e) {
+          console.warn('Profile fetch error:', e);
         }
 
         setUser({
@@ -169,7 +165,8 @@ export function AuthProvider({
       console.error('Login error:', error);
       throw error;
     } finally {
-      setLoading(false);
+      // Don't set loading to false if successful, let redirect handle it
+      // But if we failed, we must clear loading in the component
     }
   };
 

@@ -73,10 +73,19 @@ export default function ModuleGuard({ children, availableToRoles, fallback }: Mo
     );
   }
 
-  // If no user role yet, wait a bit more (profile might still be loading)
+  // CRITICAL: If no user role yet, show spinner and wait
+  // Don't redirect or show children until we know the role
+  // This prevents false negatives that cause redirects
   if (!userRole) {
-    console.warn('[ModuleGuard] No user role found yet, allowing access temporarily');
-    return <>{children}</>;
+    console.log('[ModuleGuard] User exists but role not loaded yet, waiting...', { 
+      userEmail: user.email,
+      userRole: user.role 
+    });
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#7EC8E3]"></div>
+      </div>
+    );
   }
 
   if (!hasAccess) {

@@ -48,7 +48,7 @@ export default function CaseInterface({ case_, attempt, onSaveProgress }: CaseIn
       <div className="bg-white/90 backdrop-blur-sm p-8 rounded-2xl shadow-lg border border-white/30 text-center">
         <CheckCircle2 size={64} className="mx-auto mb-4 text-[#86C5A8]" />
         <h2 className="text-2xl font-bold mb-2 text-neutral-800">Case Completed!</h2>
-        <p className="text-neutral-600 mb-6">You've successfully completed this clinical case.</p>
+        <p className="text-neutral-600 mb-6">You&apos;ve successfully completed this clinical case.</p>
         {attempt?.score !== undefined && (
           <div className="mb-6">
             <p className="text-lg font-semibold text-neutral-800">Score: {attempt.score.toFixed(1)}%</p>

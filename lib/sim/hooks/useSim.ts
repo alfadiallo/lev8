@@ -23,11 +23,13 @@ export function useSim(scenario: Scenario) {
       setCtx((c) => tick(c, scenario, dt));
 
       if (node?.timer != null) {
+        const nodeTimer = node.timer;
+        const nodeId = node.id;
+        const nextNodeId = node.onTimeout?.next;
         setSecondsLeft((s) => {
-          const next = (s == null ? node.timer : s) - dt;
+          const next = (s == null ? nodeTimer : s) - dt;
           if (next <= 0) {
-            const nextId = node.onTimeout?.next ?? node.id;
-            setCtx((c) => ({ ...c, currentId: nextId }));
+            setCtx((c) => ({ ...c, currentId: nextNodeId ?? nodeId }));
             return null;
           }
           return next;

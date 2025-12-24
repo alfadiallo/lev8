@@ -56,7 +56,7 @@ export default function ModuleGuard({ children, availableToRoles, fallback }: Mo
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="bg-white/90 backdrop-blur-sm p-8 rounded-2xl shadow-lg border border-white/30 text-center">
           <h2 className="text-xl font-semibold mb-2 text-neutral-800">Access Denied</h2>
-          <p className="text-neutral-600">You don't have permission to access this module.</p>
+          <p className="text-neutral-600">You don&apos;t have permission to access this module.</p>
           <p className="text-sm text-neutral-500 mt-2">Your role: {userRole || 'Unknown'}</p>
         </div>
       </div>

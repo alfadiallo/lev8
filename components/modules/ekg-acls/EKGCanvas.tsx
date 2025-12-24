@@ -150,14 +150,18 @@ export default function EKGCanvas({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Capture references for closures
+    const canvasElement = canvas;
+    const context = ctx;
+    
     function resize() {
-      const { width } = canvas.getBoundingClientRect();
-      canvas.width = Math.max(600, Math.floor(width));
-      canvas.height = 280;
+      const { width } = canvasElement.getBoundingClientRect();
+      canvasElement.width = Math.max(600, Math.floor(width));
+      canvasElement.height = 280;
     }
     resize();
     const ro = new ResizeObserver(resize);
-    ro.observe(canvas);
+    ro.observe(canvasElement);
 
     function loop(ts: number) {
       if (!lastTsRef.current) lastTsRef.current = ts;
@@ -167,13 +171,13 @@ export default function EKGCanvas({
       if (!paused) {
         timeMsRef.current += dt;
 
-        const w = canvas.width;
-        const h = canvas.height;
+        const w = canvasElement.width;
+        const h = canvasElement.height;
 
-        ctx.fillStyle = '#000';
-        ctx.fillRect(0, 0, w, h);
+        context.fillStyle = '#000';
+        context.fillRect(0, 0, w, h);
 
-        drawGrid(ctx, w, h);
+        drawGrid(context, w, h);
 
         const mv = sample(rhythm, timeMsRef.current);
         const yPx = mv * (10 * pixelsPerMm);
@@ -184,24 +188,24 @@ export default function EKGCanvas({
         arr.push(point);
         if (arr.length > 3000) arr.shift();
 
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 1.6;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.beginPath();
+        context.strokeStyle = '#fff';
+        context.lineWidth = 1.6;
+        context.lineCap = 'round';
+        context.lineJoin = 'round';
+        context.beginPath();
         for (let i = 0; i < arr.length; i++) {
           const p = arr[i];
-          if (i === 0) ctx.moveTo(p.x, p.y);
-          else ctx.lineTo(p.x, p.y);
+          if (i === 0) context.moveTo(p.x, p.y);
+          else context.lineTo(p.x, p.y);
         }
-        ctx.stroke();
+        context.stroke();
 
         if (arr.length) {
           const lp = arr[arr.length - 1];
-          ctx.fillStyle = '#fff';
-          ctx.beginPath();
-          ctx.arc(lp.x, lp.y, 2.5, 0, Math.PI * 2);
-          ctx.fill();
+          context.fillStyle = '#fff';
+          context.beginPath();
+          context.arc(lp.x, lp.y, 2.5, 0, Math.PI * 2);
+          context.fill();
         }
 
         const pxPerMs = (speedMmPerSec * pixelsPerMm) / 1000;

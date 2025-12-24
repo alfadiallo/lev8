@@ -11,7 +11,7 @@ const supabase = createClient(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { year: string } }
+  { params }: { params: Promise<{ year: string }> }
 ) {
   // Require faculty or above to view class SWOT data
   const authResult = await requireFacultyOrAbove(request);
@@ -20,7 +20,8 @@ export async function GET(
   }
 
   try {
-    const classYear = parseInt(params.year);
+    const { year } = await params;
+    const classYear = parseInt(year);
 
     // Fetch class-level SWOT summaries for PGY-1, PGY-2, PGY-3
     // These are stored with a special class_id identifier

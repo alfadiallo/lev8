@@ -390,7 +390,7 @@ export default function ConversationInterface({ vignette, difficulty, onEnd }: C
             )}
 
             {/* Assessment Results */}
-            {sessionState && sessionState.assessmentScores && (
+            {sessionState && sessionState.assessmentScores && vignetteV2 && (
               <div className="mt-4">
                 <AssessmentResults
                   scores={sessionState.assessmentScores}

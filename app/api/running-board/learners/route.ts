@@ -143,25 +143,26 @@ export async function GET(request: NextRequest) {
 
     const recentLearnerIds = [...new Set((recentSessions || []).map(s => s.learner_id))];
 
-    // Mark recent learners
-    learners = learners.map((l: { id: string }) => ({
+    // Mark recent learners and create new typed array
+    const learnersWithRecent = learners.map(l => ({
       ...l,
       is_recent: recentLearnerIds.includes(l.id),
     }));
 
     // Sort recent learners to top
-    learners.sort((a: { is_recent: boolean; full_name: string }, b: { is_recent: boolean; full_name: string }) => {
+    learnersWithRecent.sort((a, b) => {
       if (a.is_recent && !b.is_recent) return -1;
       if (!a.is_recent && b.is_recent) return 1;
       return a.full_name.localeCompare(b.full_name);
     });
-
-    return NextResponse.json({ learners }, { status: 200 });
+    
+    return NextResponse.json({ learners: learnersWithRecent }, { status: 200 });
   } catch (error) {
     console.error('[RunningBoardLearners] Unexpected error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
 
 
 

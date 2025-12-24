@@ -11,7 +11,7 @@ const supabase = createClient(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // Require faculty or above to view resident ITE data
   const authResult = await requireFacultyOrAbove(request);
@@ -20,7 +20,7 @@ export async function GET(
   }
 
   try {
-    const residentId = params.id;
+    const { id: residentId } = await params;
 
     // Fetch ITE scores for the resident
     const { data: iteData, error } = await supabase

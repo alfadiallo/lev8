@@ -166,7 +166,7 @@ export default function DevicesSettingsPage() {
             <div className="text-4xl mb-4">🔒</div>
             <h3 className="text-lg font-medium text-slate-900 mb-2">No Trusted Devices</h3>
             <p className="text-slate-600">
-              When you enable "Trust this device" during 2FA verification, 
+              When you enable &quot;Trust this device&quot; during 2FA verification, 
               your device will appear here.
             </p>
           </div>

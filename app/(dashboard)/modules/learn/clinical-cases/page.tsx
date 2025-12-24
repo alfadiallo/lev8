@@ -22,7 +22,7 @@ export default function ClinicalCasesPage() {
 
   useEffect(() => {
     loadCases();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, []);
 
   const loadCases = async () => {

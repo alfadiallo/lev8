@@ -49,6 +49,11 @@ export interface PeriodScore {
   ai_iq_avg: number | null;
   ai_n_comments: number | null;
   ai_confidence_avg: number | null;
+  ai_scores_detail?: {
+    eq?: Record<string, number>;
+    pq?: Record<string, number>;
+    iq?: Record<string, number>;
+  } | null;
   
   // Gap analysis
   self_faculty_gap_eq: number | null;

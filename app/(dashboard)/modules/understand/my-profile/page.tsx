@@ -76,7 +76,11 @@ export default function MyProfilePage() {
           .eq('id', user.id)
           .single();
 
-        const classData = resident.classes as { graduation_year: number; name: string } | null;
+        // Handle the classes join which could be an object or array depending on query result
+        const classResult = resident.classes;
+        const classData = Array.isArray(classResult) 
+          ? classResult[0] as { graduation_year: number; name: string } | undefined
+          : classResult as { graduation_year: number; name: string } | null;
 
         setResidentData({
           id: resident.id,

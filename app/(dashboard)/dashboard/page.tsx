@@ -17,6 +17,8 @@ import {
   Shield
 } from 'lucide-react';
 
+// QuickStat interface for future dashboard enhancements
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface QuickStat {
   label: string;
   value: string | number;
@@ -132,7 +134,7 @@ export default function DashboardPage() {
             <Sparkles className="w-7 h-7 text-amber-400" />
           </h1>
           <p style={{ color: 'var(--theme-text-muted)' }}>
-            Here's your overview for today
+            Here&apos;s your overview for today
           </p>
         </div>
         <div 

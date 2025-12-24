@@ -86,8 +86,8 @@ export async function GET(
         .sort((a: { column_position: number }, b: { column_position: number }) => 
           a.column_position - b.column_position
         )
-        .map((sc: { case: unknown; column_position: number }) => ({
-          ...sc.case,
+        .map((sc: { case: Record<string, unknown>; column_position: number }) => ({
+          ...(sc.case || {}),
           column_position: sc.column_position,
         })),
     };
@@ -188,6 +188,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
 
 
 

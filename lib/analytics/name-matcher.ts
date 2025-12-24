@@ -13,7 +13,7 @@ export interface NameParseResult {
  */
 export function parseMedHubName(medHubName: string): NameParseResult | null {
   // Remove "Dr." prefix and trim
-  let cleanName = medHubName.replace(/^Dr\.\s*/i, '').trim();
+  const cleanName = medHubName.replace(/^Dr\.\s*/i, '').trim();
   
   // Check for comma (MedHub format: "Last, First")
   if (cleanName.includes(',')) {

@@ -9,8 +9,21 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Type for running board action
+interface RunningBoardAction {
+  id: string;
+  session_id: string;
+  case_id: string;
+  phase_id: number;
+  checklist_item_id: string;
+  checked: boolean;
+  is_critical: boolean;
+  time_completed?: string;
+}
+
 // Helper function to generate auto-summary from actions
-async function generateAutoSummary(sessionId: string, supabase: ReturnType<typeof createClient>) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function generateAutoSummary(sessionId: string, supabase: any) {
   // Fetch all actions for the session
   const { data: actions } = await supabase
     .from('running_board_actions')
@@ -25,8 +38,17 @@ async function generateAutoSummary(sessionId: string, supabase: ReturnType<typeo
     `)
     .eq('session_id', sessionId);
 
-  const allActions = actions || [];
-  const cases = sessionCases || [];
+  const allActions: RunningBoardAction[] = actions || [];
+  
+  // Type for session case with nested case data
+  interface SessionCase {
+    case: {
+      id: string;
+      title: string;
+      timeline: Array<{ phase_id: number; checklist: Array<{ id: string; label: string }> }>;
+    } | null;
+  }
+  const cases: SessionCase[] = sessionCases || [];
 
   // Count totals
   const totalActions = allActions.length;
@@ -39,9 +61,9 @@ async function generateAutoSummary(sessionId: string, supabase: ReturnType<typeo
   const missedCriticalItems: { case_id: string; case_title: string; item_id: string; label: string; phase_id: number }[] = [];
   
   for (const action of criticalActions.filter(a => !a.checked)) {
-    const sessionCase = cases.find((sc: { case: { id: string } }) => sc.case?.id === action.case_id);
+    const sessionCase = cases.find(sc => sc.case?.id === action.case_id);
     if (sessionCase?.case) {
-      const timeline = sessionCase.case.timeline as { phase_id: number; checklist: { id: string; label: string }[] }[];
+      const timeline = sessionCase.case.timeline;
       const phase = timeline.find((p) => p.phase_id === action.phase_id);
       const item = phase?.checklist.find((i) => i.id === action.checklist_item_id);
       
@@ -226,6 +248,7 @@ export async function POST(
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
 
 
 

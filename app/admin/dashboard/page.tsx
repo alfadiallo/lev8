@@ -120,7 +120,16 @@ export default function AdminDashboardPage() {
         .order('created_at', { ascending: false })
         .limit(10);
 
-      setRecentActivity(activity || []);
+      // Transform the activity data to match our interface
+      const transformedActivity: RecentActivity[] = (activity || []).map(item => ({
+        id: item.id,
+        action: item.action,
+        action_type: item.action_type,
+        created_at: item.created_at,
+        admin: Array.isArray(item.admin) ? item.admin[0] || null : item.admin,
+        target_user: Array.isArray(item.target_user) ? item.target_user[0] || null : item.target_user,
+      }));
+      setRecentActivity(transformedActivity);
     } catch (error) {
       console.error('[AdminDashboard] Error fetching data:', error);
     } finally {

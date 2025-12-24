@@ -1,10 +1,20 @@
 import { createClient } from '@/lib/supabase'; // Now correctly imports the service role client
 import { 
   ArchetypeName, 
-  ClassificationResult, 
   DEFAULT_ARCHETYPE_DEFINITIONS, 
   SimilarResident 
 } from '@/lib/types/archetypes';
+
+// Legacy classification result type for this classifier
+interface LegacyClassificationResult {
+  resident_id: string;
+  archetype: ArchetypeName;
+  confidence: number;
+  fit_details: Record<string, unknown>;
+  similar_residents: SimilarResident[];
+  needs_review: boolean;
+  alternatives?: { archetype: ArchetypeName; confidence: number }[];
+}
 
 // Helper to get score for a PGY level
 // Handles string "PGY-1" or "1", or number 1
@@ -23,7 +33,7 @@ function getScore(scores: any[], pgy: string): { percentile: number, raw: number
   return null;
 }
 
-export async function classifyResident(residentId: string, supabaseClient?: any): Promise<ClassificationResult | null> {
+export async function classifyResident(residentId: string, supabaseClient?: ReturnType<typeof createClient>): Promise<LegacyClassificationResult | null> {
   // Use passed client (likely service role) or create one
   const supabase = supabaseClient || createClient();
 
@@ -234,9 +244,9 @@ async function findSimilarResidents(
       candidates.push({
         id: res.id,
         name: res.name, 
-        class_year: res.class_year,
-        similarity_score: similarity,
-        ite_scores: {
+        classYear: res.class_year,
+        similarityScore: similarity,
+        iteScores: {
           pgy1: rPgy1,
           pgy2: rPgy2,
           pgy3: rPgy3
@@ -245,5 +255,5 @@ async function findSimilarResidents(
     }
   }
 
-  return candidates.sort((a, b) => b.similarity_score - a.similarity_score).slice(0, 3);
+  return candidates.sort((a, b) => b.similarityScore - a.similarityScore).slice(0, 3);
 }

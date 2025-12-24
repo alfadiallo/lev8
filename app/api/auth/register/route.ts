@@ -142,6 +142,7 @@ export async function POST(req: NextRequest) {
 
     // Create resident record (optional - needed for voice journal)
     // Only create if we have a program_id
+    let residentCreated = false;
     if (programId) {
       console.log('[Register] Attempting to create resident record...');
       
@@ -171,6 +172,7 @@ export async function POST(req: NextRequest) {
           // Don't fail registration - profile was created successfully
         } else {
           console.log('[Register] ✅ Resident record created successfully!');
+          residentCreated = true;
         }
       } else {
         console.log('[Register] No academic class found - skipping resident record creation');
@@ -186,7 +188,7 @@ export async function POST(req: NextRequest) {
         userId: authData.user?.id,
         email: authData.user?.email,
         message: 'Registration successful. You can now log in.',
-        profileCreated: !residentError,
+        profileCreated: residentCreated,
       },
       { status: 200 }
     );

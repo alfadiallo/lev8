@@ -474,8 +474,11 @@ async function findSimilarResidents(
       const res = Array.isArray(row.residents) ? row.residents[0] : row.residents;
       if (!res) continue;
       
-      const name = res.user_profiles?.full_name || 'Unknown';
-      const year = res.classes?.graduation_year || 0;
+      // Handle user_profiles which may be an array or object
+      const userProfile = Array.isArray(res.user_profiles) ? res.user_profiles[0] : res.user_profiles;
+      const classData = Array.isArray(res.classes) ? res.classes[0] : res.classes;
+      const name = userProfile?.full_name || 'Unknown';
+      const year = classData?.graduation_year || 0;
       
       residentMap.set(resId, {
         id: resId,

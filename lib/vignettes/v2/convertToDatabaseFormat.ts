@@ -15,8 +15,8 @@ export function convertVignetteV2ToDatabase(
 ): Omit<Vignette, 'id' | 'created_at' | 'updated_at'> {
   // Store the full v2 structure in vignette_data with version marker
   const vignetteData = {
-    version: '2.0',
     ...vignette, // Include all v2 fields
+    version: '2.0', // Ensure version is set to 2.0
   };
 
   return {

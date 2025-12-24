@@ -309,8 +309,8 @@ export default function ITEAnalyticsPane({ residentId }: ITEAnalyticsPaneProps) 
                 <div className="text-sm">
                   <span className="text-blue-800 font-medium">Classification Updated: </span>
                   <span className="text-blue-700">
-                    Original: "{archetype.originalClassification?.archetypeName}" → 
-                    Current: "{archetype.currentClassification?.archetypeName}"
+                    Original: &quot;{archetype.originalClassification?.archetypeName}&quot; → 
+                    Current: &quot;{archetype.currentClassification?.archetypeName}&quot;
                   </span>
                   {archetype.driftReason && (
                     <span className="text-blue-600 text-xs ml-2">({archetype.driftReason})</span>

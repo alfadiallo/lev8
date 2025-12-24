@@ -96,6 +96,8 @@ export interface Message {
   sender: 'user' | 'avatar';
   avatarId?: string;
   timestamp: Date | string;
+  phaseId?: string;
+  emotionalImpact?: number;
 }
 
 export interface SessionMetrics {

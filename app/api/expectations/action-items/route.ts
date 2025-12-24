@@ -41,7 +41,7 @@ export async function GET() {
 
     // Fetch assigned user info
     const userIds = [...new Set(actionItems?.map(a => a.assigned_to).filter(Boolean))];
-    let userMap: Record<string, { full_name: string; email: string }> = {};
+    const userMap: Record<string, { full_name: string; email: string }> = {};
 
     if (userIds.length > 0) {
       const { data: users } = await supabase

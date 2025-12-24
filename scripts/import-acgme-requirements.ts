@@ -130,7 +130,7 @@ async function importRequirements() {
   // Insert in batches
   const batchSize = 50;
   let inserted = 0;
-  let updated = 0;
+  const updated = 0;
 
   for (let i = 0; i < requirements.length; i += batchSize) {
     const batch = requirements.slice(i, i + batchSize);

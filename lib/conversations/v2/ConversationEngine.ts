@@ -305,7 +305,7 @@ export class ConversationEngine {
   isComplete(): boolean {
     return this.phaseManager.isFinalPhase() && 
            this.phaseManager.getPhaseState().objectivesCompleted.length >=
-           this.getCurrentPhase().learnerTasks?.length || 0;
+           (this.getCurrentPhase().learnerTasks?.length || 0);
   }
 
   /**

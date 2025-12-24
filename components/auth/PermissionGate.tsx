@@ -97,7 +97,7 @@ export function PermissionGate({
         className="text-center font-medium"
         style={{ color: 'var(--theme-text-muted)' }}
       >
-        You don't have permission to view this content
+        You don&apos;t have permission to view this content
       </p>
     </div>
   );

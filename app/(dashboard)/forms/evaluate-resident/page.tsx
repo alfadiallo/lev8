@@ -1,36 +1,46 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import EQPQIQForm, { FormData } from '@/components/forms/EQPQIQForm';
+
+interface FacultyInfo {
+  program_id: string;
+  faculty_id: string;
+}
+
+interface Resident {
+  id: string;
+  full_name: string;
+}
+
+// ExistingEvaluation extends Partial<FormData> to allow passing to the form
+interface ExistingEvaluation extends Partial<FormData> {
+  id: string;
+}
 
 export default function EvaluateResidentPage() {
   const router = useRouter();
   const { user } = useAuth();
   
-  const [facultyData, setFacultyData] = useState<any>(null);
-  const [residents, setResidents] = useState<any[]>([]);
+  const [facultyData, setFacultyData] = useState<FacultyInfo | null>(null);
+  const [residents, setResidents] = useState<Resident[]>([]);
   const [selectedResident, setSelectedResident] = useState<string>('');
   const [selectedPeriod, setSelectedPeriod] = useState<string>('');
-  const [existingEvaluation, setExistingEvaluation] = useState<any>(null);
+  const [existingEvaluation, setExistingEvaluation] = useState<ExistingEvaluation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (user) {
-      loadFacultyData();
-    }
-  }, [user]);
+  const determineCurrentPeriod = (): string => {
+    const now = new Date();
+    const month = now.getMonth() + 1;
+    const period = month >= 7 ? 'Fall' : 'Spring';
+    return `PGY-1 ${period}`; // Default, user can change
+  };
 
-  useEffect(() => {
-    if (selectedResident && selectedPeriod) {
-      checkExistingEvaluation();
-    }
-  }, [selectedResident, selectedPeriod]);
-
-  const loadFacultyData = async () => {
+  const loadFacultyData = useCallback(async () => {
     try {
       setIsLoading(true);
       
@@ -50,21 +60,16 @@ export default function EvaluateResidentPage() {
       
       // Set default period
       setSelectedPeriod(determineCurrentPeriod());
-    } catch (err: any) {
-      setError(err.message || 'Failed to load data');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load data';
+      setError(message);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const determineCurrentPeriod = (): string => {
-    const now = new Date();
-    const month = now.getMonth() + 1;
-    const period = month >= 7 ? 'Fall' : 'Spring';
-    return `PGY-1 ${period}`; // Default, user can change
-  };
-
-  const checkExistingEvaluation = async () => {
+  const checkExistingEvaluation = useCallback(async () => {
+    if (!facultyData) return;
     try {
       const checkRes = await fetch(
         `/api/forms/check-submission?resident_id=${selectedResident}&period_label=${encodeURIComponent(selectedPeriod)}&rater_type=faculty&faculty_id=${facultyData.faculty_id}`
@@ -81,9 +86,23 @@ export default function EvaluateResidentPage() {
     } catch (err) {
       console.error('Error checking existing evaluation:', err);
     }
-  };
+  }, [selectedResident, selectedPeriod, facultyData]);
+
+  useEffect(() => {
+    if (user) {
+      loadFacultyData();
+    }
+  }, [user, loadFacultyData]);
+
+  useEffect(() => {
+    if (selectedResident && selectedPeriod) {
+      checkExistingEvaluation();
+    }
+  }, [selectedResident, selectedPeriod, checkExistingEvaluation]);
 
   const handleSubmit = async (formData: FormData) => {
+    if (!facultyData) return;
+    
     try {
       const payload = {
         resident_id: selectedResident,
@@ -145,8 +164,9 @@ export default function EvaluateResidentPage() {
         setExistingEvaluation(null);
         setSuccessMessage(null);
       }, 2000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to submit evaluation');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to submit evaluation';
+      setError(message);
     }
   };
 
@@ -266,7 +286,7 @@ export default function EvaluateResidentPage() {
             raterType="faculty"
             periodLabel={selectedPeriod}
             onSubmit={handleSubmit}
-            initialData={existingEvaluation}
+            initialData={existingEvaluation || undefined}
             isEditMode={!!existingEvaluation}
           />
         )}

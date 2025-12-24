@@ -130,7 +130,8 @@ export default function SWOTTab({
       {/* AI-Generated Attribute Scores Timeline (D3.js visualization) */}
       {scoresData.length > 0 && scoresData.some(s => s.ai_scores_detail) && (
         <AttributeTimelineChartD3 
-          allPeriodScores={scoresData} 
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          allPeriodScores={scoresData as any} 
           residentId={residentId}
           classYear={classYear}
         />

@@ -2,6 +2,7 @@
 
 import { ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
+import Link from 'next/link';
 
 export default function ReflectLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -10,13 +11,13 @@ export default function ReflectLayout({ children }: { children: ReactNode }) {
     <div className="space-y-6">
       {/* Breadcrumb Navigation */}
       <nav className="flex items-center gap-2 text-sm">
-        <a href="/" className="text-[#7EC8E3] hover:text-[#5BA8C4] transition-colors">
+        <Link href="/" className="text-[#7EC8E3] hover:text-[#5BA8C4] transition-colors">
           Dashboard
-        </a>
+        </Link>
         <span className="text-neutral-400">/</span>
-        <a href="/modules" className="text-[#7EC8E3] hover:text-[#5BA8C4] transition-colors">
+        <Link href="/modules" className="text-[#7EC8E3] hover:text-[#5BA8C4] transition-colors">
           Modules
-        </a>
+        </Link>
         <span className="text-neutral-400">/</span>
         <span className="text-neutral-700 font-medium">Reflect</span>
       </nav>
@@ -31,7 +32,7 @@ export default function ReflectLayout({ children }: { children: ReactNode }) {
           
           {/* Module Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <a
+            <Link
               href="/modules/reflect/voice-journal"
               className="bg-white/95 backdrop-blur-sm p-6 rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 border border-white/30 hover:scale-[1.02]"
             >
@@ -45,7 +46,7 @@ export default function ReflectLayout({ children }: { children: ReactNode }) {
                   <p className="text-xs text-[#86C5A8] font-medium mt-2">🔒 100% Private</p>
                 </div>
               </div>
-            </a>
+            </Link>
 
             {/* Future modules - coming soon */}
             <div className="bg-white/60 backdrop-blur-sm p-6 rounded-2xl border border-white/20 opacity-75">

@@ -179,7 +179,7 @@ export default function VoiceJournalPage() {
               {uploadStatus === 'transcribing' && 'Transcribing your voice memo...'}
               {uploadStatus === 'summarizing' && 'Summarizing your reflection...'}
             </h2>
-            <p className="text-neutral-600">This typically takes 2-3 minutes. Please don't close this page.</p>
+            <p className="text-neutral-600">This typically takes 2-3 minutes. Please don&apos;t close this page.</p>
           </div>
         )}
 

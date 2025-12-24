@@ -8,6 +8,18 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Type for educator with optional recent flag
+type EducatorBase = {
+  id: string;
+  user_id: string;
+  full_name: string;
+  type: 'faculty' | 'resident';
+  credentials?: string;
+  pgy_level?: number;
+};
+
+type EducatorWithRecent = EducatorBase & { is_recent: boolean };
+
 // Helper to calculate PGY level from graduation year
 function calculatePGYLevel(graduationYear: number): number {
   const today = new Date();
@@ -115,19 +127,19 @@ export async function GET(request: NextRequest) {
     }));
 
     // Combine and sort
-    let educators = [...facultyEducators, ...residentEducators];
+    let educatorList: EducatorBase[] = [...facultyEducators, ...residentEducators];
 
     // Apply search filter
     if (search) {
       const searchLower = search.toLowerCase();
-      educators = educators.filter(e =>
+      educatorList = educatorList.filter(e =>
         e.full_name.toLowerCase().includes(searchLower) ||
         (e.credentials && e.credentials.toLowerCase().includes(searchLower))
       );
     }
 
     // Sort: faculty first, then by name
-    educators.sort((a, b) => {
+    educatorList.sort((a, b) => {
       if (a.type === 'faculty' && b.type !== 'faculty') return -1;
       if (a.type !== 'faculty' && b.type === 'faculty') return 1;
       return a.full_name.localeCompare(b.full_name);
@@ -144,7 +156,7 @@ export async function GET(request: NextRequest) {
     const recentEducatorIds = [...new Set((recentSessions || []).map(s => s.educator_id))];
 
     // Mark recent educators
-    educators = educators.map(e => ({
+    const educators: EducatorWithRecent[] = educatorList.map(e => ({
       ...e,
       is_recent: recentEducatorIds.includes(e.id),
     }));

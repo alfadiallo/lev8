@@ -159,7 +159,7 @@ export default function TrajectoryChart({
           <Tooltip 
             contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
             cursor={{ stroke: '#9CA3AF', strokeWidth: 1, strokeDasharray: '4 4' }}
-            formatter={(value: number, name: string) => [`${value}%`, name]}
+            formatter={(value, name) => [`${value}%`, name]}
             labelStyle={{ color: '#374151', fontWeight: 600, marginBottom: '0.5rem' }}
           />
           <Legend 

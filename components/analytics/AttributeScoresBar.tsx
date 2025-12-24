@@ -226,7 +226,7 @@ export function AttributeScoresBar({ scores, confidence, nComments }: AttributeS
           <p>
             <strong>Methodology:</strong> These scores represent AI interpretation of narrative evaluation comments 
             using the EQ+PQ+IQ framework. They differ from direct faculty ratings and are best used to supplement 
-            structured assessments. Confidence score indicates the AI's certainty based on comment clarity and volume.
+            structured assessments. Confidence score indicates the AI&apos;s certainty based on comment clarity and volume.
           </p>
         </div>
       </div>

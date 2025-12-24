@@ -3,6 +3,9 @@
 // Memorial Healthcare System
 // ============================================================
 
+// Import from memorial-archetypes
+import { MEMORIAL_ARCHETYPES as MA } from '@/lib/archetypes/memorial-archetypes';
+
 // Re-export from memorial-archetypes for backwards compatibility
 export { 
   type RiskLevel,
@@ -281,7 +284,7 @@ export enum ArchetypeName {
 }
 
 // Legacy type exports for backwards compatibility
-export const DEFAULT_ARCHETYPE_DEFINITIONS = Object.values(MEMORIAL_ARCHETYPES).map(a => ({
+export const DEFAULT_ARCHETYPE_DEFINITIONS = Object.values(MA).map(a => ({
   name: a.name as ArchetypeName,
   description: a.description,
   risk_level: a.riskLevel,

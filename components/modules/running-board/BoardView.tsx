@@ -12,7 +12,7 @@ interface BoardViewProps {
   config: RunningBoardConfig | null;
 }
 
-interface Patient {
+export interface Patient {
   id: string;
   name: string;
   age: number;

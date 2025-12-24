@@ -12,9 +12,10 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 // GET /api/clinical-cases/[id]/attempts - Get attempts
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -32,7 +33,7 @@ export async function GET(
     const { data: attempts, error } = await supabase
       .from('case_attempts')
       .select('*')
-      .eq('case_id', params.id)
+      .eq('case_id', id)
       .eq('user_id', user.id)
       .order('started_at', { ascending: false });
 
@@ -54,9 +55,10 @@ export async function GET(
 // POST /api/clinical-cases/[id]/attempts - Create or update attempt
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -75,7 +77,7 @@ export async function POST(
 
     // If attempt_id is provided, update existing attempt
     if (attempt_id) {
-      const updateData: any = {};
+      const updateData: Record<string, unknown> = {};
       if (progress_data !== undefined) updateData.progress_data = progress_data;
       if (score !== undefined) updateData.score = score;
       if (completed !== undefined) {
@@ -105,7 +107,7 @@ export async function POST(
     const { data: newAttempt, error } = await supabase
       .from('case_attempts')
       .insert({
-        case_id: params.id,
+        case_id: id,
         user_id: user.id,
         progress_data: progress_data || {},
         score,

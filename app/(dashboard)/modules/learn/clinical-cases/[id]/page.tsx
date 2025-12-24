@@ -133,7 +133,7 @@ export default function ClinicalCaseDetailPage() {
       <ModuleGuard availableToRoles={['resident', 'faculty', 'program_director', 'super_admin']}>
         <ModuleLayout title="Case Not Found" description="">
           <div className="bg-white/90 backdrop-blur-sm p-8 rounded-2xl shadow-md border border-white/30 text-center">
-            <p className="text-neutral-600 mb-4">The clinical case you're looking for doesn't exist.</p>
+            <p className="text-neutral-600 mb-4">The clinical case you&apos;re looking for doesn&apos;t exist.</p>
             <button
               onClick={() => router.push('/modules/learn/clinical-cases')}
               className="bg-gradient-to-r from-[#FFB5A7] to-[#7EC8E3] text-white px-6 py-2 rounded-xl font-medium hover:shadow-lg transition-all duration-300"

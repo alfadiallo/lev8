@@ -81,7 +81,7 @@ export default function DifficultConversationDetailPage() {
       <ModuleGuard availableToRoles={['resident', 'faculty', 'program_director', 'super_admin']}>
         <ModuleLayout title="Vignette Not Found" description="">
           <div className="bg-white/90 backdrop-blur-sm p-8 rounded-2xl shadow-md border border-white/30 text-center">
-            <p className="text-neutral-600 mb-4">The vignette you're looking for doesn't exist.</p>
+            <p className="text-neutral-600 mb-4">The vignette you&apos;re looking for doesn&apos;t exist.</p>
             <button
               onClick={() => router.push('/modules/learn/difficult-conversations')}
               className="bg-gradient-to-r from-[#FFB5A7] to-[#7EC8E3] text-white px-6 py-2 rounded-xl font-medium hover:shadow-lg transition-all duration-300"

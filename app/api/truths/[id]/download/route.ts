@@ -11,11 +11,11 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY!;
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const { id } = params;
+    const { id } = await params;
     
     // Get the document metadata
     const { data: document, error: fetchError } = await supabase

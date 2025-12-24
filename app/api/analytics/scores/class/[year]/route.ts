@@ -11,7 +11,7 @@ const supabase = createClient(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { year: string } }
+  { params }: { params: Promise<{ year: string }> }
 ) {
   // Require faculty or above to view class scores
   const authResult = await requireFacultyOrAbove(request);
@@ -20,7 +20,8 @@ export async function GET(
   }
 
   try {
-    const classYear = parseInt(params.year);
+    const { year } = await params;
+    const classYear = parseInt(year);
 
     // Get all residents in this class
     const { data: residents, error: residentsError } = await supabase

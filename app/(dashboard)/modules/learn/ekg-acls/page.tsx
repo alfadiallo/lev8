@@ -9,7 +9,6 @@ import ModuleGuard from '@/components/modules/ModuleGuard';
 import EducatorActions from '@/components/modules/EducatorActions';
 import { usePermissions } from '@/hooks/usePermissions';
 import { ACLSScenario } from '@/lib/types/modules';
-import { supabaseClient as supabase } from '@/lib/supabase-client';
 import { Activity, Clock } from 'lucide-react';
 
 export default function EKGACLSPage() {
@@ -24,23 +23,14 @@ export default function EKGACLSPage() {
 
   const loadScenarios = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      // If no session, just show empty state (for testing)
-      if (!session) {
-        console.warn('[EKGACLS] No session found, showing empty state');
-        setScenarios([]);
-        setLoading(false);
-        return;
-      }
-
-      const response = await fetch('/api/acls/scenarios', {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-      });
+      // API routes now read auth from cookies automatically
+      const response = await fetch('/api/acls/scenarios');
 
       if (!response.ok) {
+        if (response.status === 401) {
+          window.location.href = '/login';
+          return;
+        }
         console.warn('[EKGACLS] API call failed, showing empty state');
         setScenarios([]);
         return;

@@ -28,21 +28,14 @@ export default function ClinicalCaseDetailPage() {
 
   const loadCase = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        console.warn('[ClinicalCase] No session found');
-        setLoading(false);
-        return;
-      }
-
-      const response = await fetch(`/api/clinical-cases/${caseId}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-      });
+      // API routes now read auth from cookies automatically
+      const response = await fetch(`/api/clinical-cases/${caseId}`);
 
       if (!response.ok) {
+        if (response.status === 401) {
+          window.location.href = '/login';
+          return;
+        }
         throw new Error('Failed to load case');
       }
 

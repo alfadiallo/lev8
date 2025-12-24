@@ -29,21 +29,14 @@ export default function DifficultConversationDetailPage() {
 
   const loadVignette = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        console.warn('[DifficultConversation] No session found');
-        setLoading(false);
-        return;
-      }
-
-      const response = await fetch(`/api/vignettes/${vignetteId}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-      });
+      // API routes now read auth from cookies automatically
+      const response = await fetch(`/api/vignettes/${vignetteId}`);
 
       if (!response.ok) {
+        if (response.status === 401) {
+          window.location.href = '/login';
+          return;
+        }
         throw new Error('Failed to load vignette');
       }
 

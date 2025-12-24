@@ -10,7 +10,6 @@ import EducatorActions from '@/components/modules/EducatorActions';
 import CaseCard from '@/components/modules/clinical-cases/CaseCard';
 import { usePermissions } from '@/hooks/usePermissions';
 import { ClinicalCase } from '@/lib/types/modules';
-import { supabaseClient as supabase } from '@/lib/supabase-client';
 import { Clock, Filter } from 'lucide-react';
 
 export default function ClinicalCasesPage() {
@@ -27,24 +26,15 @@ export default function ClinicalCasesPage() {
 
   const loadCases = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      // If no session, just show empty state (for testing)
-      if (!session) {
-        console.warn('[ClinicalCases] No session found, showing empty state');
-        setCases([]);
-        setLoading(false);
-        return;
-      }
-
-      const response = await fetch('/api/clinical-cases', {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-      });
+      // API routes now read auth from cookies automatically
+      const response = await fetch('/api/clinical-cases');
 
       if (!response.ok) {
-        // If API fails, just show empty state instead of error
+        if (response.status === 401) {
+          // Unauthorized - redirect to login
+          window.location.href = '/login';
+          return;
+        }
         console.warn('[ClinicalCases] API call failed, showing empty state');
         setCases([]);
         return;

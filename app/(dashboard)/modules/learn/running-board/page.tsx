@@ -7,7 +7,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ModuleLayout from '@/components/modules/ModuleLayout';
 import ModuleGuard from '@/components/modules/ModuleGuard';
-import { supabaseClient } from '@/lib/supabase-client';
 import { 
   Clock, 
   PlayCircle, 
@@ -67,21 +66,21 @@ export default function RunningBoardPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const { data: { session } } = await supabaseClient.auth.getSession();
-      if (!session) {
-        router.push('/login');
-        return;
-      }
-
-      const headers = { 'Authorization': `Bearer ${session.access_token}` };
-
+      
+      // API routes now read auth from cookies automatically
       // Load learners, educators, presets, and cases in parallel
       const [learnersRes, educatorsRes, presetsRes, casesRes] = await Promise.all([
-        fetch('/api/running-board/learners', { headers }),
-        fetch('/api/running-board/educators', { headers }),
-        fetch('/api/running-board/presets', { headers }),
-        fetch('/api/running-board/cases', { headers }),
+        fetch('/api/running-board/learners'),
+        fetch('/api/running-board/educators'),
+        fetch('/api/running-board/presets'),
+        fetch('/api/running-board/cases'),
       ]);
+
+      // Check for auth errors
+      if (learnersRes.status === 401 || educatorsRes.status === 401) {
+        window.location.href = '/login';
+        return;
+      }
 
       if (learnersRes.ok) {
         const data = await learnersRes.json();
@@ -133,12 +132,6 @@ export default function RunningBoardPage() {
       setStarting(true);
       setError(null);
 
-      const { data: { session } } = await supabaseClient.auth.getSession();
-      if (!session) {
-        router.push('/login');
-        return;
-      }
-
       // Prepare educator info
       const educatorInfo = useCustomEducator 
         ? {
@@ -151,10 +144,10 @@ export default function RunningBoardPage() {
             educator_type: selectedEducator?.type,
           };
 
+      // API routes now read auth from cookies automatically
       const response = await fetch('/api/running-board/sessions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -167,6 +160,10 @@ export default function RunningBoardPage() {
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          window.location.href = '/login';
+          return;
+        }
         const data = await response.json();
         throw new Error(data.error || 'Failed to create session');
       }

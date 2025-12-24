@@ -132,7 +132,7 @@ function LoginForm() {
         style={{ color: 'var(--theme-text-muted)' }}
       >
         <Link 
-          href="#" 
+          href="/forgot-password" 
           className="transition-colors"
           style={{ color: 'var(--theme-primary)' }}
           onMouseEnter={(e) => e.currentTarget.style.color = 'var(--theme-primary-dark)'}

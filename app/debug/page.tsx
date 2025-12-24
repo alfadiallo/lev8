@@ -1,8 +1,60 @@
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { ClientDebug } from './ClientDebug';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+// Get build metadata
+async function getBuildInfo() {
+  let gitCommit = 'unknown';
+  let gitMessage = 'unknown';
+  let buildTime = new Date().toISOString();
+  let version = '0.1.0';
+  let nextVersion = '15.5.9';
+  
+  try {
+    // Read package.json
+    const packageJsonPath = join(process.cwd(), 'package.json');
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+    version = packageJson.version || '0.1.0';
+    nextVersion = packageJson.dependencies?.next || '15.5.9';
+  } catch (e) {
+    // Use defaults
+  }
+
+  try {
+    // Try to read from .next/BUILD_ID
+    const buildIdPath = join(process.cwd(), '.next', 'BUILD_ID');
+    const buildId = readFileSync(buildIdPath, 'utf-8').trim();
+    if (buildId) {
+      gitCommit = buildId.substring(0, 7); // Use first 7 chars as short hash
+    }
+  } catch (e) {
+    // Fallback to environment variables
+  }
+
+  // Try to get from environment (Vercel provides this)
+  if (process.env.VERCEL_GIT_COMMIT_SHA) {
+    gitCommit = process.env.VERCEL_GIT_COMMIT_SHA.substring(0, 7);
+  }
+  if (process.env.VERCEL_GIT_COMMIT_MESSAGE) {
+    gitMessage = process.env.VERCEL_GIT_COMMIT_MESSAGE;
+  }
+
+  return {
+    version,
+    nextVersion,
+    gitCommit,
+    gitMessage,
+    buildTime,
+    environment: process.env.NODE_ENV || 'development',
+    vercelEnv: process.env.VERCEL_ENV || 'local',
+    nodeVersion: process.version,
+  };
+}
 
 export default async function DebugPage() {
+  const buildInfo = await getBuildInfo();
   const cookieStore = await cookies();
   const allCookies = cookieStore.getAll();
   
@@ -31,6 +83,66 @@ export default async function DebugPage() {
   return (
     <div className="p-8 max-w-6xl mx-auto space-y-8">
       <h1 className="text-3xl font-bold">🔍 Auth Debugger (Enhanced)</h1>
+      
+      {/* Build Metadata */}
+      <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-6 rounded-lg border-2 border-purple-200">
+        <h2 className="text-xl font-semibold mb-4 text-purple-800 flex items-center gap-2">
+          <span>📦</span> Build Information
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+          <div className="bg-white/60 p-3 rounded border border-purple-200">
+            <p className="font-bold text-purple-700 mb-1">Package Version</p>
+            <p className="text-purple-900 font-mono">{buildInfo.version}</p>
+          </div>
+          <div className="bg-white/60 p-3 rounded border border-purple-200">
+            <p className="font-bold text-purple-700 mb-1">Next.js Version</p>
+            <p className="text-purple-900 font-mono">{buildInfo.nextVersion}</p>
+          </div>
+          <div className="bg-white/60 p-3 rounded border border-purple-200">
+            <p className="font-bold text-purple-700 mb-1">Git Commit</p>
+            <p className="text-purple-900 font-mono">{buildInfo.gitCommit}</p>
+            {buildInfo.gitMessage !== 'unknown' && (
+              <p className="text-xs text-purple-600 mt-1 truncate" title={buildInfo.gitMessage}>
+                {buildInfo.gitMessage}
+              </p>
+            )}
+          </div>
+          <div className="bg-white/60 p-3 rounded border border-purple-200">
+            <p className="font-bold text-purple-700 mb-1">Build Time</p>
+            <p className="text-purple-900 font-mono text-xs">{new Date(buildInfo.buildTime).toLocaleString()}</p>
+          </div>
+          <div className="bg-white/60 p-3 rounded border border-purple-200">
+            <p className="font-bold text-purple-700 mb-1">Environment</p>
+            <p className="text-purple-900 font-mono">
+              <span className={`px-2 py-1 rounded text-xs ${
+                buildInfo.environment === 'production' 
+                  ? 'bg-green-100 text-green-800' 
+                  : 'bg-yellow-100 text-yellow-800'
+              }`}>
+                {buildInfo.environment}
+              </span>
+            </p>
+          </div>
+          <div className="bg-white/60 p-3 rounded border border-purple-200">
+            <p className="font-bold text-purple-700 mb-1">Vercel Environment</p>
+            <p className="text-purple-900 font-mono">
+              <span className={`px-2 py-1 rounded text-xs ${
+                buildInfo.vercelEnv === 'production' 
+                  ? 'bg-green-100 text-green-800' 
+                  : buildInfo.vercelEnv === 'preview'
+                  ? 'bg-blue-100 text-blue-800'
+                  : 'bg-gray-100 text-gray-800'
+              }`}>
+                {buildInfo.vercelEnv}
+              </span>
+            </p>
+          </div>
+          <div className="bg-white/60 p-3 rounded border border-purple-200">
+            <p className="font-bold text-purple-700 mb-1">Node Version</p>
+            <p className="text-purple-900 font-mono">{buildInfo.nodeVersion}</p>
+          </div>
+        </div>
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Server Side State */}

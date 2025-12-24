@@ -12,9 +12,21 @@ export function ClientDebug() {
   const [userError, setUserError] = useState<string | null>(null);
   const [cookies, setCookies] = useState<string>('');
   const [cookieDetails, setCookieDetails] = useState<Array<{name: string, value: string, httpOnly: boolean}>>([]);
+  const [clientInfo, setClientInfo] = useState<{
+    userAgent: string;
+    url: string;
+    timestamp: string;
+  } | null>(null);
 
   useEffect(() => {
     const check = async () => {
+      // Set client info
+      setClientInfo({
+        userAgent: navigator.userAgent,
+        url: window.location.href,
+        timestamp: new Date().toISOString(),
+      });
+
       // Check cookies
       setCookies(document.cookie);
       
@@ -70,6 +82,17 @@ export function ClientDebug() {
 
   return (
     <div className="space-y-4 text-sm">
+      {clientInfo && (
+        <div className="bg-white/60 p-3 rounded border border-blue-200 mb-4">
+          <p className="font-bold text-blue-700 mb-2">Client Information</p>
+          <div className="text-xs space-y-1">
+            <p><strong>URL:</strong> <span className="break-all">{clientInfo.url}</span></p>
+            <p><strong>Timestamp:</strong> {new Date(clientInfo.timestamp).toLocaleString()}</p>
+            <p><strong>User Agent:</strong> <span className="text-blue-600 break-all">{clientInfo.userAgent}</span></p>
+          </div>
+        </div>
+      )}
+      
       <div>
         <p className="font-bold">getSession() Status:</p>
         <p className={getSessionStatus.includes('✅') ? 'text-green-600' : 'text-red-600'}>

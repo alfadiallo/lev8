@@ -1,72 +1,89 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-// Routes that require authentication
-const protectedRoutes = [
-  '/',
-  '/dashboard',
-  '/modules',
-  '/settings',
-  '/forms',
-  '/expectations',
-  '/truths',
-];
-
-// Routes that should redirect to dashboard if authenticated
-const authRoutes = ['/login', '/register'];
-
-// Admin-only routes
-const adminRoutes = ['/admin'];
+import { NextResponse, type NextRequest } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
 
 export async function middleware(request: NextRequest) {
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  });
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            request.cookies.set(name, value);
+          });
+          response = NextResponse.next({
+            request,
+          });
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options);
+          });
+        },
+      },
+    }
+  );
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const { pathname } = request.nextUrl;
 
-  // Check if the route needs protection
+  // Routes that require authentication
+  const protectedRoutes = [
+    '/',
+    '/dashboard',
+    '/modules',
+    '/settings',
+    '/forms',
+    '/expectations',
+    '/truths',
+  ];
+
+  // Routes that should redirect to dashboard if authenticated
+  const authRoutes = ['/login', '/register', '/forgot-password', '/request-access'];
+  const adminRoutes = ['/admin'];
+
+  // Check if the route needs protection (exact match for root, prefix for others)
   const isProtectedRoute = protectedRoutes.some((route) =>
     route === '/' ? pathname === '/' : pathname.startsWith(route)
   );
+  
   const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
   const isAdminRoute = adminRoutes.some((route) => pathname.startsWith(route));
 
-  // Get the session token from cookies
-  const supabaseAuthToken = request.cookies.get('sb-access-token')?.value;
-  const supabaseRefreshToken = request.cookies.get('sb-refresh-token')?.value;
-
-  // Check for auth in Supabase cookie format (sb-<project-ref>-auth-token)
-  const allCookies = request.cookies.getAll();
-  const supabaseSessionCookie = allCookies.find(
-    (cookie) =>
-      cookie.name.startsWith('sb-') && cookie.name.endsWith('-auth-token')
-  );
-
-  const hasSession =
-    supabaseAuthToken || supabaseRefreshToken || supabaseSessionCookie;
-
-  // If trying to access protected routes without auth, redirect to login
-  if (isProtectedRoute && !hasSession) {
+  // If protected route and no user, redirect to login
+  if (isProtectedRoute && !user) {
     const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('redirect', pathname);
+    // Don't add redirect param for root to keep URL clean
+    if (pathname !== '/') {
+      loginUrl.searchParams.set('redirect', pathname);
+    }
     return NextResponse.redirect(loginUrl);
   }
 
-  // If authenticated and trying to access auth routes, redirect to dashboard
-  if (isAuthRoute && hasSession) {
+  // If auth route and user exists, redirect to dashboard
+  if (isAuthRoute && user) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
   // For admin routes, we need to verify the user role
-  // This is a basic check - the full role validation happens in API routes
-  if (isAdminRoute && !hasSession) {
-    const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('redirect', pathname);
-    return NextResponse.redirect(loginUrl);
+  // Basic check here, detailed check in layout/page
+  if (isAdminRoute && !user) {
+    return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  return NextResponse.next();
+  return response;
 }
 
-// Configure which routes the middleware runs on
 export const config = {
   matcher: [
     /*
@@ -80,4 +97,3 @@ export const config = {
     '/((?!api|_next/static|_next/image|favicon.ico|public|.*\\..*$).*)',
   ],
 };
-

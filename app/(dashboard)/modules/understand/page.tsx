@@ -64,15 +64,21 @@ export default function UnderstandModulePage() {
 
   const fetchSessions = async () => {
     try {
-      const { data, error } = await supabaseClient
-        .from('ccc_sessions')
-        .select('*')
-        .order('session_date', { ascending: false });
+      // Use API route instead of direct Supabase query
+      const response = await fetch('/api/ccc-sessions');
       
-      if (error) {
-        console.log('[Understand] Sessions query error:', error.message);
+      if (!response.ok) {
+        if (response.status === 401) {
+          window.location.href = '/login';
+          return;
+        }
+        console.log('[Understand] Sessions fetch failed');
+        setSessions([]);
+        return;
       }
-      setSessions(data || []);
+
+      const { sessions: sessionsData } = await response.json();
+      setSessions(sessionsData || []);
     } catch (err) {
       console.log('[Understand] Sessions fetch failed, showing empty list');
       setSessions([]);

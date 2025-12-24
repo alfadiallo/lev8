@@ -144,59 +144,25 @@ export default function ScoresPage() {
     try {
       setLoading(true);
       
-      // Try using the view first (like Residents page)
-      let residentsData: any[] = [];
+      // Use API route instead of direct Supabase queries
+      const response = await fetch('/api/truths/scores');
       
-      const { data: viewData, error: viewError } = await supabaseClient
-        .from('residents_with_pgy')
-        .select('id, full_name, anon_code, graduation_year, class_name, current_pgy_level');
-      
-      if (!viewError && viewData && viewData.length > 0) {
-        residentsData = viewData;
-      } else {
-        // Fallback: query residents directly
-        const { data: fallbackData, error: fallbackError } = await supabaseClient
-          .from('residents')
-          .select(`
-            id, 
-            anon_code,
-            user_profiles:user_id(full_name),
-            classes:class_id(graduation_year)
-          `);
-
-        if (fallbackError) throw fallbackError;
-        
-        // Transform fallback data to match view format
-        residentsData = (fallbackData || []).map((r: any) => ({
-          id: r.id,
-          full_name: r.user_profiles?.full_name || 'Unknown Resident',
-          anon_code: r.anon_code || 'R000',
-          graduation_year: r.classes?.graduation_year || 2027
-        }));
+      if (!response.ok) {
+        if (response.status === 401) {
+          window.location.href = '/login';
+          return;
+        }
+        throw new Error('Failed to fetch scores data');
       }
+
+      const { residents: residentsData, iteScores, examScores: otherScores } = await response.json();
       
-      const residents = residentsData;
-
-      // Fetch ITE scores
-      const { data: iteScores, error: iteError } = await supabaseClient
-        .from('ite_scores')
-        .select('*');
-
-      if (iteError) throw iteError;
-
-      // Fetch Exam scores (USMLE, COMLEX, Boards) - handle if table doesn't exist
-      let otherScores: any[] = [];
-      try {
-        const { data, error } = await supabaseClient.from('exam_scores').select('*');
-        if (!error && data) otherScores = data;
-      } catch (e) {
-        console.warn('exam_scores table might not exist yet');
-      }
+      const residents = residentsData || [];
 
       // Process data into class groups
       const processedGroups: Record<number, ClassGroup> = {};
 
-      residents?.forEach(res => {
+      residents?.forEach((res: any) => {
         const classYear = res.graduation_year || 2027;
         const name = res.full_name || 'Unknown Resident';
         const anonCode = res.anon_code || 'R000';
@@ -220,8 +186,8 @@ export default function ScoresPage() {
           };
         }
 
-        const resIte = iteScores?.filter(s => s.resident_id === res.id) || [];
-        const resOther = otherScores?.filter(s => s.resident_id === res.id) || [];
+        const resIte = iteScores?.filter((s: any) => s.resident_id === res.id) || [];
+        const resOther = otherScores?.filter((s: any) => s.resident_id === res.id) || [];
 
         const getIte = (pgy: number) => {
           return resIte.find((x: any) => x.pgy_level == pgy || x.pgy_level == `PGY-${pgy}` || x.pgy_level === pgy);

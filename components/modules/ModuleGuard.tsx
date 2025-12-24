@@ -28,7 +28,7 @@ export default function ModuleGuard({ children, availableToRoles, fallback }: Mo
   // useEffect MUST be called before any early returns to follow Rules of Hooks
   useEffect(() => {
     if (!loading && userRole && !hasAccess && !fallback) {
-      router.push('/');
+      router.push('/dashboard');
     }
   }, [hasAccess, fallback, loading, userRole, router]);
 

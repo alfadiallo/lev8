@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useRef, memo, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
-import { supabaseClient } from '@/lib/supabase-client';
 import { 
   ArrowLeft,
   Play,
@@ -29,6 +28,7 @@ import {
 import { calculatePGYLevel, formatPGYLevel } from '@/lib/utils/pgy-calculator';
 import OverviewPane from '@/components/modules/understand/OverviewPane';
 import ITEAnalyticsPane from '@/components/analytics/ite/ITEAnalyticsPane';
+import { useAuth } from '@/context/AuthContext';
 
 // ... existing imports ...
 import SWOTTab from '@/components/analytics/SWOTTab';
@@ -117,6 +117,7 @@ function formatClassHeader(graduationYear: number, pgyLevel: number | null): str
 
 export default function ResidentsPortalPage() {
   const router = useRouter();
+  const { user } = useAuth();
   
   // Data state
   const [residents, setResidents] = useState<ResidentWithPGY[]>([]);
@@ -174,70 +175,18 @@ export default function ResidentsPortalPage() {
 
   const fetchResidents = async () => {
     try {
-      // Try to fetch ALL residents (including graduated) using the view
-      let { data: residentData, error: viewError } = await supabaseClient
-        .from('residents_with_pgy')
-        .select('id, full_name, anon_code, graduation_year, class_name, current_pgy_level')
-        .order('graduation_year', { ascending: false })
-        .order('full_name', { ascending: true });
+      // Use API route instead of direct Supabase query
+      const response = await fetch('/api/residents');
       
-      console.log('[Residents] View query result:', residentData?.length || 0, 'residents', viewError?.message || 'OK');
-
-      // Fallback: if view doesn't exist, query residents directly
-      if (viewError || !residentData || residentData.length === 0) {
-        console.log('[Residents] View not available, using fallback query');
-        
-        const { data: fallbackData } = await supabaseClient
-          .from('residents')
-          .select(`
-            id,
-            anon_code,
-            class_id,
-            classes:class_id (
-              graduation_year,
-              name
-            )
-          `)
-          .order('anon_code', { ascending: true });
-
-        if (fallbackData && fallbackData.length > 0) {
-          // Get user profiles for names
-          const { data: profileData } = await supabaseClient
-            .from('user_profiles')
-            .select('id, full_name, email');
-
-          const { data: residentUserData } = await supabaseClient
-            .from('residents')
-            .select('id, user_id');
-          
-          const userIdMap = new Map(residentUserData?.map(r => [r.id, r.user_id]) || []);
-          const profileMap = new Map(profileData?.map(p => [p.id, p]) || []);
-
-          residentData = fallbackData.map(r => {
-            const classesRaw = r.classes as unknown;
-            let graduationYear = 0;
-            let className = '';
-            
-            if (classesRaw && typeof classesRaw === 'object' && !Array.isArray(classesRaw)) {
-              const classObj = classesRaw as Record<string, unknown>;
-              graduationYear = (classObj.graduation_year as number) || 0;
-              className = (classObj.name as string) || '';
-            }
-            
-            const userId = userIdMap.get(r.id);
-            const profile = userId ? profileMap.get(userId) : null;
-            
-            return {
-              id: r.id,
-              full_name: profile?.full_name || profile?.email?.split('@')[0] || 'Unknown',
-              anon_code: r.anon_code || '',
-              graduation_year: graduationYear,
-              class_name: className || `Class ${r.class_id?.slice(-2) || '??'}`,
-              current_pgy_level: graduationYear ? calculatePGYLevel(graduationYear) : 0,
-            };
-          });
+      if (!response.ok) {
+        if (response.status === 401) {
+          window.location.href = '/login';
+          return;
         }
+        throw new Error('Failed to fetch residents');
       }
+
+      const { residents: residentData } = await response.json();
 
       if (residentData && residentData.length > 0) {
         setResidents(residentData as ResidentWithPGY[]);
@@ -802,6 +751,7 @@ const NOTE_TYPES = [
 ];
 
 function ResidentNotesFooter({ residentId, onNoteAdded }: ResidentNotesFooterProps) {
+  const { user } = useAuth();
   const [noteText, setNoteText] = useState('');
   const [noteType, setNoteType] = useState<string>('general');
   const [saving, setSaving] = useState(false);
@@ -838,8 +788,7 @@ function ResidentNotesFooter({ residentId, onNoteAdded }: ResidentNotesFooterPro
 
     setSaving(true);
     try {
-      const { data: user } = await supabaseClient.auth.getUser();
-      
+      // API route handles auth via cookies
       const response = await fetch('/api/resident-notes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -848,7 +797,7 @@ function ResidentNotesFooter({ residentId, onNoteAdded }: ResidentNotesFooterPro
           source_type: 'portal_review',
           note_type: noteType,
           note_text: noteText.trim(),
-          created_by: user?.user?.id,
+          created_by: user?.id,
         }),
       });
 

@@ -23,13 +23,24 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+export function AuthProvider({ 
+  children, 
+  initialUser 
+}: { 
+  children: ReactNode;
+  initialUser?: User | null;
+}) {
+  const [user, setUser] = useState<User | null>(initialUser || null);
+  const [loading, setLoading] = useState(!initialUser);
 
   // Check if user is logged in on mount
   useEffect(() => {
     const checkAuth = async () => {
+      // If we already have an initial user, just sync the profile in background
+      if (initialUser) {
+        setLoading(false);
+      }
+      
       console.log('[AuthContext] Starting auth check...');
       
       try {

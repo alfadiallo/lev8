@@ -80,6 +80,9 @@ export async function POST(request: NextRequest) {
     return authResult.response;
   }
 
+  // Use service role client for admin operations (bypasses RLS)
+  const supabase = getServiceSupabaseClient();
+
   try {
     const body = await request.json();
     const {
@@ -176,6 +179,9 @@ export async function PATCH(request: NextRequest) {
     return authResult.response;
   }
 
+  // Use service role client for admin operations (bypasses RLS)
+  const supabase = getServiceSupabaseClient();
+
   try {
     const body = await request.json();
     const { id, note_text, note_type, is_confidential } = body;
@@ -248,6 +254,9 @@ export async function DELETE(request: NextRequest) {
   if (!authResult.authorized) {
     return authResult.response;
   }
+
+  // Use service role client for admin operations (bypasses RLS)
+  const supabase = getServiceSupabaseClient();
 
   try {
     const { searchParams } = new URL(request.url);

@@ -4,11 +4,8 @@
 // DELETE /api/clinical-cases/[id] - Delete case (educators only)
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { checkApiPermission } from '@/lib/auth/checkApiPermission';
+import { getServerSupabaseClient } from '@/lib/supabase/server';
 
 export async function GET(
   request: NextRequest,
@@ -16,18 +13,15 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    
+    // Use checkApiPermission for auth
+    const authResult = await checkApiPermission(request);
+    if (!authResult.authorized) {
+      return authResult.response!;
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // Use shared server client (respects RLS)
+    const supabase = getServerSupabaseClient();
 
     const { data: case_, error } = await supabase
       .from('clinical_cases')
@@ -55,38 +49,17 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    
+    // Require educator role
+    const authResult = await checkApiPermission(request, {
+      requiredRoles: ['faculty', 'program_director', 'super_admin']
+    });
+    if (!authResult.authorized) {
+      return authResult.response!;
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Get user profile to check role
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile) {
-      return NextResponse.json({ error: 'User profile not found' }, { status: 404 });
-    }
-
-    // Check if user is educator
-    const educatorRoles = ['faculty', 'program_director', 'super_admin'];
-    if (!educatorRoles.includes(profile.role)) {
-      return NextResponse.json(
-        { error: 'Only educators can update clinical cases' },
-        { status: 403 }
-      );
-    }
+    // Use shared server client (respects RLS)
+    const supabase = getServerSupabaseClient();
 
     const body = await request.json();
     const updateData: Record<string, unknown> = {};
@@ -128,31 +101,17 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    
+    // Require educator role
+    const authResult = await checkApiPermission(request, {
+      requiredRoles: ['faculty', 'program_director', 'super_admin']
+    });
+    if (!authResult.authorized) {
+      return authResult.response!;
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Get user profile to check role
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile) {
-      return NextResponse.json({ error: 'User profile not found' }, { status: 404 });
-    }
-
-    // Check if user is educator
+    // Use shared server client (respects RLS)
+    const supabase = getServerSupabaseClient();
     const educatorRoles = ['faculty', 'program_director', 'super_admin'];
     if (!educatorRoles.includes(profile.role)) {
       return NextResponse.json(

@@ -30,101 +30,17 @@ export function AuthProvider({
   children: ReactNode;
   initialUser?: User | null;
 }) {
+  // Trust server-provided initialUser - no redundant checks
   const [user, setUser] = useState<User | null>(initialUser || null);
-  const [loading, setLoading] = useState(!initialUser);
+  const [loading, setLoading] = useState(false); // Server provides initial state, so no loading needed
 
-  // Check if user is logged in on mount
-  useEffect(() => {
-    const checkAuth = async () => {
-      // If we already have an initial user, just sync the profile in background
-      if (initialUser) {
-        setLoading(false);
-      }
-      
-      console.log('[AuthContext] Starting auth check...');
-      
-      try {
-        // Just call getSession directly without timeout racing
-        console.log('[AuthContext] Calling getSession...');
-        const { data, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('[AuthContext] getSession error:', error);
-          setLoading(false);
-          return;
-        }
-        
-        console.log('[AuthContext] getSession returned:', data?.session?.user?.email || 'no session');
-
-        if (data.session?.user) {
-          // Fetch user profile to get role
-          console.log('[AuthContext] Fetching user profile...');
-          const { data: profile, error: profileError } = await supabase
-            .from('user_profiles')
-            .select('role, full_name, email, phone')
-            .eq('id', data.session.user.id)
-            .single();
-          console.log('[AuthContext] Profile fetched:', profile?.email || 'error', profileError?.message || 'OK');
-
-          if (profileError) {
-            console.error('[AuthContext] Profile fetch error:', profileError);
-          }
-
-          setUser({
-            id: data.session.user.id,
-            email: data.session.user.email || profile?.email || '',
-            role: profile?.role || undefined,
-            firstName: profile?.full_name?.split(' ')[0],
-            lastName: profile?.full_name?.split(' ').slice(1).join(' '),
-          });
-        }
-      } catch (error) {
-        console.error('[AuthContext] Auth check failed:', error);
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkAuth();
-
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('[AuthContext] Auth state changed:', event, session?.user?.email);
-      if (session?.user) {
-        // Fetch user profile to get role
-        const { data: profile, error: profileError } = await supabase
-          .from('user_profiles')
-          .select('role, full_name, email, phone')
-          .eq('id', session.user.id)
-          .single();
-
-        console.log('[AuthContext] onAuthStateChange profile:', profile?.role, 'error:', profileError?.message);
-
-        setUser({
-          id: session.user.id,
-          email: session.user.email || profile?.email || '',
-          role: profile?.role || undefined,
-          firstName: profile?.full_name?.split(' ')[0],
-          lastName: profile?.full_name?.split(' ').slice(1).join(' '),
-        });
-      } else {
-        setUser(null);
-      }
-      setLoading(false);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
+  // No useEffect for auth checking - server handles it via cookies
+  // Only update state on explicit login/logout actions
 
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
-      console.log('[AuthContext] Starting login for:', email);
-
-      // Sign in directly with Supabase client
+      // Sign in with Supabase - this sets cookies automatically
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -135,38 +51,21 @@ export function AuthProvider({
       }
 
       if (data.user) {
-        console.log('[AuthContext] Login successful, user:', data.user.id);
-        
-        // Force session refresh to ensure cookies are set
-        await supabase.auth.getSession();
-        
-        // Fetch profile
-        let profile = null;
-        try {
-          const { data: profileData } = await supabase
-            .from('user_profiles')
-            .select('role, full_name')
-            .eq('id', data.user.id)
-            .single();
-          profile = profileData;
-        } catch (e) {
-          console.warn('Profile fetch error:', e);
-        }
-
+        // Set minimal user state - full profile will be loaded on next page navigation
+        // This avoids redundant profile fetch here
         setUser({
           id: data.user.id,
           email: data.user.email || '',
-          role: profile?.role || undefined,
-          firstName: profile?.full_name?.split(' ')[0],
-          lastName: profile?.full_name?.split(' ').slice(1).join(' '),
+          role: undefined, // Will be loaded from server on next navigation
+          firstName: undefined,
+          lastName: undefined,
         });
       }
     } catch (error) {
       console.error('Login error:', error);
       throw error;
     } finally {
-      // Don't set loading to false if successful, let redirect handle it
-      // But if we failed, we must clear loading in the component
+      // Don't set loading to false if successful - redirect will handle it
     }
   };
 

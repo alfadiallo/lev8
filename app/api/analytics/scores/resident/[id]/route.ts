@@ -1,7 +1,7 @@
 // GET /api/analytics/scores/resident/[id] - Get resident scores data
 
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { getServiceSupabaseClient } from '@/lib/supabase/server';
 import { requireFacultyOrAbove } from '@/lib/auth/checkApiPermission';
 
 export async function GET(
@@ -13,6 +13,9 @@ export async function GET(
   if (!authResult.authorized) {
     return authResult.response;
   }
+
+  // Use service role client for admin analytics (bypasses RLS)
+  const supabase = getServiceSupabaseClient();
 
   try {
     const { id: residentId } = await params;

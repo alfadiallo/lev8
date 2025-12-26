@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { requireFacultyOrAbove } from '@/lib/auth/checkApiPermission';
-
-// Use service key for full access
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_KEY!
-);
+import { getServiceSupabaseClient } from '@/lib/supabase/server';
 
 // GET /api/resident-notes - Fetch notes for a resident
 export async function GET(request: NextRequest) {
@@ -15,6 +9,9 @@ export async function GET(request: NextRequest) {
   if (!authResult.authorized) {
     return authResult.response;
   }
+
+  // Use service role client for admin operations (bypasses RLS)
+  const supabase = getServiceSupabaseClient();
 
   try {
     const { searchParams } = new URL(request.url);

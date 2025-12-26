@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY!;
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+import { checkApiPermission } from '@/lib/auth/checkApiPermission';
+import { getServiceSupabaseClient } from '@/lib/supabase/server';
 
 /**
  * POST /api/admin/users
@@ -11,6 +8,17 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
  */
 export async function POST(req: NextRequest) {
   try {
+    // Require admin role
+    const authResult = await checkApiPermission(req, {
+      requiredRoles: ['super_admin', 'program_director']
+    });
+    if (!authResult.authorized) {
+      return authResult.response!;
+    }
+
+    // Use service role client for admin operations (bypasses RLS)
+    const supabase = getServiceSupabaseClient();
+
     const body = await req.json();
     const {
       full_name,
@@ -20,30 +28,6 @@ export async function POST(req: NextRequest) {
       role,
       send_invite,
     } = body;
-
-    // Authenticate admin
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const token = authHeader.split(' ')[1];
-    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
-
-    if (authError || !authUser) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Check if user is admin
-    const { data: adminProfile } = await supabase
-      .from('user_profiles')
-      .select('id, role, full_name')
-      .eq('id', authUser.id)
-      .single();
-
-    if (!adminProfile || !['super_admin', 'program_director'].includes(adminProfile.role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
 
     // Validation
     if (!full_name || !personal_email || !role) {

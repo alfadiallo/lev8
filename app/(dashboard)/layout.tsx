@@ -1,7 +1,6 @@
 'use client';
 
-import { ReactNode, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { ReactNode } from 'react';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { useAuth } from '@/context/AuthContext';
 import { Loader2 } from 'lucide-react';
@@ -11,17 +10,10 @@ export default function DashboardLayout({
 }: {
   children: ReactNode;
 }) {
-  const router = useRouter();
   const { user, loading } = useAuth();
 
-  useEffect(() => {
-    // Only redirect if we're done loading and there's no user
-    if (!loading && !user) {
-      router.push('/login');
-    }
-  }, [loading, user, router]);
-
-  // Show loading while checking auth
+  // Trust middleware - if we reach this layout, user is authenticated
+  // Only show loading if AuthContext is still initializing (should be rare)
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center" style={{ background: 'var(--theme-background)' }}>
@@ -30,9 +22,14 @@ export default function DashboardLayout({
     );
   }
 
-  // Don't render anything while redirecting
+  // If no user after loading, middleware should have redirected
+  // But show loading as fallback (shouldn't happen)
   if (!user) {
-    return null;
+    return (
+      <div className="flex h-screen items-center justify-center" style={{ background: 'var(--theme-background)' }}>
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--theme-primary)' }} />
+      </div>
+    );
   }
 
   return (

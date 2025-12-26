@@ -21,18 +21,8 @@ export default function ModuleGuard({ children, availableToRoles, fallback }: Mo
   
   // Memoize the access check to prevent unnecessary re-renders
   const hasAccess = useMemo(
-    () => {
-      const access = hasModuleAccess(availableToRoles);
-      console.log('[ModuleGuard] Access check:', { 
-        userRole, 
-        availableToRoles, 
-        hasAccess: access,
-        loading,
-        hasUser: !!user
-      });
-      return access;
-    },
-    [hasModuleAccess, availableToRoles.join(','), userRole, loading, user]
+    () => hasModuleAccess(availableToRoles),
+    [hasModuleAccess, availableToRoles.join(','), userRole]
   );
 
   // Wait for auth to finish loading before checking access
@@ -45,11 +35,6 @@ export default function ModuleGuard({ children, availableToRoles, fallback }: Mo
     // 4. User does NOT have access
     // 5. No fallback is provided
     if (!loading && user && userRole && !hasAccess && !fallback) {
-      console.log('[ModuleGuard] Access denied, redirecting to dashboard', {
-        userRole,
-        availableToRoles,
-        hasAccess
-      });
       router.push('/dashboard');
     }
   }, [hasAccess, fallback, loading, user, userRole, router]);
@@ -73,14 +58,10 @@ export default function ModuleGuard({ children, availableToRoles, fallback }: Mo
     );
   }
 
-  // CRITICAL: If no user role yet, show spinner and wait
+  // If no user role yet, show spinner and wait
   // Don't redirect or show children until we know the role
   // This prevents false negatives that cause redirects
   if (!userRole) {
-    console.log('[ModuleGuard] User exists but role not loaded yet, waiting...', { 
-      userEmail: user.email,
-      userRole: user.role 
-    });
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#7EC8E3]"></div>

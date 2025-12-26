@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkApiPermission } from '@/lib/auth/checkApiPermission';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { getServerSupabaseClient } from '@/lib/supabase/server';
 
 export async function GET(request: NextRequest) {
   const authResult = await checkApiPermission(request, { minimumRole: 'faculty' });
@@ -9,21 +8,8 @@ export async function GET(request: NextRequest) {
     return authResult.response!;
   }
 
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll() {
-          // Read-only
-        },
-      },
-    }
-  );
+  // Use shared server client helper (respects RLS)
+  const supabase = getServerSupabaseClient();
 
   try {
     const { data: sessions, error } = await supabase

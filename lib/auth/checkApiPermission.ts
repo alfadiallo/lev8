@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 import { UserRole, ROLE_HIERARCHY } from '@/lib/hooks/usePermissions';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+import { getApiUser } from './api';
 
 interface AuthResult {
   authorized: boolean;
@@ -17,6 +12,20 @@ interface AuthResult {
 
 /**
  * Check if the request has valid authentication and the required role
+ * 
+ * Now uses getApiUser() for cached user + profile fetching.
+ * This eliminates redundant Supabase client creation and profile fetches.
+ * 
+ * Example:
+ * ```ts
+ * export async function GET(request: NextRequest) {
+ *   const authResult = await checkApiPermission(request, { minimumRole: 'faculty' });
+ *   if (!authResult.authorized) {
+ *     return authResult.response;
+ *   }
+ *   // Use authResult.userId and authResult.role
+ * }
+ * ```
  */
 export async function checkApiPermission(
   request: NextRequest,
@@ -28,53 +37,13 @@ export async function checkApiPermission(
   } = {}
 ): Promise<AuthResult> {
   try {
-    let user = null;
-    let authError = null;
+    // Get user + profile (cached per request)
+    const { user, error: userError } = await getApiUser(request);
 
-    // 1. Try to get user from cookies (Browser session)
-    const cookieStore = await cookies();
-    const supabaseCookie = createServerClient(
-      supabaseUrl,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            // Read-only in API routes usually
-          },
-        },
-      }
-    );
-
-    const { data: cookieData, error: cookieError } = await supabaseCookie.auth.getUser();
-    
-    if (!cookieError && cookieData.user) {
-      user = cookieData.user;
-    } else {
-      // 2. Fallback to Bearer token (API/External access)
-      const authHeader = request.headers.get('authorization');
-      
-      if (authHeader?.startsWith('Bearer ')) {
-        const token = authHeader.replace('Bearer ', '');
-        const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-          auth: { persistSession: false }
-        });
-        const { data: tokenData, error: tokenError } = await supabaseAdmin.auth.getUser(token);
-        
-        if (!tokenError && tokenData.user) {
-          user = tokenData.user;
-        } else {
-          authError = tokenError;
-        }
-      }
-    }
-
-    if (!user) {
+    if (!user || userError) {
       return {
         authorized: false,
-        error: 'Unauthorized',
+        error: userError || 'Unauthorized',
         response: NextResponse.json(
           { error: 'Unauthorized' },
           { status: 401 }
@@ -82,30 +51,18 @@ export async function checkApiPermission(
       };
     }
 
-    // Create admin client for profile fetch (bypassing RLS)
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { persistSession: false }
-    });
+    const userRole = user.role as UserRole | undefined;
 
-    // Get user's role from profile
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from('user_profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (profileError || !profile) {
+    if (!userRole) {
       return {
         authorized: false,
-        error: 'User profile not found',
+        error: 'User role not found',
         response: NextResponse.json(
-          { error: 'User profile not found' },
+          { error: 'User role not found' },
           { status: 403 }
         ),
       };
     }
-
-    const userRole = profile.role as UserRole;
 
     // Check if user has required role
     const { requiredRoles, minimumRole, allowSelf, selfIdParam } = options;

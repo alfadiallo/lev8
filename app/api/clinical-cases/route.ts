@@ -3,38 +3,20 @@
 // POST /api/clinical-cases - Create a new clinical case (educators only)
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { checkApiPermission } from '@/lib/auth/checkApiPermission';
+import { getServerSupabaseClient } from '@/lib/supabase/server';
 
 // GET /api/clinical-cases - List cases
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Use checkApiPermission for auth (handles cookies + Bearer tokens)
+    const authResult = await checkApiPermission(request);
+    if (!authResult.authorized) {
+      return authResult.response!;
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Get user profile to check institution
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('institution_id, role')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile) {
-      return NextResponse.json({ error: 'User profile not found' }, { status: 404 });
-    }
+    // Use shared server client (respects RLS)
+    const supabase = getServerSupabaseClient();
 
     // Fetch cases - RLS will filter based on institution and active status
     const { data: cases, error } = await supabase
@@ -61,37 +43,27 @@ export async function GET(request: NextRequest) {
 // POST /api/clinical-cases - Create case (educators only)
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Require educator role
+    const authResult = await checkApiPermission(request, {
+      requiredRoles: ['faculty', 'program_director', 'super_admin']
+    });
+    if (!authResult.authorized) {
+      return authResult.response!;
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
+    // Use shared server client (respects RLS)
+    const supabase = getServerSupabaseClient();
 
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Get user profile to check role and institution
+    // Get user profile to check institution (using cached auth result)
+    // We need institution_id, so fetch it
     const { data: profile } = await supabase
       .from('user_profiles')
-      .select('institution_id, role')
-      .eq('id', user.id)
+      .select('institution_id')
+      .eq('id', authResult.userId!)
       .single();
 
     if (!profile) {
       return NextResponse.json({ error: 'User profile not found' }, { status: 404 });
-    }
-
-    // Check if user is educator
-    const educatorRoles = ['faculty', 'program_director', 'super_admin'];
-    if (!educatorRoles.includes(profile.role)) {
-      return NextResponse.json(
-        { error: 'Only educators can create clinical cases' },
-        { status: 403 }
-      );
     }
 
     const body = await request.json();

@@ -1,0 +1,21 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Run architecture pattern checks before commit
+echo "🔍 Running architecture pattern checks..."
+
+# Check for direct Supabase client creation in API routes
+if git diff --cached --name-only | grep -E 'app/api/.*route\.ts$' | xargs grep -l 'createServerClient\|createClient.*SUPABASE' | grep -v 'lib/supabase/server' | grep -v 'lib/auth'; then
+  echo "❌ Error: API routes should use getServerSupabaseClient() or getServiceSupabaseClient()"
+  echo "   Found direct Supabase client creation in staged API routes"
+  exit 1
+fi
+
+# Check for client-side getSession in non-debug/admin pages
+if git diff --cached --name-only | grep -E 'app/.*\.(tsx|ts)$' | grep -v 'debug' | grep -v 'admin' | xargs grep -l '\.auth\.getSession()' 2>/dev/null; then
+  echo "⚠️  Warning: Client component uses getSession(). Consider using server-provided data"
+  echo "   This is allowed but should be minimized"
+fi
+
+echo "✅ Architecture pattern checks passed"
+

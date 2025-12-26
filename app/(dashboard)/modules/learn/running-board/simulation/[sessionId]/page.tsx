@@ -5,7 +5,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { supabaseClient } from '@/lib/supabase-client';
 import SimulationGrid from '@/components/modules/running-board/SimulationGrid';
 import TimerControls from '@/components/modules/running-board/TimerControls';
 import { 
@@ -64,15 +63,8 @@ export default function RunningBoardSimulationPage() {
   const loadSession = async () => {
     try {
       setLoading(true);
-      const { data: { session: authSession } } = await supabaseClient.auth.getSession();
-      if (!authSession) {
-        router.push('/login');
-        return;
-      }
-
-      const response = await fetch(`/api/running-board/sessions/${sessionId}`, {
-        headers: { 'Authorization': `Bearer ${authSession.access_token}` },
-      });
+      // API routes now use cookie-based auth, no Bearer token needed
+      const response = await fetch(`/api/running-board/sessions/${sessionId}`);
 
       if (!response.ok) {
         throw new Error('Failed to load session');
@@ -105,18 +97,14 @@ export default function RunningBoardSimulationPage() {
   const handleStart = async () => {
     setIsRunning(true);
     
-    // Update session status
-    const { data: { session: authSession } } = await supabaseClient.auth.getSession();
-    if (authSession) {
-      fetch(`/api/running-board/sessions/${sessionId}`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${authSession.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: 'in_progress' }),
-      });
-    }
+    // Update session status (cookies handle auth)
+    fetch(`/api/running-board/sessions/${sessionId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ status: 'in_progress' }),
+    });
   };
 
   const handlePause = () => {
@@ -130,22 +118,18 @@ export default function RunningBoardSimulationPage() {
   const handleEnd = async () => {
     setIsRunning(false);
     
-    // Update session status
-    const { data: { session: authSession } } = await supabaseClient.auth.getSession();
-    if (authSession) {
-      await fetch(`/api/running-board/sessions/${sessionId}`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${authSession.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          status: 'completed',
-          final_phase_reached: currentPhase,
-          dark_mode_used: darkMode,
-        }),
-      });
-    }
+    // Update session status (cookies handle auth)
+    await fetch(`/api/running-board/sessions/${sessionId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 
+        status: 'completed',
+        final_phase_reached: currentPhase,
+        dark_mode_used: darkMode,
+      }),
+    });
 
     // Navigate to debrief
     router.push(`/modules/learn/running-board/simulation/${sessionId}/debrief`);
@@ -187,25 +171,21 @@ export default function RunningBoardSimulationPage() {
       },
     }));
 
-    // Save to backend
-    const { data: { session: authSession } } = await supabaseClient.auth.getSession();
-    if (authSession) {
-      fetch(`/api/running-board/sessions/${sessionId}/actions`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${authSession.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          case_id: caseId,
-          checklist_item_id: itemId,
-          phase_id: phaseId,
-          is_critical: isCritical,
-          checked: newChecked,
-          elapsed_time_seconds: elapsedTime,
-        }),
-      });
-    }
+    // Save to backend (cookies handle auth)
+    fetch(`/api/running-board/sessions/${sessionId}/actions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        case_id: caseId,
+        checklist_item_id: itemId,
+        phase_id: phaseId,
+        is_critical: isCritical,
+        checked: newChecked,
+        elapsed_time_seconds: elapsedTime,
+      }),
+    });
   }, [checkboxState, elapsedTime, sessionId]);
 
   if (loading) {

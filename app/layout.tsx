@@ -24,6 +24,13 @@ export default async function RootLayout({
 }) {
   // Use cached getServerUserWithProfile - fetches user + profile once per request
   const initialUser = await getServerUserWithProfile();
+  
+  // Debug logging (server-side)
+  console.log('[RootLayout] initialUser:', initialUser ? { 
+    id: initialUser.id, 
+    email: initialUser.email, 
+    role: initialUser.role 
+  } : null);
 
   return (
     <html lang="en" className="h-full w-full">

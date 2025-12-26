@@ -11,22 +11,28 @@ export function checkModuleAccess(
 ): boolean {
   // If no role, deny access
   if (!userRole) {
+    console.log('[checkModuleAccess] No role, denying access');
     return false;
   }
   
-  // Super admins always have access
-  if (userRole === 'super_admin') return true;
+  // Super admins and admins always have access
+  if (userRole === 'super_admin' || userRole === 'admin') {
+    console.log('[checkModuleAccess] Admin role, granting access');
+    return true;
+  }
   
   // Check if user's role is in the available roles array
-  return availableToRoles.includes(userRole);
+  const hasAccess = availableToRoles.includes(userRole);
+  console.log('[checkModuleAccess] Role check:', { userRole, availableToRoles, hasAccess });
+  return hasAccess;
 }
 
 /**
- * Check if user is an educator (faculty, program_director, or super_admin)
+ * Check if user is an educator (faculty, program leadership, or admin)
  */
 export function isEducator(role: UserRole | null | undefined): boolean {
   if (!role) return false;
-  return ['faculty', 'program_director', 'super_admin'].includes(role);
+  return ['faculty', 'program_director', 'assistant_program_director', 'clerkship_director', 'super_admin', 'admin'].includes(role);
 }
 
 /**

@@ -19,9 +19,23 @@ export default function ModuleGuard({ children, availableToRoles, fallback }: Mo
   const { hasModuleAccess, userRole } = useModuleAccess();
   const router = useRouter();
   
+  // Debug logging
+  console.log('[ModuleGuard] State:', {
+    loading,
+    hasUser: !!user,
+    userEmail: user?.email,
+    userRoleFromAuth: user?.role,
+    userRoleFromHook: userRole,
+    availableToRoles,
+  });
+  
   // Memoize the access check to prevent unnecessary re-renders
   const hasAccess = useMemo(
-    () => hasModuleAccess(availableToRoles),
+    () => {
+      const access = hasModuleAccess(availableToRoles);
+      console.log('[ModuleGuard] Access check result:', access);
+      return access;
+    },
     [hasModuleAccess, availableToRoles.join(','), userRole]
   );
 

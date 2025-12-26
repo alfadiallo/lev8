@@ -22,7 +22,7 @@ export default async function UnderstandModulePage() {
   let sessions: CCCSession[] = [];
   
   if (user?.role && ['faculty', 'program_director', 'assistant_program_director', 'clerkship_director', 'super_admin', 'admin'].includes(user.role)) {
-    const supabase = getServerSupabaseClient();
+    const supabase = await getServerSupabaseClient();
     const { data: sessionsData } = await supabase
       .from('ccc_sessions')
       .select('*')

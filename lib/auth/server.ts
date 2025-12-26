@@ -22,15 +22,15 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
  * Create a server-side Supabase client for the current request
  * Uses request-level caching to reuse the same client instance
  */
-const getServerSupabaseClient = cache(() => {
-  const cookieStore = cookies();
+const getServerSupabaseClient = cache(async () => {
+  const cookieStore = await cookies();
   
   return createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll() {
         return cookieStore.getAll();
       },
-      setAll(cookiesToSet) {
+      setAll(_cookiesToSet: Array<{ name: string; value: string; options?: Record<string, unknown> }>) {
         // Read-only for most server components
         // Cookies are set by middleware or API routes
       },
@@ -48,7 +48,7 @@ const getServerSupabaseClient = cache(() => {
  * Cached per request using React cache()
  */
 export const getServerUser = cache(async () => {
-  const supabase = getServerSupabaseClient();
+  const supabase = await getServerSupabaseClient();
   const { data: { user }, error } = await supabase.auth.getUser();
   
   if (error || !user) {
@@ -74,7 +74,7 @@ export const getServerUserWithProfile = cache(async () => {
     return null;
   }
   
-  const supabase = getServerSupabaseClient();
+  const supabase = await getServerSupabaseClient();
   
   // Fetch profile
   const { data: profile, error: profileError } = await supabase

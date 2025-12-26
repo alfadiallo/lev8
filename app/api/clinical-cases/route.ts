@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Use shared server client (respects RLS)
-    const supabase = getServerSupabaseClient();
+    const supabase = await getServerSupabaseClient();
 
     // Fetch cases - RLS will filter based on institution and active status
     const { data: cases, error } = await supabase
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Use shared server client (respects RLS)
-    const supabase = getServerSupabaseClient();
+    const supabase = await getServerSupabaseClient();
 
     // Get user profile to check institution (using cached auth result)
     // We need institution_id, so fetch it

@@ -66,7 +66,7 @@ export default async function DebugPage() {
         getAll() {
           return allCookies;
         },
-        setAll(cookiesToSet) {
+        setAll(_cookiesToSet: Array<{ name: string; value: string; options?: Record<string, unknown> }>) {
           // No-op for debug view
         },
       },

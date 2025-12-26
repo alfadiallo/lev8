@@ -21,7 +21,7 @@ export async function GET(
     }
 
     // Use shared server client (respects RLS)
-    const supabase = getServerSupabaseClient();
+    const supabase = await getServerSupabaseClient();
 
     const { data: case_, error } = await supabase
       .from('clinical_cases')
@@ -59,7 +59,7 @@ export async function PUT(
     }
 
     // Use shared server client (respects RLS)
-    const supabase = getServerSupabaseClient();
+    const supabase = await getServerSupabaseClient();
 
     const body = await request.json();
     const updateData: Record<string, unknown> = {};
@@ -111,7 +111,7 @@ export async function DELETE(
     }
 
     // Use shared server client (respects RLS)
-    const supabase = getServerSupabaseClient();
+    const supabase = await getServerSupabaseClient();
 
     // Soft delete by setting is_active to false
     const { error } = await supabase

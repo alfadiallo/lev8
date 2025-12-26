@@ -24,15 +24,15 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
  * 
  * Cached per request using React cache()
  */
-export const getServerSupabaseClient = cache(() => {
-  const cookieStore = cookies();
+export const getServerSupabaseClient = cache(async () => {
+  const cookieStore = await cookies();
   
   return createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll() {
         return cookieStore.getAll();
       },
-      setAll(cookiesToSet) {
+      setAll(_cookiesToSet: Array<{ name: string; value: string; options?: Record<string, unknown> }>) {
         // Read-only for most server components
         // Cookies are set by middleware or API routes
       },

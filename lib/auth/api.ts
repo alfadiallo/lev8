@@ -62,7 +62,7 @@ export const getApiUser = cache(async (request: NextRequest): Promise<{
         getAll() {
           return cookieStore.getAll();
         },
-        setAll(cookiesToSet) {
+        setAll(_cookiesToSet: Array<{ name: string; value: string; options?: Record<string, unknown> }>) {
           // Read-only in API routes usually
         },
       },

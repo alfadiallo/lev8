@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Use shared server client helper (respects RLS)
-  const supabase = getServerSupabaseClient();
+  const supabase = await getServerSupabaseClient();
 
   try {
     const { data: sessions, error } = await supabase

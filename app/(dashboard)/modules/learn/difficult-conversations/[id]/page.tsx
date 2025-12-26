@@ -59,7 +59,7 @@ export default function DifficultConversationDetailPage() {
 
   if (loading) {
     return (
-      <ModuleGuard availableToRoles={['resident', 'faculty', 'program_director', 'super_admin']}>
+      <ModuleGuard availableToRoles={['resident', 'faculty', 'program_director', 'assistant_program_director', 'clerkship_director', 'super_admin', 'admin']}>
         <ModuleLayout title="Loading..." description="">
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#7EC8E3]"></div>
@@ -71,7 +71,7 @@ export default function DifficultConversationDetailPage() {
 
   if (!vignette) {
     return (
-      <ModuleGuard availableToRoles={['resident', 'faculty', 'program_director', 'super_admin']}>
+      <ModuleGuard availableToRoles={['resident', 'faculty', 'program_director', 'assistant_program_director', 'clerkship_director', 'super_admin', 'admin']}>
         <ModuleLayout title="Vignette Not Found" description="">
           <div className="bg-white/90 backdrop-blur-sm p-8 rounded-2xl shadow-md border border-white/30 text-center">
             <p className="text-neutral-600 mb-4">The vignette you&apos;re looking for doesn&apos;t exist.</p>
@@ -89,7 +89,7 @@ export default function DifficultConversationDetailPage() {
 
   if (showConversation) {
     return (
-      <ModuleGuard availableToRoles={['resident', 'faculty', 'program_director', 'super_admin']}>
+      <ModuleGuard availableToRoles={['resident', 'faculty', 'program_director', 'assistant_program_director', 'clerkship_director', 'super_admin', 'admin']}>
         <ModuleLayout
           title={vignette.title}
           description={vignette.description || ''}
@@ -125,7 +125,7 @@ export default function DifficultConversationDetailPage() {
   const difficulties = Array.isArray(vignette.difficulty) ? vignette.difficulty : [vignette.difficulty];
 
   return (
-    <ModuleGuard availableToRoles={['resident', 'faculty', 'program_director', 'super_admin']}>
+    <ModuleGuard availableToRoles={['resident', 'faculty', 'program_director', 'assistant_program_director', 'clerkship_director', 'super_admin', 'admin']}>
       <ModuleLayout
         title={vignette.title}
         description={vignette.description || ''}

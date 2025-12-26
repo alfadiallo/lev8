@@ -111,7 +111,7 @@ export default function ClinicalCaseDetailPage() {
 
   if (loading) {
     return (
-      <ModuleGuard availableToRoles={['resident', 'faculty', 'program_director', 'super_admin']}>
+      <ModuleGuard availableToRoles={['resident', 'faculty', 'program_director', 'assistant_program_director', 'clerkship_director', 'super_admin', 'admin']}>
         <ModuleLayout title="Loading..." description="">
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#7EC8E3]"></div>
@@ -123,7 +123,7 @@ export default function ClinicalCaseDetailPage() {
 
   if (!case_) {
     return (
-      <ModuleGuard availableToRoles={['resident', 'faculty', 'program_director', 'super_admin']}>
+      <ModuleGuard availableToRoles={['resident', 'faculty', 'program_director', 'assistant_program_director', 'clerkship_director', 'super_admin', 'admin']}>
         <ModuleLayout title="Case Not Found" description="">
           <div className="bg-white/90 backdrop-blur-sm p-8 rounded-2xl shadow-md border border-white/30 text-center">
             <p className="text-neutral-600 mb-4">The clinical case you&apos;re looking for doesn&apos;t exist.</p>
@@ -140,7 +140,7 @@ export default function ClinicalCaseDetailPage() {
   }
 
   return (
-    <ModuleGuard availableToRoles={['resident', 'faculty', 'program_director', 'super_admin']}>
+    <ModuleGuard availableToRoles={['resident', 'faculty', 'program_director', 'assistant_program_director', 'clerkship_director', 'super_admin', 'admin']}>
       <ModuleLayout
         title={case_.title}
         description={case_.description || ''}

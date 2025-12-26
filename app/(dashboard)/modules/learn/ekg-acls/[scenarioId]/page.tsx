@@ -18,7 +18,7 @@ export default function ACLSScenarioPage() {
   const scenario: Scenario = vfvtScenario;
 
   return (
-    <ModuleGuard availableToRoles={['resident', 'faculty', 'program_director', 'super_admin']}>
+    <ModuleGuard availableToRoles={['resident', 'faculty', 'program_director', 'assistant_program_director', 'clerkship_director', 'super_admin', 'admin']}>
       <ModuleLayout
         title={scenario.title}
         description="Interactive ACLS simulation with real-time EKG"

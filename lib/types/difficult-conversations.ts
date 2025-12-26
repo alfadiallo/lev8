@@ -1,7 +1,14 @@
 // Type definitions for Difficult Conversations v2 architecture
 // Based on 5-file vignette structure: clinical scenario, avatar profiles, conversation design, index, educator guide
 
-export type UserRole = 'resident' | 'faculty' | 'program_director' | 'super_admin';
+export type UserRole = 
+  | 'resident' 
+  | 'faculty' 
+  | 'program_director' 
+  | 'assistant_program_director'
+  | 'clerkship_director'
+  | 'super_admin' 
+  | 'admin';
 export type Difficulty = 'beginner' | 'intermediate' | 'advanced';
 export type AIModel = 'gemini-1.5-pro' | 'claude-3-5-sonnet-20241022' | 'claude-3-5-haiku-20241022';
 

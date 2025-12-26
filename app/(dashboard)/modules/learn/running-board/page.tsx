@@ -215,7 +215,7 @@ export default function RunningBoardPage() {
 
   if (loading) {
     return (
-      <ModuleGuard availableToRoles={['resident', 'faculty', 'program_director', 'super_admin']}>
+      <ModuleGuard availableToRoles={['resident', 'faculty', 'program_director', 'assistant_program_director', 'clerkship_director', 'super_admin', 'admin']}>
         <ModuleLayout title="Running the Board" description="Loading...">
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-500"></div>
@@ -226,7 +226,7 @@ export default function RunningBoardPage() {
   }
 
   return (
-    <ModuleGuard availableToRoles={['resident', 'faculty', 'program_director', 'super_admin']}>
+    <ModuleGuard availableToRoles={['resident', 'faculty', 'program_director', 'assistant_program_director', 'clerkship_director', 'super_admin', 'admin']}>
       <ModuleLayout
         title="Running the Board"
         description="Multi-patient emergency department simulation"

@@ -1,6 +1,13 @@
 // Shared TypeScript types for all learning modules
 
-export type UserRole = 'resident' | 'faculty' | 'program_director' | 'super_admin';
+export type UserRole = 
+  | 'resident' 
+  | 'faculty' 
+  | 'program_director' 
+  | 'assistant_program_director'
+  | 'clerkship_director'
+  | 'super_admin' 
+  | 'admin';
 
 export type Difficulty = 'beginner' | 'intermediate' | 'advanced' | 'expert';
 

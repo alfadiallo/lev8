@@ -48,7 +48,7 @@ export default function EKGACLSPage() {
 
   return (
     <ModuleGuard
-      availableToRoles={['resident', 'faculty', 'program_director', 'super_admin']}
+      availableToRoles={['resident', 'faculty', 'program_director', 'assistant_program_director', 'clerkship_director', 'super_admin', 'admin']}
     >
       <ModuleLayout
         title="EKG & ACLS"

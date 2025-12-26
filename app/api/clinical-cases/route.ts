@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
         specialty,
         estimated_duration_minutes,
         case_data,
-        created_by_user_id: user.id,
+        created_by_user_id: authResult.userId!,
         is_public,
         is_active: true,
       })

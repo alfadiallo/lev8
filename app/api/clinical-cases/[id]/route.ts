@@ -112,13 +112,6 @@ export async function DELETE(
 
     // Use shared server client (respects RLS)
     const supabase = getServerSupabaseClient();
-    const educatorRoles = ['faculty', 'program_director', 'super_admin'];
-    if (!educatorRoles.includes(profile.role)) {
-      return NextResponse.json(
-        { error: 'Only educators can delete clinical cases' },
-        { status: 403 }
-      );
-    }
 
     // Soft delete by setting is_active to false
     const { error } = await supabase

@@ -3,30 +3,39 @@
 // POST /api/acls/scenarios - Create a new scenario (educators only)
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { createServerClient } from '@supabase/ssr';
+import { getServiceSupabaseClient } from '@/lib/supabase/server';
 
 // GET /api/acls/scenarios - List scenarios
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
+    // Use cookie-based auth
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll() {
+            // Read-only
+          },
+        },
+      }
     );
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    
+    // Use service client for data fetching (bypasses RLS)
+    const serviceClient = await getServiceSupabaseClient();
 
-    // Fetch scenarios - RLS will filter
-    const { data: scenarios, error } = await supabase
+    // Fetch scenarios
+    const { data: scenarios, error } = await serviceClient
       .from('acls_scenarios')
       .select('*')
       .eq('is_active', true)
@@ -50,21 +59,33 @@ export async function GET(request: NextRequest) {
 // POST /api/acls/scenarios - Create scenario (educators only)
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
+    // Use cookie-based auth
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll() {
+            // Read-only
+          },
+        },
+      }
     );
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Use service client for data operations
+    const serviceClient = await getServiceSupabaseClient();
+
     // Get user profile to check role
-    const { data: profile } = await supabase
+    const { data: profile } = await serviceClient
       .from('user_profiles')
       .select('institution_id, role')
       .eq('id', user.id)
@@ -75,7 +96,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user is educator
-    const educatorRoles = ['faculty', 'program_director', 'super_admin'];
+    const educatorRoles = ['faculty', 'program_director', 'assistant_program_director', 'clerkship_director', 'super_admin', 'admin'];
     if (!educatorRoles.includes(profile.role)) {
       return NextResponse.json(
         { error: 'Only educators can create ACLS scenarios' },
@@ -93,7 +114,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: newScenario, error } = await supabase
+    const { data: newScenario, error } = await serviceClient
       .from('acls_scenarios')
       .insert({
         institution_id: profile.institution_id,

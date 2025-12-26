@@ -19,6 +19,17 @@ export async function POST(req: NextRequest) {
     // Use service role client for admin operations (bypasses RLS)
     const supabase = getServiceSupabaseClient();
 
+    // Get admin profile for logging and invited_by field
+    const { data: adminProfile } = await supabase
+      .from('user_profiles')
+      .select('id, full_name, role')
+      .eq('id', authResult.userId!)
+      .single();
+
+    if (!adminProfile) {
+      return NextResponse.json({ error: 'Admin profile not found' }, { status: 404 });
+    }
+
     const body = await req.json();
     const {
       full_name,
@@ -192,29 +203,16 @@ export async function POST(req: NextRequest) {
  */
 export async function GET(req: NextRequest) {
   try {
-    // Authenticate admin
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Require admin role
+    const authResult = await checkApiPermission(req, {
+      requiredRoles: ['super_admin', 'program_director']
+    });
+    if (!authResult.authorized) {
+      return authResult.response!;
     }
 
-    const token = authHeader.split(' ')[1];
-    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
-
-    if (authError || !authUser) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Check if user is admin
-    const { data: adminProfile } = await supabase
-      .from('user_profiles')
-      .select('role')
-      .eq('id', authUser.id)
-      .single();
-
-    if (!adminProfile || !['super_admin', 'program_director'].includes(adminProfile.role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    // Use service role client for admin operations (bypasses RLS)
+    const supabase = getServiceSupabaseClient();
 
     // Get query params
     const { searchParams } = new URL(req.url);

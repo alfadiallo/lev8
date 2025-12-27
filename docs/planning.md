@@ -2,7 +2,7 @@
 
 **Project:** Elevate (www.lev8.ai)  
 **Version:** 1.0 Production  
-**Last Updated:** December 23, 2025  
+**Last Updated:** December 26, 2025  
 **Current Phase:** Six Modules Operational + Admin Portal (Learn, Grow, Understand, Truths, Expectations, Admin Portal)
 
 ---
@@ -1141,6 +1141,11 @@ test('Complete voice journal flow', async ({ page }) => {
 - Added columns to `user_profiles`: `personal_email`, `institutional_email`, `account_status`, `invited_by`, `invited_at`, `faculty_type`, `specialty`
 
 ### Upcoming Features
+
+**To-Do:**
+- [ ] **Overview API Route**: Create `/api/analytics/overview/resident/[id]` that fetches ITE, ROSH, and summary data in parallel using service client. Will replace direct client-side Supabase calls in `OverviewPane.tsx`.
+
+**Future Considerations:**
 - **ILP (Individualized Learning Plan)**: Under consideration - see `docs/_guidance/ILP/`
 - **Evidence Management**: Attach documents to ACGME requirements
 - **Graph RAG**: Visualize connections between sources of truth and learner journey
@@ -1163,6 +1168,7 @@ Update this document when:
 
 | Date | Changes |
 |------|---------|
+| Dec 26, 2025 | Fixed service key env var mismatch (SUPABASE_SERVICE_KEY). Reordered Residents tabs. Overview tab marked Under Construction. |
 | Dec 23, 2025 | Added Admin Portal & User Access Management System |
 | Dec 22, 2025 | Running the Board module completed with iPad optimization |
 | Dec 2, 2025 | Five modules operational |

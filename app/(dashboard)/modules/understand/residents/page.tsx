@@ -26,7 +26,6 @@ import {
   GraduationCap
 } from 'lucide-react';
 import { calculatePGYLevel, formatPGYLevel } from '@/lib/utils/pgy-calculator';
-import OverviewPane from '@/components/modules/understand/OverviewPane';
 import ITEAnalyticsPane from '@/components/analytics/ite/ITEAnalyticsPane';
 import { useAuth } from '@/context/AuthContext';
 
@@ -58,17 +57,17 @@ interface ResidentNote {
   created_at: string;
 }
 
-// Pane definitions - same as CCC session
+// Pane definitions - reordered for workflow
 const PANES = [
   { id: 'overview', label: 'Overview', icon: FileText },
-  { id: 'swot', label: 'SWOT', icon: Target },
+  { id: 'ite', label: 'ITE Scores', icon: AlertCircle },
   { id: 'eq-pq-iq', label: 'EQ/PQ/IQ', icon: Brain },
+  { id: 'swot', label: 'SWOT', icon: Target },
   { id: 'rosh', label: 'ROSH', icon: BookOpen },
   { id: 'procedures', label: 'Procedures', icon: Stethoscope },
   { id: 'ultrasound', label: 'Ultrasound', icon: Activity },
   { id: 'csi', label: 'CSI', icon: BarChart3 },
   { id: 'milestones', label: 'Milestones', icon: CheckCircle },
-  { id: 'ite', label: 'ITE Scores', icon: AlertCircle },
 ] as const;
 
 type PaneId = typeof PANES[number]['id'];
@@ -589,12 +588,13 @@ function PaneContent({ paneId, resident, notes }: PaneContentProps) {
 
   const paneContent: Record<PaneId, React.ReactNode> = {
     overview: (
-      <OverviewPane 
-        residentId={resident.id}
-        residentName={resident.full_name}
-        anonCode={resident.anon_code}
-        pgyLevel={pgyLevel}
-      />
+      <div className="flex flex-col items-center justify-center h-64 text-center">
+        <div className="text-6xl mb-4">🚧</div>
+        <h3 className="text-xl font-semibold text-gray-700 mb-2">Under Construction</h3>
+        <p className="text-gray-500 max-w-md">
+          The Overview dashboard is being redesigned. Please use the other tabs to view resident data.
+        </p>
+      </div>
     ),
     swot: (
       <SWOTPane 

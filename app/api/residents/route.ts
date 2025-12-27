@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkApiPermission } from '@/lib/auth/checkApiPermission';
-import { getServerSupabaseClient } from '@/lib/supabase/server';
+import { getServiceSupabaseClient } from '@/lib/supabase/server';
 import { calculatePGYLevel } from '@/lib/utils/pgy-calculator';
 
 export async function GET(request: NextRequest) {
@@ -9,8 +9,8 @@ export async function GET(request: NextRequest) {
     return authResult.response!;
   }
 
-  // Use shared server client helper (respects RLS)
-  const supabase = await getServerSupabaseClient();
+  // Use service client (bypasses RLS) since we already verify permissions above
+  const supabase = await getServiceSupabaseClient();
 
   try {
     // Try using the view first

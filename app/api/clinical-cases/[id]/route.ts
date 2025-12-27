@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { checkApiPermission } from '@/lib/auth/checkApiPermission';
-import { getServerSupabaseClient } from '@/lib/supabase/server';
+import { getServiceSupabaseClient } from '@/lib/supabase/server';
 
 export async function GET(
   request: NextRequest,
@@ -20,8 +20,8 @@ export async function GET(
       return authResult.response!;
     }
 
-    // Use shared server client (respects RLS)
-    const supabase = await getServerSupabaseClient();
+    // Use service client (bypasses RLS) since we already verify permissions above
+    const supabase = await getServiceSupabaseClient();
 
     const { data: case_, error } = await supabase
       .from('clinical_cases')
@@ -58,8 +58,8 @@ export async function PUT(
       return authResult.response!;
     }
 
-    // Use shared server client (respects RLS)
-    const supabase = await getServerSupabaseClient();
+    // Use service client (bypasses RLS) since we already verify permissions above
+    const supabase = await getServiceSupabaseClient();
 
     const body = await request.json();
     const updateData: Record<string, unknown> = {};
@@ -110,8 +110,8 @@ export async function DELETE(
       return authResult.response!;
     }
 
-    // Use shared server client (respects RLS)
-    const supabase = await getServerSupabaseClient();
+    // Use service client (bypasses RLS) since we already verify permissions above
+    const supabase = await getServiceSupabaseClient();
 
     // Soft delete by setting is_active to false
     const { error } = await supabase

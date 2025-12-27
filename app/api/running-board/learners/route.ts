@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { getServiceSupabaseClient } from '@/lib/supabase/server';
 
 // Helper to calculate PGY level from graduation year
 function calculatePGYLevel(graduationYear: number): number {
@@ -24,7 +25,7 @@ function calculatePGYLevel(graduationYear: number): number {
 export async function GET(request: NextRequest) {
   try {
     const cookieStore = await cookies();
-    const supabase = createServerClient(
+    const authClient = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
@@ -41,7 +42,7 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { data: { user }, error: authError } = await authClient.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -51,6 +52,9 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url);
     const search = url.searchParams.get('search');
     const pgyLevel = url.searchParams.get('pgy_level');
+
+    // Use service client for data operations (bypasses RLS)
+    const supabase = await getServiceSupabaseClient();
 
     // Fetch residents directly (simplified logic)
     const { data: residents, error: fetchError } = await supabase

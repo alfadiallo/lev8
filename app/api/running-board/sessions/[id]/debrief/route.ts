@@ -3,11 +3,10 @@
 // POST /api/running-board/sessions/[id]/debrief - Save debrief
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+import { getServiceSupabaseClient } from '@/lib/supabase/server';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 // Type for running board action
 interface RunningBoardAction {
@@ -22,8 +21,7 @@ interface RunningBoardAction {
 }
 
 // Helper function to generate auto-summary from actions
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function generateAutoSummary(sessionId: string, supabase: any) {
+async function generateAutoSummary(sessionId: string, supabase: SupabaseClient) {
   // Fetch all actions for the session
   const { data: actions } = await supabase
     .from('running_board_actions')
@@ -95,18 +93,31 @@ export async function GET(
   try {
     const { id: sessionId } = await params;
     
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
+    const cookieStore = await cookies();
+    const authClient = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet: Array<{ name: string; value: string; options?: Record<string, unknown> }>) {
+            cookiesToSet.forEach(({ name: _name, value: _value, options: _options }) => {
+              // Read-only in GET request
+            });
+          },
+        },
+      }
     );
+
+    const { data: { user }, error: authError } = await authClient.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const supabase = await getServiceSupabaseClient();
 
     // Fetch existing debrief
     const { data: existingDebrief } = await supabase
@@ -154,18 +165,31 @@ export async function POST(
   try {
     const { id: sessionId } = await params;
     
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
+    const cookieStore = await cookies();
+    const authClient = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet: Array<{ name: string; value: string; options?: Record<string, unknown> }>) {
+            cookiesToSet.forEach(({ name: _name, value: _value, options: _options }) => {
+              // Read-only in POST request
+            });
+          },
+        },
+      }
     );
+
+    const { data: { user }, error: authError } = await authClient.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const supabase = await getServiceSupabaseClient();
 
     // Verify user is the facilitator
     const { data: session } = await supabase
@@ -248,7 +272,3 @@ export async function POST(
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
-
-
-
-

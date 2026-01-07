@@ -24,3 +24,5 @@ COMMENT ON COLUMN public.running_board_sessions.educator_type IS 'Type of educat
 COMMENT ON COLUMN public.running_board_sessions.educator_id IS 'Optional UUID linking to residents or faculty table';
 
 
+
+

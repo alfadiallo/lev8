@@ -59,3 +59,5 @@ CREATE POLICY "Enable delete for authenticated users" ON public.exam_scores
 
 
 
+
+

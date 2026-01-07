@@ -17,3 +17,5 @@ WHERE role = 'faculty' AND faculty_type IS NULL;
 -- Add comment for documentation
 COMMENT ON COLUMN user_profiles.faculty_type IS 'Type of faculty: core (Core Faculty) or teaching (Teaching Faculty). NULL for non-faculty roles.';
 
+
+

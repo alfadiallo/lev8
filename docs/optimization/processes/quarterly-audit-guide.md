@@ -233,3 +233,5 @@ Use the following structure:
 - Action Items & Priorities
 - Next Quarter Goals
 
+
+

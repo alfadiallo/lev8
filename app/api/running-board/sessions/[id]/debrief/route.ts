@@ -38,7 +38,7 @@ async function generateAutoSummary(sessionId: string, supabase: SupabaseClient) 
 
   const allActions: RunningBoardAction[] = actions || [];
   
-  // Type for session case with nested case data
+  // Type for session case with nested case data (Supabase returns case as object or array depending on join)
   interface SessionCase {
     case: {
       id: string;
@@ -46,7 +46,8 @@ async function generateAutoSummary(sessionId: string, supabase: SupabaseClient) 
       timeline: Array<{ phase_id: number; checklist: Array<{ id: string; label: string }> }>;
     } | null;
   }
-  const cases: SessionCase[] = sessionCases || [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cases: SessionCase[] = (sessionCases as any) || [];
 
   // Count totals
   const totalActions = allActions.length;

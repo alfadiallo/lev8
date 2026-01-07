@@ -30,16 +30,24 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const { canAccessAdminPortal, isProgramLeadership, isSuperAdmin } = usePermissions();
   const [greeting, setGreeting] = useState('Welcome');
+  const [dateString, setDateString] = useState('');
   
   // Expectations is only visible to Program Leadership, Admin, Super Admin
   const canAccessExpectations = isProgramLeadership || isSuperAdmin;
 
   useEffect(() => {
-    // Set greeting based on time of day
+    // Set greeting based on time of day (client-side only to avoid hydration mismatch)
     const hour = new Date().getHours();
     if (hour < 12) setGreeting('Good morning');
     else if (hour < 17) setGreeting('Good afternoon');
     else setGreeting('Good evening');
+    
+    // Set date string client-side only
+    setDateString(new Date().toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      month: 'long', 
+      day: 'numeric' 
+    }));
   }, []);
 
   const baseModules = [
@@ -137,19 +145,17 @@ export default function DashboardPage() {
             Here&apos;s your overview for today
           </p>
         </div>
-        <div 
-          className="text-sm px-4 py-2 rounded-full"
-          style={{ 
-            background: 'var(--theme-primary-soft)',
-            color: 'var(--theme-primary)'
-          }}
-        >
-          {new Date().toLocaleDateString('en-US', { 
-            weekday: 'long', 
-            month: 'long', 
-            day: 'numeric' 
-          })}
-        </div>
+        {dateString && (
+          <div 
+            className="text-sm px-4 py-2 rounded-full"
+            style={{ 
+              background: 'var(--theme-primary-soft)',
+              color: 'var(--theme-primary)'
+            }}
+          >
+            {dateString}
+          </div>
+        )}
       </div>
 
       {/* Quick Access Modules */}

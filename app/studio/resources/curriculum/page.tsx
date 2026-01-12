@@ -178,7 +178,6 @@ export default function CurriculumPage() {
             const weeks = topicsByMonth[month];
             const monthName = weeks[0]?.month_name || `Month ${month}`;
             const isExpanded = expandedMonths.has(month);
-            const phase = getPhaseLabel(month);
             const phaseColor = getPhaseColor(month);
 
             return (

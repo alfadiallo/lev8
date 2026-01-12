@@ -17,6 +17,7 @@ import { formatPGYLevel } from '@/lib/utils/pgy-calculator';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 import { FacultyOnly } from '@/components/auth/PermissionGate';
 import { useTenantUrl } from '@/context/TenantContext';
+import CreateSessionModal from '@/app/(dashboard)/modules/understand/CreateSessionModal';
 
 interface CCCSession {
   id: string;
@@ -38,7 +39,7 @@ export default function UnderstandClient({ initialSessions }: UnderstandClientPr
   const router = useRouter();
   const permissions = usePermissions();
   const { buildUrl } = useTenantUrl();
-  const [sessions, setSessions] = useState<CCCSession[]>(initialSessions);
+  const [sessions, _setSessions] = useState<CCCSession[]>(initialSessions);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   const handleSessionCreated = (sessionId: string) => {
@@ -54,9 +55,6 @@ export default function UnderstandClient({ initialSessions }: UnderstandClientPr
       day: 'numeric'
     });
   };
-
-  // Dynamically import CreateSessionModal to avoid issues
-  const CreateSessionModal = require('@/app/(dashboard)/modules/understand/CreateSessionModal').default;
 
   return (
     <div className="max-w-6xl mx-auto">

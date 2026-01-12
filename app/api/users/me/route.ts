@@ -1,34 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
+// Service client for admin operations
+const serviceClient = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_KEY!
 );
 
-// GET /api/users/me - Get current user profile
-export async function GET(request: NextRequest) {
-  try {
-    // Get user from session
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+// Helper to get authenticated user from cookies
+async function getAuthenticatedUser() {
+  const cookieStore = await cookies();
+  
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll() {
+          // API route - read-only
+        },
+      },
     }
+  );
 
-    // For now, get user from cookie-based session
-    const cookieHeader = request.headers.get('cookie') || '';
-    
-    // Extract session from Supabase auth
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
+  return supabase.auth.getUser();
+}
+
+// GET /api/users/me - Get current user profile
+export async function GET() {
+  try {
+    const { data: { user }, error: authError } = await getAuthenticatedUser();
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Get user profile from database
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError } = await serviceClient
       .from('user_profiles')
       .select('*')
       .eq('id', user.id)
@@ -52,15 +65,7 @@ export async function GET(request: NextRequest) {
 // PUT /api/users/me - Update current user profile
 export async function PUT(request: NextRequest) {
   try {
-    // Get user from session
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
+    const { data: { user }, error: authError } = await getAuthenticatedUser();
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -79,7 +84,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update user profile
-    const { data: updatedProfile, error: updateError } = await supabase
+    const { data: updatedProfile, error: updateError } = await serviceClient
       .from('user_profiles')
       .update({
         full_name,

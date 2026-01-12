@@ -3,49 +3,41 @@
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+import { useTenant, useTenantUrl } from '@/context/TenantContext';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 import {
   BookOpen,
   MessageSquare,
-  Activity,
+  TrendingUp,
   FileText,
   ClipboardCheck,
-  TrendingUp,
+  Activity,
   Clock,
   ArrowRight,
   Sparkles,
-  Shield
+  Shield,
+  Building2
 } from 'lucide-react';
 
-// QuickStat interface for future dashboard enhancements
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface QuickStat {
-  label: string;
-  value: string | number;
-  icon: React.ElementType;
-  color: string;
-}
-
-export default function DashboardPage() {
+export default function TenantDashboardPage() {
   const { user } = useAuth();
+  const { organization, department } = useTenant();
+  const { buildUrl } = useTenantUrl();
   const { canAccessAdminPortal, isProgramLeadership, isSuperAdmin, isResident } = usePermissions();
   const [greeting, setGreeting] = useState('Welcome');
   const [dateString, setDateString] = useState('');
   
-  // Expectations is only visible to Program Leadership, Admin, Super Admin
   const canAccessExpectations = isProgramLeadership || isSuperAdmin;
   
   // Faculty and above can see all modules, residents only see Learn
   const isFacultyOrAbove = !isResident;
 
   useEffect(() => {
-    // Set greeting based on time of day (client-side only to avoid hydration mismatch)
     const hour = new Date().getHours();
     if (hour < 12) setGreeting('Good morning');
     else if (hour < 17) setGreeting('Good afternoon');
     else setGreeting('Good evening');
     
-    // Set date string client-side only
     setDateString(new Date().toLocaleDateString('en-US', { 
       weekday: 'long', 
       month: 'long', 
@@ -58,50 +50,49 @@ export default function DashboardPage() {
       name: 'Learn',
       description: 'Clinical cases, conversations, simulations',
       icon: BookOpen,
-      href: '/modules/learn',
+      href: buildUrl('/modules/learn'),
       color: 'from-blue-500 to-cyan-500',
       facultyOnly: false,
       items: [
-        { name: 'Clinical Cases', href: '/modules/learn/clinical-cases' },
-        { name: 'Difficult Conversations', href: '/modules/learn/difficult-conversations' },
-        { name: 'Running the Board', href: '/modules/learn/running-board' },
+        { name: 'Clinical Cases', href: buildUrl('/modules/learn/clinical-cases') },
+        { name: 'Difficult Conversations', href: buildUrl('/modules/learn/difficult-conversations') },
+        { name: 'Running the Board', href: buildUrl('/modules/learn/running-board') },
       ]
     },
     {
       name: 'Reflect',
       description: 'Voice journaling and self-reflection',
       icon: MessageSquare,
-      href: '/modules/reflect',
+      href: buildUrl('/modules/reflect'),
       color: 'from-purple-500 to-pink-500',
       facultyOnly: true,  // Hidden from residents
       items: [
-        { name: 'Voice Journal', href: '/modules/reflect/voice-journal' },
+        { name: 'Voice Journal', href: buildUrl('/modules/reflect/voice-journal') },
       ]
     },
     {
       name: 'Understand',
       description: 'Analytics and resident insights',
       icon: TrendingUp,
-      href: '/modules/understand',
+      href: buildUrl('/modules/understand'),
       color: 'from-emerald-500 to-teal-500',
       facultyOnly: true,  // Hidden from residents
       items: [
-        { name: 'Resident Analytics', href: '/modules/understand/residents' },
-        { name: 'Class Cohort', href: '/modules/understand/class' },
+        { name: 'Resident Analytics', href: buildUrl('/modules/understand/residents') },
+        { name: 'Class Cohort', href: buildUrl('/modules/understand/class') },
       ]
     },
     {
       name: 'Truths',
       description: 'Program documents and resources',
       icon: FileText,
-      href: '/truths',
+      href: buildUrl('/truths'),
       color: 'from-amber-500 to-orange-500',
       facultyOnly: true,  // Hidden from residents
       items: []
     },
   ];
 
-  // Add conditional modules based on user permissions
   const modules = useMemo(() => {
     // Filter base modules based on role
     const result = baseModules.filter(module => {
@@ -109,20 +100,18 @@ export default function DashboardPage() {
       return true;
     });
     
-    // Add Expectations for Program Leadership, Admin, Super Admin
     if (canAccessExpectations) {
       result.push({
         name: 'Expectations',
         description: 'ACGME requirements and compliance',
         icon: ClipboardCheck,
-        href: '/expectations',
+        href: buildUrl('/expectations'),
         color: 'from-rose-500 to-red-500',
         facultyOnly: false,
         items: []
       });
     }
     
-    // Add Admin Portal for admins
     if (canAccessAdminPortal) {
       result.push({
         name: 'Admin Portal',
@@ -140,7 +129,7 @@ export default function DashboardPage() {
     }
     
     return result;
-  }, [canAccessExpectations, canAccessAdminPortal, isFacultyOrAbove]);
+  }, [canAccessExpectations, canAccessAdminPortal, isFacultyOrAbove, buildUrl]);
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
@@ -171,6 +160,32 @@ export default function DashboardPage() {
         )}
       </div>
 
+      {/* Organization Context Banner */}
+      {organization && department && (
+        <div 
+          className="rounded-xl p-4 flex items-center gap-4"
+          style={{
+            background: 'linear-gradient(135deg, var(--theme-primary-soft) 0%, var(--theme-surface-hover) 100%)',
+            border: '1px solid var(--theme-border-solid)',
+          }}
+        >
+          <div 
+            className="p-3 rounded-lg"
+            style={{ background: 'var(--theme-surface-solid)' }}
+          >
+            <Building2 className="w-6 h-6" style={{ color: 'var(--theme-primary)' }} />
+          </div>
+          <div>
+            <p className="font-semibold" style={{ color: 'var(--theme-text)' }}>
+              {organization.name}
+            </p>
+            <p className="text-sm" style={{ color: 'var(--theme-text-muted)' }}>
+              {department.name} Residency Program
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Quick Access Modules */}
       <div>
         <h2 
@@ -192,7 +207,6 @@ export default function DashboardPage() {
                   border: '1px solid var(--theme-border-solid)',
                 }}
               >
-                {/* Gradient accent */}
                 <div 
                   className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${module.color}`}
                 />
@@ -223,7 +237,6 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                {/* Quick links */}
                 {module.items.length > 0 && (
                   <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--theme-border-solid)' }}>
                     <div className="flex flex-wrap gap-2">
@@ -248,7 +261,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Recent Activity Placeholder */}
+      {/* Recent Activity */}
       <div 
         className="rounded-2xl p-6"
         style={{
@@ -275,4 +288,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-

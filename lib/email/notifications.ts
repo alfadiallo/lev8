@@ -367,5 +367,100 @@ The Elevate Team
   });
 }
 
+/**
+ * Notify admin of a new Studio creator access request
+ */
+export async function notifyStudioCreatorRequest(request: {
+  user_email: string;
+  display_name: string;
+  affiliation: string;
+  specialty?: string;
+  bio?: string;
+}): Promise<boolean> {
+  const { user_email, display_name, affiliation, specialty, bio } = request;
+  
+  // Send to the specific Studio admin email
+  const STUDIO_ADMIN_EMAIL = 'findme@alfadiallo.com';
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%); color: white; padding: 30px; border-radius: 12px 12px 0 0; }
+          .content { background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; border-top: none; }
+          .field { margin-bottom: 15px; }
+          .label { font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
+          .value { font-size: 16px; color: #111827; }
+          .button { display: inline-block; background: #8b5cf6; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 20px; }
+          .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1 style="margin: 0; font-size: 24px;">✨ New Studio Creator Request</h1>
+            <p style="margin: 10px 0 0; opacity: 0.9;">Someone wants to create content in Studio</p>
+          </div>
+          <div class="content">
+            <div class="field">
+              <div class="label">Display Name</div>
+              <div class="value">${display_name}</div>
+            </div>
+            <div class="field">
+              <div class="label">Email</div>
+              <div class="value">${user_email}</div>
+            </div>
+            <div class="field">
+              <div class="label">Affiliation</div>
+              <div class="value">${affiliation}</div>
+            </div>
+            ${specialty ? `
+            <div class="field">
+              <div class="label">Specialty</div>
+              <div class="value">${specialty}</div>
+            </div>
+            ` : ''}
+            ${bio ? `
+            <div class="field">
+              <div class="label">Bio</div>
+              <div class="value">${bio}</div>
+            </div>
+            ` : ''}
+            <p style="color: #6b7280; margin-top: 20px;">
+              Log in to the admin panel to approve or reject this request.
+            </p>
+          </div>
+          <div class="footer">
+            <p>lev8 Studio</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  const text = `
+New Studio Creator Request
+
+Display Name: ${display_name}
+Email: ${user_email}
+Affiliation: ${affiliation}
+${specialty ? `Specialty: ${specialty}` : ''}
+${bio ? `Bio: ${bio}` : ''}
+
+Log in to the admin panel to approve or reject this request.
+  `.trim();
+
+  return sendEmail({
+    to: STUDIO_ADMIN_EMAIL,
+    subject: 'lev8 Studio creator access',
+    html,
+    text,
+  });
+}
+
 
 

@@ -6,10 +6,12 @@ import { usePathname } from 'next/navigation';
 import { 
   ChevronRight, 
   ChevronDown,
+  Building2,
   Sparkles,
   ExternalLink
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useTenant, useTenantUrl, useTenantPermissions } from '@/context/TenantContext';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 
 interface NavChild {
@@ -25,77 +27,85 @@ interface NavItem {
   href?: string;
   children?: NavChild[];
   adminOnly?: boolean;
-  leadershipOnly?: boolean;  // Program Director, Asst PD, Clerkship Director, Admin, Super Admin
-  facultyOnly?: boolean;     // Hidden from residents
+  leadershipOnly?: boolean;
+  facultyOnly?: boolean; // Hidden from residents
 }
 
-const BASE_NAVIGATION: NavItem[] = [
-  { 
-    name: 'Dashboard',
-    href: '/dashboard',
-  },
-  { 
-    name: 'Learn',
-    children: [
-      { name: 'Clinical Cases', href: '/modules/learn/clinical-cases' },
-      { name: 'Difficult Conversations', href: '/modules/learn/difficult-conversations' },
-      { name: 'EKG & ACLS', href: '/modules/learn/ekg-acls' },
-      { name: 'Running the Board', href: '/modules/learn/running-board' },
-      { name: 'Studio', href: '/studio', external: true, highlight: true, icon: Sparkles },
-    ]
-  },
-  { 
-    name: 'Reflect',
-    facultyOnly: true,  // Hidden from residents
-    children: [
-      { name: 'Voice Journaling', href: '/modules/reflect/voice-journal' },
-    ]
-  },
-  { 
-    name: 'Understand',
-    facultyOnly: true,  // Hidden from residents
-    children: [
-      { name: 'Residents', href: '/modules/understand/residents' },
-      { name: 'Class Cohort', href: '/modules/understand/class' },
-      { name: 'Program-Wide', href: '/modules/understand/program' },
-      { name: 'CCC Meetings', href: '/modules/understand' },
-    ]
-  },
-  { 
-    name: 'Truths',
-    facultyOnly: true,  // Hidden from residents
-    children: [
-      { name: 'Uploads', href: '/truths/uploads' },
-      { name: 'Scores', href: '/truths/scores' },
-    ]
-  },
-  { 
-    name: 'Expectations',
-    leadershipOnly: true,
-    children: [
-      { name: 'Dashboard', href: '/expectations' },
-      { name: 'Requirements', href: '/expectations/requirements' },
-      { name: 'Action Items', href: '/expectations/action-items' },
-      { name: 'Site Visits', href: '/expectations/site-visits' },
-    ]
-  },
-  { 
-    name: 'Admin Portal',
-    adminOnly: true,
-    children: [
-      { name: 'Dashboard', href: '/admin/dashboard' },
-      { name: 'Access Requests', href: '/admin/requests' },
-      { name: 'User Management', href: '/admin/users' },
-    ]
-  },
-];
+// Base navigation structure (paths will be prefixed with tenant URL)
+function getNavigation(buildUrl: (path: string) => string): NavItem[] {
+  return [
+    { 
+      name: 'Dashboard',
+      href: buildUrl('/dashboard'),
+    },
+    { 
+      name: 'Learn',
+      children: [
+        { name: 'Clinical Cases', href: buildUrl('/modules/learn/clinical-cases') },
+        { name: 'Difficult Conversations', href: buildUrl('/modules/learn/difficult-conversations') },
+        { name: 'EKG & ACLS', href: buildUrl('/modules/learn/ekg-acls') },
+        { name: 'Running the Board', href: buildUrl('/modules/learn/running-board') },
+        { name: 'Studio', href: '/studio', external: true, highlight: true, icon: Sparkles },
+      ]
+    },
+    { 
+      name: 'Reflect',
+      facultyOnly: true, // Hidden from residents
+      children: [
+        { name: 'Voice Journaling', href: buildUrl('/modules/reflect/voice-journal') },
+      ]
+    },
+    { 
+      name: 'Understand',
+      facultyOnly: true, // Hidden from residents
+      children: [
+        { name: 'Residents', href: buildUrl('/modules/understand/residents') },
+        { name: 'Class Cohort', href: buildUrl('/modules/understand/class') },
+        { name: 'Program-Wide', href: buildUrl('/modules/understand/program') },
+        { name: 'CCC Meetings', href: buildUrl('/modules/understand') },
+      ]
+    },
+    { 
+      name: 'Truths',
+      facultyOnly: true, // Hidden from residents
+      children: [
+        { name: 'Uploads', href: buildUrl('/truths/uploads') },
+        { name: 'Scores', href: buildUrl('/truths/scores') },
+      ]
+    },
+    { 
+      name: 'Expectations',
+      leadershipOnly: true,
+      children: [
+        { name: 'Dashboard', href: buildUrl('/expectations') },
+        { name: 'Requirements', href: buildUrl('/expectations/requirements') },
+        { name: 'Action Items', href: buildUrl('/expectations/action-items') },
+        { name: 'Site Visits', href: buildUrl('/expectations/site-visits') },
+      ]
+    },
+    { 
+      name: 'Admin Portal',
+      adminOnly: true,
+      children: [
+        { name: 'Dashboard', href: '/admin/dashboard' },
+        { name: 'Access Requests', href: '/admin/requests' },
+        { name: 'User Management', href: '/admin/users' },
+      ]
+    },
+  ];
+}
 
-export function Sidebar() {
+export function TenantSidebar() {
   const pathname = usePathname();
   const { logout, user } = useAuth();
+  const { organization, department } = useTenant();
+  const { buildUrl, baseUrl } = useTenantUrl();
   const { canAccessAdminPortal, isProgramLeadership, isSuperAdmin, role } = usePermissions();
   const [expandedModules, setExpandedModules] = useState<string[]>(['learn']);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // Build navigation with tenant-aware URLs
+  const navigation = getNavigation(buildUrl);
 
   // Expectations is only visible to Program Leadership, Admin, Super Admin
   const canAccessExpectations = isProgramLeadership || isSuperAdmin;
@@ -107,7 +117,7 @@ export function Sidebar() {
   const isFacultyOrAbove = !isResident;
 
   // Filter navigation based on permissions
-  const navigation = BASE_NAVIGATION.filter(item => {
+  const filteredNavigation = navigation.filter(item => {
     if (item.adminOnly) return canAccessAdminPortal;
     if (item.leadershipOnly) return canAccessExpectations;
     if (item.facultyOnly) return isFacultyOrAbove; // Hide from residents
@@ -116,30 +126,28 @@ export function Sidebar() {
 
   // Ensure modules are expanded based on current pathname
   useEffect(() => {
-    const expanded = new Set(['learn']); // Always keep learn expanded by default
+    const expanded = new Set(['learn']);
     
-    // Check which sections should be expanded based on current path
-    if (pathname?.startsWith('/admin')) {
+    if (pathname?.includes('/admin')) {
       expanded.add('admin portal');
     }
-    if (pathname?.startsWith('/truths')) {
+    if (pathname?.includes('/truths')) {
       expanded.add('truths');
     }
-    if (pathname?.startsWith('/expectations')) {
+    if (pathname?.includes('/expectations')) {
       expanded.add('expectations');
     }
-    if (pathname?.startsWith('/modules/reflect')) {
+    if (pathname?.includes('/modules/reflect')) {
       expanded.add('reflect');
     }
-    if (pathname?.startsWith('/modules/understand')) {
+    if (pathname?.includes('/modules/understand')) {
       expanded.add('understand');
     }
-    if (pathname?.startsWith('/modules/learn')) {
+    if (pathname?.includes('/modules/learn')) {
       expanded.add('learn');
     }
     
     setExpandedModules(prev => {
-      // Merge with existing expanded modules to preserve user's manual expansions
       const merged = new Set([...prev, ...expanded]);
       return Array.from(merged);
     });
@@ -175,7 +183,7 @@ export function Sidebar() {
   
   const isChildActive = (item: NavItem) => {
     if (!item.children) return false;
-    return item.children.some(child => pathname === child.href || pathname.startsWith(child.href + '/'));
+    return item.children.some(child => pathname === child.href || pathname?.startsWith(child.href + '/'));
   };
 
   return (
@@ -209,9 +217,32 @@ export function Sidebar() {
         </span>
       </div>
 
+      {/* Organization/Department Badge */}
+      {organization && department && (
+        <div 
+          className="mx-3 mt-3 p-3 rounded-xl"
+          style={{ 
+            background: 'var(--theme-surface-hover)',
+            border: '1px solid rgba(0,0,0,0.04)'
+          }}
+        >
+          <div className="flex items-center gap-2">
+            <Building2 size={16} style={{ color: 'var(--theme-primary)' }} />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold truncate" style={{ color: 'var(--theme-text)' }}>
+                {organization.name}
+              </p>
+              <p className="text-xs truncate" style={{ color: 'var(--theme-text-muted)' }}>
+                {department.name}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-        {navigation.map((item) => {
+        {filteredNavigation.map((item) => {
           const hasChildren = !!item.children;
           const expanded = hasChildren && isExpanded(item.name.toLowerCase());
           const active = item.href ? isActive(item.href) : isChildActive(item);
@@ -350,7 +381,7 @@ export function Sidebar() {
           background: 'var(--theme-surface)',
         }}
       >
-        {/* User Info - at top */}
+        {/* User Info */}
         <div 
           className="px-3 py-2 mb-2 pb-3"
           style={{ borderBottom: '1px solid rgba(200, 200, 200, 0.3)' }}
@@ -365,7 +396,7 @@ export function Sidebar() {
 
         <div className="pt-1">
           <Link 
-            href="/settings" 
+            href={buildUrl('/settings')} 
             className="flex items-center px-3 py-2 rounded-xl transition-colors"
             style={{ color: 'var(--theme-text-muted)' }}
             onMouseEnter={(e) => {
@@ -401,8 +432,4 @@ export function Sidebar() {
   );
 }
 
-export default Sidebar;
-
-
-
-
+export default TenantSidebar;

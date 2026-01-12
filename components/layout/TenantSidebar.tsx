@@ -333,7 +333,7 @@ export function TenantSidebar() {
                             e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.3)';
                           }}
                         >
-                          {ChildIcon && <ChildIcon size={14} style={{ color: 'var(--theme-primary)' }} />}
+                          {ChildIcon && <span style={{ color: 'var(--theme-primary)' }}><ChildIcon size={14} /></span>}
                           <span>{child.name}</span>
                           {child.external && <ExternalLink size={12} className="ml-auto opacity-60" />}
                         </a>

@@ -241,3 +241,27 @@
 
 ---
 
+## 📅 January 12, 2026 - Production Build Fixes
+
+### 🔧 Vercel Deployment Fixes
+- ✅ **ESLint Error: `require()` Import** (`fe0cb99`)
+  - Replaced forbidden `require()` with ES6 `import` in `UnderstandClient.tsx`
+  - Prefixed unused variables with underscore per ESLint rules
+
+- ✅ **TypeScript Error: OverviewPane Props** (`df917f7`)
+  - Fixed missing props in tenant residents page (`app/[org]/[dept]/modules/understand/residents/page.tsx`)
+  - Added `anon_code` to Resident interface and Supabase query
+  - Passing all required props: `residentId`, `residentName`, `anonCode`, `pgyLevel`
+
+- ✅ **TypeScript Error: Icon Style Props** (`2468127`, `4c42a5d`)
+  - Fixed icon components receiving unsupported `style` prop
+  - Wrapped icons in `<span>` elements to apply styling
+  - Fixed in both `Sidebar.tsx` and `TenantSidebar.tsx`
+
+### 📝 Build Notes
+- **Warnings vs Errors:** ESLint warnings (unused vars, `any` types, React hooks deps) don't block builds
+- **Only errors fail builds:** TypeScript type mismatches and ESLint errors (not warnings) cause failures
+- All 200+ warnings are style suggestions that can be cleaned up incrementally
+
+---
+

@@ -9,6 +9,7 @@ import OverviewPane from '@/components/modules/understand/OverviewPane';
 interface Resident {
   id: string;
   full_name: string;
+  anon_code: string;
   pgy_level: number;
   graduation_year: number;
   class_id: string;
@@ -31,6 +32,7 @@ export default function TenantResidentsPage() {
           .from('residents')
           .select(`
             id,
+            anon_code,
             class_id,
             user_id,
             user_profiles!residents_user_id_fkey (
@@ -61,6 +63,7 @@ export default function TenantResidentsPage() {
           return {
             id: r.id as string,
             full_name: userProfile?.full_name || 'Unknown',
+            anon_code: (r.anon_code as string) || `RES-${(r.id as string).slice(0, 4).toUpperCase()}`,
             pgy_level: pgyLevel,
             graduation_year: gradYear,
             class_id: r.class_id as string,
@@ -138,7 +141,12 @@ export default function TenantResidentsPage() {
 
       {/* Overview Pane */}
       {selectedResident && (
-        <OverviewPane residentId={selectedResident.id} />
+        <OverviewPane 
+          residentId={selectedResident.id}
+          residentName={selectedResident.full_name}
+          anonCode={selectedResident.anon_code}
+          pgyLevel={selectedResident.pgy_level}
+        />
       )}
 
       {!selectedResident && residents.length === 0 && (

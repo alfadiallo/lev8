@@ -128,6 +128,7 @@ export async function middleware(request: NextRequest) {
 
   // ============================================================================
   // STUDIO SUBDOMAIN HANDLING
+  // When accessed via studio.lev8.ai, rewrite paths to /studio/*
   // ============================================================================
   if (isStudio) {
     // Studio requires authentication
@@ -136,6 +137,18 @@ export async function middleware(request: NextRequest) {
       loginUrl.searchParams.set('redirect', pathname);
       loginUrl.searchParams.set('context', 'studio');
       return NextResponse.redirect(loginUrl);
+    }
+    
+    // Rewrite paths to /studio/* if not already prefixed
+    // studio.lev8.ai/ → /studio
+    // studio.lev8.ai/resources/curriculum → /studio/resources/curriculum
+    if (!pathname.startsWith('/studio') && !pathname.startsWith('/login') && !pathname.startsWith('/api')) {
+      const rewriteUrl = new URL(`/studio${pathname === '/' ? '' : pathname}`, request.url);
+      return NextResponse.rewrite(rewriteUrl, {
+        headers: {
+          'x-lev8-context': 'studio',
+        },
+      });
     }
     
     // Add studio context to headers for downstream components

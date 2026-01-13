@@ -254,9 +254,7 @@ aside[class*="w-64"] {
 
 .checkbox-checked {
   animation: check-bounce 0.2s ease-out;
-}
-
-/* Hide scrollbar utility for synced scroll headers */
+}/* Hide scrollbar utility for synced scroll headers */
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;

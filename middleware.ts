@@ -131,18 +131,24 @@ export async function middleware(request: NextRequest) {
   // When accessed via studio.lev8.ai, rewrite paths to /studio/*
   // ============================================================================
   if (isStudio) {
-    // Studio requires authentication
-    if (!user) {
+    // Allow auth routes without authentication (to avoid redirect loops)
+    const isAuthPath = pathname.startsWith('/login') || 
+                       pathname.startsWith('/register') || 
+                       pathname.startsWith('/forgot-password') ||
+                       pathname.startsWith('/request-access');
+    
+    // Studio requires authentication (except for auth pages)
+    if (!user && !isAuthPath) {
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
       loginUrl.searchParams.set('context', 'studio');
       return NextResponse.redirect(loginUrl);
     }
     
-    // Rewrite paths to /studio/* if not already prefixed
+    // Rewrite paths to /studio/* if not already prefixed (except auth pages)
     // studio.lev8.ai/ → /studio
     // studio.lev8.ai/resources/curriculum → /studio/resources/curriculum
-    if (!pathname.startsWith('/studio') && !pathname.startsWith('/login') && !pathname.startsWith('/api')) {
+    if (!pathname.startsWith('/studio') && !isAuthPath && !pathname.startsWith('/api')) {
       const rewriteUrl = new URL(`/studio${pathname === '/' ? '' : pathname}`, request.url);
       return NextResponse.rewrite(rewriteUrl, {
         headers: {

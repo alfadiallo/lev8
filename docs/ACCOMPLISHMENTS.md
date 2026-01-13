@@ -265,3 +265,41 @@
 
 ---
 
+## 📅 January 12-13, 2026 - Studio Subdomain Launch
+
+### 🌐 studio.lev8.ai Subdomain
+- ✅ **Subdomain Routing** - `studio.lev8.ai` now serves Studio module
+  - Middleware rewrites: `studio.lev8.ai/` → `/studio`
+  - Middleware rewrites: `studio.lev8.ai/resources/curriculum` → `/studio/resources/curriculum`
+  - Path-based access still works: `lev8.ai/studio`
+
+- ✅ **Authentication Flow Fix** (`184c78d`, `b2f5e95`)
+  - Fixed redirect loop on studio subdomain
+  - Auth routes (`/login`, `/register`, etc.) excluded from studio auth requirement
+  - Login page respects `context=studio` parameter
+  - Studio users redirect to `/` after login (→ `/studio` dashboard)
+  - Regular users redirect to `/dashboard` after login
+
+- ✅ **DNS & Vercel Configuration**
+  - CNAME record added in GoDaddy: `studio` → `cname.vercel-dns.com`
+  - Domain added in Vercel project settings
+  - SSL certificate auto-provisioned
+
+### 🎯 Studio Routes Status
+| Route | Status | Description |
+|-------|--------|-------------|
+| `/studio` | ✅ Live | Creator dashboard |
+| `/studio/content/running-board` | ✅ Live | Running board case editor |
+| `/studio/resources/curriculum` | ✅ Live | 18-month EM curriculum viewer |
+| `/studio/content/clinical-cases` | 🚧 Pending | Clinical case builder |
+| `/studio/content/conversations` | 🚧 Pending | Conversation scenario editor |
+| `/studio/content/ekg-scenarios` | 🚧 Pending | EKG interpretation editor |
+| `/studio/settings` | 🚧 Pending | Creator settings |
+
+### 📁 Key Commits
+- `c827864` - Initial subdomain path rewriting
+- `184c78d` - Fix redirect loop for auth routes
+- `b2f5e95` - Context-aware login redirects
+
+---
+

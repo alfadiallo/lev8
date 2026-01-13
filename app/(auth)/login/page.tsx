@@ -20,9 +20,13 @@ function LoginForm() {
   // Auto-redirect if user is detected
   useEffect(() => {
     if (user) {
-      console.log('[Login] User detected, redirecting to dashboard...');
+      console.log('[Login] User detected, redirecting...');
       const redirectParam = searchParams.get('redirect');
-      const redirectTo = redirectParam && redirectParam !== '/' ? redirectParam : '/dashboard';
+      const context = searchParams.get('context');
+      // For studio context, default to '/' (middleware rewrites to /studio)
+      // For regular context, default to '/dashboard'
+      const defaultRedirect = context === 'studio' ? '/' : '/dashboard';
+      const redirectTo = redirectParam || defaultRedirect;
       window.location.href = redirectTo;
     }
   }, [user, searchParams]);
@@ -43,9 +47,13 @@ function LoginForm() {
 
     try {
       await login(email, password);
-      // Check for redirect parameter, otherwise go to dashboard
+      // Check for redirect parameter, otherwise go to appropriate dashboard
       const redirectParam = searchParams.get('redirect');
-      const redirectTo = redirectParam && redirectParam !== '/' ? redirectParam : '/dashboard';
+      const context = searchParams.get('context');
+      // For studio context, default to '/' (middleware rewrites to /studio)
+      // For regular context, default to '/dashboard'
+      const defaultRedirect = context === 'studio' ? '/' : '/dashboard';
+      const redirectTo = redirectParam || defaultRedirect;
       console.log('[Login] Redirecting to:', redirectTo);
       // Force a full page navigation instead of client-side routing
       window.location.href = redirectTo;

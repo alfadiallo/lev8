@@ -14,6 +14,7 @@ const NON_TENANT_PREFIXES = [
   'debug',
   'reset',
   'studio',  // Studio has its own routing
+  'interview',  // Interview tool (eqpqiq.com) - publicly accessible
   '_next',
   'favicon.ico',
   'public'
@@ -50,6 +51,12 @@ function isStudioSubdomain(request: NextRequest): boolean {
   return host.startsWith('studio.') || host.includes('studio.localhost');
 }
 
+// Check if this is an eqpqiq.com domain request
+function isEqpqiqDomain(request: NextRequest): boolean {
+  const host = request.headers.get('host') || '';
+  return host.includes('eqpqiq.com') || host.includes('eqpqiq.localhost');
+}
+
 // Get the subdomain from the request
 function getSubdomain(request: NextRequest): string | null {
   const host = request.headers.get('host') || '';
@@ -78,12 +85,45 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const subdomain = getSubdomain(request);
   const isStudio = subdomain === 'studio';
+  const isEqpqiq = isEqpqiqDomain(request);
+
+  // ============================================================================
+  // EQPQIQ.COM DOMAIN HANDLING
+  // When accessed via eqpqiq.com, route all traffic to /interview/*
+  // ============================================================================
+  if (isEqpqiq) {
+    // Allow API routes, static files, and interview routes to pass through
+    if (
+      pathname.startsWith('/api') ||
+      pathname.startsWith('/_next') ||
+      pathname.startsWith('/favicon.ico') ||
+      pathname.match(/\.(ico|png|jpg|jpeg|svg|gif|webp|woff|woff2|ttf|eot)$/)
+    ) {
+      const response = NextResponse.next();
+      response.headers.set('x-lev8-context', 'eqpqiq');
+      return response;
+    }
+
+    // If already on /interview path, continue
+    if (pathname.startsWith('/interview')) {
+      const response = NextResponse.next();
+      response.headers.set('x-lev8-context', 'eqpqiq');
+      return response;
+    }
+
+    // Redirect root and all other paths to /interview
+    const interviewUrl = new URL('/interview', request.url);
+    // Preserve query params
+    interviewUrl.search = request.nextUrl.search;
+    return NextResponse.redirect(interviewUrl);
+  }
 
   // Early return for non-protected routes to avoid unnecessary auth checks
   if (
     pathname.startsWith('/api') ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon.ico') ||
+    pathname.startsWith('/interview') ||  // Interview tool is publicly accessible
     pathname.match(/\.(ico|png|jpg|jpeg|svg|gif|webp|woff|woff2|ttf|eot)$/)
   ) {
     return NextResponse.next();

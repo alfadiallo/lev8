@@ -97,7 +97,7 @@ async function handleCheckoutCompleted(
   if (!email) return;
 
   // Get subscription details
-  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId) as Stripe.Subscription;
 
   // Update subscription record
   await supabase
@@ -106,7 +106,7 @@ async function handleCheckoutCompleted(
       user_email: email,
       stripe_customer_id: customerId,
       stripe_subscription_id: subscriptionId,
-      plan_type: subscription.metadata.plan_type || 'monthly',
+      plan_type: subscription.metadata?.plan_type || 'monthly',
       status: mapStripeStatus(subscription.status),
       trial_ends_at: subscription.trial_end 
         ? new Date(subscription.trial_end * 1000).toISOString() 

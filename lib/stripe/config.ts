@@ -1,7 +1,10 @@
 import Stripe from 'stripe';
 
 // Server-side Stripe instance
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+// Use a placeholder key during build time if env var is missing to prevent build failure
+const stripeKey = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder_for_build';
+
+export const stripe = new Stripe(stripeKey, {
   apiVersion: '2025-12-15.clover',
   typescript: true,
 });
@@ -15,9 +18,9 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 // STRIPE_ANNUAL_PRICE_ID=price_...
 
 export const STRIPE_CONFIG = {
-  publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!,
-  monthlyPriceId: process.env.STRIPE_MONTHLY_PRICE_ID!,
-  annualPriceId: process.env.STRIPE_ANNUAL_PRICE_ID!,
+  publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
+  monthlyPriceId: process.env.STRIPE_MONTHLY_PRICE_ID || '',
+  annualPriceId: process.env.STRIPE_ANNUAL_PRICE_ID || '',
   trialDays: 14,
   // Pricing display (update these to match your Stripe prices)
   pricing: {

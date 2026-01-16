@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe/config';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY!;
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SupabaseInstance = SupabaseClient<any, any, any>;
 
 // Disable body parsing for webhook verification
 export const runtime = 'nodejs';
@@ -74,7 +77,7 @@ export async function POST(request: NextRequest) {
 }
 
 async function handleCheckoutCompleted(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseInstance,
   session: Stripe.Checkout.Session
 ) {
   console.log('[stripe/webhook] Checkout completed:', session.id);
@@ -116,7 +119,7 @@ async function handleCheckoutCompleted(
 }
 
 async function handleSubscriptionUpdate(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseInstance,
   subscription: Stripe.Subscription
 ) {
   console.log('[stripe/webhook] Subscription updated:', subscription.id);
@@ -143,7 +146,7 @@ async function handleSubscriptionUpdate(
 }
 
 async function handleSubscriptionCanceled(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseInstance,
   subscription: Stripe.Subscription
 ) {
   console.log('[stripe/webhook] Subscription canceled:', subscription.id);
@@ -158,7 +161,7 @@ async function handleSubscriptionCanceled(
 }
 
 async function handleInvoicePaid(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseInstance,
   invoice: Stripe.Invoice
 ) {
   console.log('[stripe/webhook] Invoice paid:', invoice.id);
@@ -189,7 +192,7 @@ async function handleInvoicePaid(
 }
 
 async function handlePaymentFailed(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseInstance,
   invoice: Stripe.Invoice
 ) {
   console.log('[stripe/webhook] Payment failed:', invoice.id);

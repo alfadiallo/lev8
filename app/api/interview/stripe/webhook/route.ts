@@ -178,10 +178,14 @@ async function handleInvoicePaid(
 ) {
   console.log('[stripe/webhook] Invoice paid:', invoice.id);
 
-  // Access subscription - in Stripe v20+ it may be an object or string
-  const subscriptionId = typeof invoice.parent?.subscription_details?.subscription === 'string' 
-    ? invoice.parent.subscription_details.subscription 
-    : (invoice as unknown as { subscription?: string }).subscription;
+  // Cast invoice to access properties that may vary between Stripe API versions
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const invoiceAny = invoice as any;
+  
+  // Access subscription - location varies between Stripe versions
+  const subscriptionId = invoiceAny.subscription 
+    || invoiceAny.parent?.subscription_details?.subscription
+    || null;
   
   if (!subscriptionId) return;
 
@@ -189,26 +193,27 @@ async function handleInvoicePaid(
   const { data: subscription } = await supabase
     .from('interview_subscriptions')
     .select('id')
-    .eq('stripe_subscription_id', subscriptionId)
+    .eq('stripe_subscription_id', String(subscriptionId))
     .single();
 
   if (!subscription) return;
 
-  // Access payment_intent - may be string or object in different API versions
-  const paymentIntentId = typeof invoice.payment_intent === 'string' 
-    ? invoice.payment_intent 
-    : (invoice.payment_intent as { id?: string } | null)?.id || null;
+  // Access payment_intent - may be string or object
+  const paymentIntent = invoiceAny.payment_intent;
+  const paymentIntentId = typeof paymentIntent === 'string' 
+    ? paymentIntent 
+    : paymentIntent?.id || null;
 
   // Record payment
   await supabase.from('interview_payment_history').insert({
     subscription_id: subscription.id,
     stripe_invoice_id: invoice.id,
     stripe_payment_intent_id: paymentIntentId,
-    amount_paid: invoice.amount_paid,
+    amount_paid: invoiceAny.amount_paid || 0,
     currency: invoice.currency,
     status: 'succeeded',
-    paid_at: invoice.status_transitions?.paid_at 
-      ? new Date(invoice.status_transitions.paid_at * 1000).toISOString()
+    paid_at: invoiceAny.status_transitions?.paid_at 
+      ? new Date(invoiceAny.status_transitions.paid_at * 1000).toISOString()
       : new Date().toISOString(),
   });
 }
@@ -219,10 +224,14 @@ async function handlePaymentFailed(
 ) {
   console.log('[stripe/webhook] Payment failed:', invoice.id);
 
-  // Access subscription - in Stripe v20+ it may be an object or string
-  const subscriptionId = typeof invoice.parent?.subscription_details?.subscription === 'string' 
-    ? invoice.parent.subscription_details.subscription 
-    : (invoice as unknown as { subscription?: string }).subscription;
+  // Cast invoice to access properties that may vary between Stripe API versions
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const invoiceAny = invoice as any;
+
+  // Access subscription - location varies between Stripe versions
+  const subscriptionId = invoiceAny.subscription 
+    || invoiceAny.parent?.subscription_details?.subscription
+    || null;
 
   if (!subscriptionId) return;
 
@@ -230,21 +239,22 @@ async function handlePaymentFailed(
   await supabase
     .from('interview_subscriptions')
     .update({ status: 'past_due' })
-    .eq('stripe_subscription_id', subscriptionId);
+    .eq('stripe_subscription_id', String(subscriptionId));
 
   // Get subscription record
   const { data: subscription } = await supabase
     .from('interview_subscriptions')
     .select('id')
-    .eq('stripe_subscription_id', subscriptionId)
+    .eq('stripe_subscription_id', String(subscriptionId))
     .single();
 
   if (!subscription) return;
 
-  // Access payment_intent - may be string or object in different API versions
-  const paymentIntentId = typeof invoice.payment_intent === 'string' 
-    ? invoice.payment_intent 
-    : (invoice.payment_intent as { id?: string } | null)?.id || null;
+  // Access payment_intent - may be string or object
+  const paymentIntent = invoiceAny.payment_intent;
+  const paymentIntentId = typeof paymentIntent === 'string' 
+    ? paymentIntent 
+    : paymentIntent?.id || null;
 
   // Record failed payment
   await supabase.from('interview_payment_history').insert({

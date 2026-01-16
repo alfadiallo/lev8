@@ -96,8 +96,15 @@ async function handleCheckoutCompleted(
   const email = customer.email?.toLowerCase();
   if (!email) return;
 
-  // Get subscription details
-  const subscription = await stripe.subscriptions.retrieve(subscriptionId) as Stripe.Subscription;
+  // Get subscription details with items expanded
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+    expand: ['items.data'],
+  });
+
+  // Get period dates from the first subscription item (Stripe v20+ structure)
+  const firstItem = subscription.items?.data?.[0];
+  const periodStart = firstItem?.current_period_start || Math.floor(Date.now() / 1000);
+  const periodEnd = firstItem?.current_period_end || Math.floor(Date.now() / 1000);
 
   // Update subscription record
   await supabase
@@ -111,8 +118,8 @@ async function handleCheckoutCompleted(
       trial_ends_at: subscription.trial_end 
         ? new Date(subscription.trial_end * 1000).toISOString() 
         : null,
-      current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-      current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+      current_period_start: new Date(periodStart * 1000).toISOString(),
+      current_period_end: new Date(periodEnd * 1000).toISOString(),
     }, {
       onConflict: 'user_email',
     });
@@ -131,16 +138,21 @@ async function handleSubscriptionUpdate(
   const email = customer.email?.toLowerCase();
   if (!email) return;
 
+  // Get period dates from the first subscription item (Stripe v20+ structure)
+  const firstItem = subscription.items?.data?.[0];
+  const periodStart = firstItem?.current_period_start || Math.floor(Date.now() / 1000);
+  const periodEnd = firstItem?.current_period_end || Math.floor(Date.now() / 1000);
+
   await supabase
     .from('interview_subscriptions')
     .update({
       status: mapStripeStatus(subscription.status),
-      plan_type: subscription.metadata.plan_type || undefined,
+      plan_type: subscription.metadata?.plan_type || undefined,
       trial_ends_at: subscription.trial_end 
         ? new Date(subscription.trial_end * 1000).toISOString() 
         : null,
-      current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-      current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+      current_period_start: new Date(periodStart * 1000).toISOString(),
+      current_period_end: new Date(periodEnd * 1000).toISOString(),
     })
     .eq('stripe_subscription_id', subscription.id);
 }
@@ -166,22 +178,32 @@ async function handleInvoicePaid(
 ) {
   console.log('[stripe/webhook] Invoice paid:', invoice.id);
 
-  if (!invoice.subscription) return;
+  // Access subscription - in Stripe v20+ it may be an object or string
+  const subscriptionId = typeof invoice.parent?.subscription_details?.subscription === 'string' 
+    ? invoice.parent.subscription_details.subscription 
+    : (invoice as unknown as { subscription?: string }).subscription;
+  
+  if (!subscriptionId) return;
 
   // Get subscription record
   const { data: subscription } = await supabase
     .from('interview_subscriptions')
     .select('id')
-    .eq('stripe_subscription_id', invoice.subscription as string)
+    .eq('stripe_subscription_id', subscriptionId)
     .single();
 
   if (!subscription) return;
+
+  // Access payment_intent - may be string or object in different API versions
+  const paymentIntentId = typeof invoice.payment_intent === 'string' 
+    ? invoice.payment_intent 
+    : (invoice.payment_intent as { id?: string } | null)?.id || null;
 
   // Record payment
   await supabase.from('interview_payment_history').insert({
     subscription_id: subscription.id,
     stripe_invoice_id: invoice.id,
-    stripe_payment_intent_id: invoice.payment_intent as string | null,
+    stripe_payment_intent_id: paymentIntentId,
     amount_paid: invoice.amount_paid,
     currency: invoice.currency,
     status: 'succeeded',
@@ -197,28 +219,38 @@ async function handlePaymentFailed(
 ) {
   console.log('[stripe/webhook] Payment failed:', invoice.id);
 
-  if (!invoice.subscription) return;
+  // Access subscription - in Stripe v20+ it may be an object or string
+  const subscriptionId = typeof invoice.parent?.subscription_details?.subscription === 'string' 
+    ? invoice.parent.subscription_details.subscription 
+    : (invoice as unknown as { subscription?: string }).subscription;
+
+  if (!subscriptionId) return;
 
   // Update subscription status to past_due
   await supabase
     .from('interview_subscriptions')
     .update({ status: 'past_due' })
-    .eq('stripe_subscription_id', invoice.subscription as string);
+    .eq('stripe_subscription_id', subscriptionId);
 
   // Get subscription record
   const { data: subscription } = await supabase
     .from('interview_subscriptions')
     .select('id')
-    .eq('stripe_subscription_id', invoice.subscription as string)
+    .eq('stripe_subscription_id', subscriptionId)
     .single();
 
   if (!subscription) return;
+
+  // Access payment_intent - may be string or object in different API versions
+  const paymentIntentId = typeof invoice.payment_intent === 'string' 
+    ? invoice.payment_intent 
+    : (invoice.payment_intent as { id?: string } | null)?.id || null;
 
   // Record failed payment
   await supabase.from('interview_payment_history').insert({
     subscription_id: subscription.id,
     stripe_invoice_id: invoice.id,
-    stripe_payment_intent_id: invoice.payment_intent as string | null,
+    stripe_payment_intent_id: paymentIntentId,
     amount_paid: 0,
     currency: invoice.currency,
     status: 'failed',

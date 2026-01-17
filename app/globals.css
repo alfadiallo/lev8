@@ -1,4 +1,7 @@
 @import "tailwindcss";
+@source "../components";
+@source "../app";
+@source "../context";
 
 /* =====================================================
    THEME SYSTEM: Clinical Clean (Default)

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, ReactNode } from 'react';
-import { Heart, Award, Brain, TrendingUp, ChevronDown, ChevronRight } from 'lucide-react';
+import { Heart, Award, Brain, ChevronDown, ChevronRight } from 'lucide-react';
 import DomainGuidePanel from './DomainGuidePanel';
 import { getDomain } from '@/lib/interview/guide-data';
 
@@ -120,6 +120,20 @@ function Slider({
           style={{ backgroundColor: COLORS.lightest }} 
         />
         
+        {/* Tick marks at every 5 points - showing major ticks at 0, 25, 50, 75, 100 */}
+        <div className="absolute w-full flex justify-between px-0.5 pointer-events-none">
+          {[0, 25, 50, 75, 100].map((tick) => (
+            <div 
+              key={tick} 
+              className="w-0.5 h-2 rounded-full"
+              style={{ 
+                backgroundColor: localValue >= tick ? fillColor : COLORS.light,
+                opacity: 0.6,
+              }} 
+            />
+          ))}
+        </div>
+        
         {/* Filled Track - fully rounded pill shape */}
         {localValue > 0 && (
           <div 
@@ -216,88 +230,46 @@ export default function RatingSliders({
   onQuestionToggle,
   showGuide = true,
 }: RatingSlidersProps) {
-  const totalScore = eqScore + pqScore + iqScore;
-
   return (
-    <div className="space-y-6">
-      {/* Sliders */}
-      <div className="space-y-4">
-        <Slider
-          label="Emotional Quotient (EQ)"
-          description="Empathy, adaptability, communication"
-          value={eqScore}
-          onChange={onEqChange}
-          icon={<Heart className="w-5 h-5" style={{ color: COLORS.dark }} />}
-          disabled={disabled}
-          domainId="EQ"
-          usedQuestions={usedQuestions}
-          onQuestionToggle={onQuestionToggle}
-          showGuide={showGuide}
-        />
+    <div className="space-y-4">
+      <Slider
+        label="Emotional Quotient (EQ)"
+        description="Empathy, adaptability, communication"
+        value={eqScore}
+        onChange={onEqChange}
+        icon={<Heart className="w-5 h-5" style={{ color: COLORS.dark }} />}
+        disabled={disabled}
+        domainId="EQ"
+        usedQuestions={usedQuestions}
+        onQuestionToggle={onQuestionToggle}
+        showGuide={showGuide}
+      />
 
-        <Slider
-          label="Professional Quotient (PQ)"
-          description="Work ethic, integrity, leadership"
-          value={pqScore}
-          onChange={onPqChange}
-          icon={<Award className="w-5 h-5" style={{ color: COLORS.dark }} />}
-          disabled={disabled}
-          domainId="PQ"
-          usedQuestions={usedQuestions}
-          onQuestionToggle={onQuestionToggle}
-          showGuide={showGuide}
-        />
+      <Slider
+        label="Professional Quotient (PQ)"
+        description="Work ethic, integrity, leadership"
+        value={pqScore}
+        onChange={onPqChange}
+        icon={<Award className="w-5 h-5" style={{ color: COLORS.dark }} />}
+        disabled={disabled}
+        domainId="PQ"
+        usedQuestions={usedQuestions}
+        onQuestionToggle={onQuestionToggle}
+        showGuide={showGuide}
+      />
 
-        <Slider
-          label="Intellectual Quotient (IQ)"
-          description="Knowledge, problem-solving, reasoning"
-          value={iqScore}
-          onChange={onIqChange}
-          icon={<Brain className="w-5 h-5" style={{ color: COLORS.dark }} />}
-          disabled={disabled}
-          domainId="IQ"
-          usedQuestions={usedQuestions}
-          onQuestionToggle={onQuestionToggle}
-          showGuide={showGuide}
-        />
-      </div>
-
-      {/* Total Score */}
-      <div 
-        className="rounded-xl p-4 border"
-        style={{ 
-          background: `linear-gradient(to right, ${COLORS.lightest}, white)`,
-          borderColor: COLORS.light,
-        }}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <TrendingUp className="w-5 h-5" style={{ color: COLORS.dark }} />
-            <div>
-              <span className="text-sm text-slate-600 dark:text-slate-400">Total Score</span>
-              <p className="text-xs text-slate-500 dark:text-slate-500">EQ + PQ + IQ</p>
-            </div>
-          </div>
-          <div className="text-right">
-            <span className="text-3xl font-bold" style={{ color: COLORS.darker }}>{totalScore}</span>
-            <span className="text-lg text-slate-400 dark:text-slate-500"> / 300</span>
-          </div>
-        </div>
-        
-        {/* Progress Bar */}
-        <div 
-          className="mt-3 h-3 rounded-full"
-          style={{ backgroundColor: COLORS.lightest }}
-        >
-          <div 
-            className="h-full rounded-full transition-all duration-300"
-            style={{ 
-              width: `${(totalScore / 300) * 100}%`,
-              background: `linear-gradient(to right, ${COLORS.mediumLight}, ${COLORS.medium}, ${COLORS.dark})`,
-            }}
-          />
-        </div>
-      </div>
+      <Slider
+        label="Intellectual Quotient (IQ)"
+        description="Knowledge, problem-solving, reasoning"
+        value={iqScore}
+        onChange={onIqChange}
+        icon={<Brain className="w-5 h-5" style={{ color: COLORS.dark }} />}
+        disabled={disabled}
+        domainId="IQ"
+        usedQuestions={usedQuestions}
+        onQuestionToggle={onQuestionToggle}
+        showGuide={showGuide}
+      />
     </div>
   );
 }

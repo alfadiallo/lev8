@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Heart, Award, Brain, Plus, Users, ArrowLeft } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Heart, Award, Brain, Plus, Users, ArrowLeft, LayoutDashboard } from 'lucide-react';
+import { useInterviewUserContext } from '@/context/InterviewUserContext';
 
 // Green color palette
 const COLORS = {
@@ -19,11 +20,29 @@ const COLORS = {
 
 export default function InterviewLandingPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { login, isAuthenticated, user } = useInterviewUserContext();
+  
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [mode, setMode] = useState<'landing' | 'create' | 'join'>('landing');
+  const [mode, setMode] = useState<'landing' | 'create' | 'join' | 'dashboard'>('landing');
   const [sessionCode, setSessionCode] = useState('');
+
+  // If email is in URL params and we're not authenticated, auto-login
+  useEffect(() => {
+    const emailParam = searchParams.get('email');
+    if (emailParam && !isAuthenticated) {
+      login(emailParam);
+    }
+  }, [searchParams, isAuthenticated, login]);
+
+  // Pre-fill email if already authenticated
+  useEffect(() => {
+    if (user?.email && !email) {
+      setEmail(user.email);
+    }
+  }, [user, email]);
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,8 +50,12 @@ export default function InterviewLandingPage() {
     setError('');
 
     try {
-      // Proceed directly based on mode - email check happens on create page
-      if (mode === 'create') {
+      // Login to context first
+      await login(email);
+      
+      if (mode === 'dashboard') {
+        router.push(`/interview/dashboard?email=${encodeURIComponent(email)}`);
+      } else if (mode === 'create') {
         router.push(`/interview/create?email=${encodeURIComponent(email)}`);
       } else if (mode === 'join' && sessionCode) {
         router.push(`/interview/join/${sessionCode}?email=${encodeURIComponent(email)}`);
@@ -150,25 +173,37 @@ export default function InterviewLandingPage() {
             </h2>
             <div className="space-y-4">
               <button
-                onClick={() => setMode('create')}
+                onClick={() => setMode('dashboard')}
                 className="w-full py-3 px-4 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                 style={{ backgroundColor: COLORS.dark }}
                 onMouseOver={(e) => e.currentTarget.style.backgroundColor = COLORS.darker}
                 onMouseOut={(e) => e.currentTarget.style.backgroundColor = COLORS.dark}
               >
-                <Plus className="w-5 h-5" />
-                Create New Session
+                <LayoutDashboard className="w-5 h-5" />
+                Go to Dashboard
               </button>
-              <button
-                onClick={() => setMode('join')}
-                className="w-full py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-                style={{ backgroundColor: COLORS.lightest, color: COLORS.darker }}
-                onMouseOver={(e) => e.currentTarget.style.backgroundColor = COLORS.light}
-                onMouseOut={(e) => e.currentTarget.style.backgroundColor = COLORS.lightest}
-              >
-                <Users className="w-5 h-5" />
-                Join Existing Session
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setMode('create')}
+                  className="flex-1 py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                  style={{ backgroundColor: COLORS.lightest, color: COLORS.darker }}
+                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = COLORS.light}
+                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = COLORS.lightest}
+                >
+                  <Plus className="w-5 h-5" />
+                  Create Session
+                </button>
+                <button
+                  onClick={() => setMode('join')}
+                  className="flex-1 py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                  style={{ backgroundColor: COLORS.lightest, color: COLORS.darker }}
+                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = COLORS.light}
+                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = COLORS.lightest}
+                >
+                  <Users className="w-5 h-5" />
+                  Join Session
+                </button>
+              </div>
             </div>
             <p className="text-center text-sm text-slate-500 dark:text-slate-400 mt-6">
               Already have a lev8.ai account?{' '}
@@ -191,7 +226,7 @@ export default function InterviewLandingPage() {
               Back
             </button>
             <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-6">
-              {mode === 'create' ? 'Create New Session' : 'Join Session'}
+              {mode === 'dashboard' ? 'Access Dashboard' : mode === 'create' ? 'Create New Session' : 'Join Session'}
             </h2>
             <form onSubmit={handleEmailSubmit} className="space-y-4">
               <div>
@@ -240,7 +275,7 @@ export default function InterviewLandingPage() {
                 onMouseOver={(e) => !isLoading && (e.currentTarget.style.backgroundColor = COLORS.darker)}
                 onMouseOut={(e) => e.currentTarget.style.backgroundColor = COLORS.dark}
               >
-                {isLoading ? 'Loading...' : mode === 'create' ? 'Create Session' : 'Join Session'}
+                {isLoading ? 'Loading...' : mode === 'dashboard' ? 'Continue to Dashboard' : mode === 'create' ? 'Create Session' : 'Join Session'}
               </button>
             </form>
           </>

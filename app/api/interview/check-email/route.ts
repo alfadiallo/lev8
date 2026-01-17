@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
       if (facultyByUserId) {
         faculty = facultyByUserId;
       } else {
-        // Fallback: try matching by email (for demo users without auth.users)
+        // Fallback: try matching by email
         const { data: facultyByEmail } = await supabase
           .from('faculty')
           .select(`
@@ -163,6 +163,33 @@ export async function POST(request: NextRequest) {
           isActive: faculty.is_active,
         };
         programInfo = faculty.programs;
+      } 
+      // If not found in faculty table, try finding program directly via pgm_director_id if they are a PD
+      else if (user.role === 'program_director' || user.role === 'admin') {
+        const { data: programByDirector } = await supabase
+          .from('programs')
+          .select('id, name, specialty')
+          // Assuming we can link via user_id, but pgm_director_id is a UUID.
+          // In seed data, PD user ID is used.
+          .eq('pgm_director_id', user.id) 
+          .single();
+          
+        if (programByDirector) {
+          programInfo = programByDirector;
+        } else {
+           // Fallback for demo: just grab the first program for the institution if one exists
+           // This helps with the Sarah Chen case if she's not explicitly set as PD in programs table yet
+           const { data: anyProgram } = await supabase
+            .from('programs')
+            .select('id, name, specialty')
+            .eq('health_system_id', user.institution_id)
+            .limit(1)
+            .single();
+            
+           if (anyProgram) {
+             programInfo = anyProgram;
+           }
+        }
       }
     }
 

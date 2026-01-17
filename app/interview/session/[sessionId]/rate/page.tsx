@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import { ArrowLeft, ChevronLeft, ChevronRight, Check, Save } from 'lucide-react';
 import RatingSliders from '@/components/interview/RatingSliders';
+import TotalScoreBar from '@/components/interview/TotalScoreBar';
 
 // Green color palette
 const COLORS = {
@@ -308,7 +309,7 @@ export default function RatingPage() {
         className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border mb-6"
         style={{ borderColor: COLORS.light }}
       >
-        <div className="text-center mb-6">
+        <div className="text-center mb-4">
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
             {currentCandidate.candidate_name}
           </h2>
@@ -317,6 +318,15 @@ export default function RatingPage() {
               {currentCandidate.candidate_email}
             </p>
           )}
+        </div>
+
+        {/* Total Score Bar */}
+        <div className="mb-6">
+          <TotalScoreBar
+            eqScore={rating.eq_score}
+            pqScore={rating.pq_score}
+            iqScore={rating.iq_score}
+          />
         </div>
 
         {/* Rating Sliders */}

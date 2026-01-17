@@ -61,11 +61,11 @@ export default function CreateSessionPage() {
   return (
     <div className="max-w-xl mx-auto">
       <button
-        onClick={() => router.push('/interview')}
+        onClick={() => router.push(`/interview/dashboard?email=${encodeURIComponent(email)}`)}
         className="text-sm text-slate-500 hover:text-slate-700 mb-6 flex items-center gap-1"
       >
         <ArrowLeft className="w-4 h-4" />
-        Back to Home
+        Back to Dashboard
       </button>
 
       <div 

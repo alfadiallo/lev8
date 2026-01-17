@@ -148,11 +148,11 @@ export default function SessionDetailPage() {
         >
           <p className="text-red-600">{error}</p>
           <button
-            onClick={() => router.push('/interview')}
+            onClick={() => router.push(`/interview/dashboard?email=${encodeURIComponent(email)}`)}
             className="mt-4 font-medium"
             style={{ color: COLORS.dark }}
           >
-            Return to Home
+            Return to Dashboard
           </button>
         </div>
       </div>
@@ -202,11 +202,11 @@ export default function SessionDetailPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <button
-            onClick={() => router.push('/interview')}
+            onClick={() => router.push(`/interview/dashboard?email=${encodeURIComponent(email)}`)}
             className="text-sm text-slate-500 hover:text-slate-700 mb-2 flex items-center gap-1"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Home
+            Back to Dashboard
           </button>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
             {session?.session_name}

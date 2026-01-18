@@ -1,8 +1,22 @@
-# Elevate (lev8.ai) - Medical Education Platform
+# Elevate - Medical Education Platform
 
 A comprehensive medical education platform for Emergency Medicine residency programs, featuring AI-powered learning modules, voice journaling, and advanced analytics.
 
-## Project Overview
+## Product Suite
+
+This repository contains two product lines:
+
+### 🏥 Elevate Platform (lev8.ai)
+Medical residency education platform with learning modules, voice journaling, and analytics.
+
+### 📋 EQ·PQ·IQ Products (eqpqiq.com)
+Standalone evaluation tools using the EQ·PQ·IQ framework:
+- **Interview Assessment Tool** - Candidate evaluation for residency interviews
+- **Pulse Check** - Provider performance evaluation for healthsystems
+
+---
+
+## Elevate Platform Overview
 
 **Elevate** is a production-ready platform with three core modules:
 
@@ -24,7 +38,7 @@ A comprehensive medical education platform for Emergency Medicine residency prog
 
 ## Current Status
 
-✅ **All Modules Operational** (January 2025)
+✅ **All Modules Operational** (January 2026)
 - 50 residents, 13 faculty members
 - 5,860 MedHub evaluation comments imported
 - 319 EQ+PQ+IQ ratings (267 faculty + 52 self-assessments)
@@ -171,8 +185,24 @@ scripts/
 
 ## Recent Updates
 
+### January 2026: EQ·PQ·IQ Products Launch ✅
+**New standalone products on eqpqiq.com**
+
+**Interview Assessment Tool:**
+- ✅ Candidate evaluation for residency interviews
+- ✅ Program Director and Faculty role views
+- ✅ Score normalization across interviewers
+- ✅ Season-wide rank list with analytics
+
+**Pulse Check:**
+- ✅ Provider performance evaluation for healthsystems
+- ✅ Hierarchical structure (Healthsystem → Sites → Departments)
+- ✅ Regional Medical Director, Medical Director, Executive Assistant roles
+- ✅ Voice memo recording with transcription
+- ✅ Email reminders and reporting
+
 ### January 2025: Analytics Engine Complete ✅
-**All three modules now operational**
+**All three Elevate modules operational**
 
 **Analytics Engine (Understand Module):**
 - ✅ AI SWOT Analysis with Claude API integration
@@ -184,19 +214,45 @@ scripts/
 - ✅ Supporting citations for all SWOT analyses
 - ✅ Gap analysis (faculty vs self-assessment)
 
-**Data Imported:**
-- 50 residents (Memorial Healthcare System EM program)
-- 13 faculty members
-- Complete evaluation history (2022-2025)
-- ITE scores across all PGY levels
-
-**Technical Achievements:**
-- Enhanced radar chart visualization (15 attributes)
-- Real-time data aggregation pipeline
-- AI-powered analysis with brutally honest feedback
-- Comprehensive RLS policies for data security
-
 See **[docs/ANALYTICS.md](docs/ANALYTICS.md)** for complete details.
+
+---
+
+## EQ·PQ·IQ Products (eqpqiq.com)
+
+Standalone evaluation tools built on the EQ·PQ·IQ framework for assessing Emotional, Professional, and Intellectual qualities.
+
+### 📋 Interview Assessment Tool
+**URL:** `eqpqiq.com/interview`
+
+Candidate evaluation system for residency program interviews:
+- **Program Director View:** All candidates, analytics, rank list, interviewer stats
+- **Faculty View:** Rate candidates, view own ratings
+- **Score Normalization:** Compare raw vs normalized scores across interviewers
+- **Season Analytics:** Aggregated candidate rankings across interview dates
+
+### 💜 Pulse Check
+**URL:** `eqpqiq.com/pulsecheck`
+
+Provider performance evaluation for healthsystems:
+- **Regional Medical Director:** Healthsystem-wide analytics & reports across sites
+- **Medical Director:** Rate providers, manage team, view department analytics
+- **Executive Assistant:** Manage users, import data, administrative support
+- **Hierarchical Structure:** Healthsystem → Sites → Departments → Providers
+
+**Features:**
+- EQ·PQ·IQ rating scales (1-5) for 15 attributes
+- Provider type support (Physician/APC)
+- Voice memo recording with transcription
+- Email reminders and summary reports
+- CSV export for reporting
+
+### Demo Access
+Both products include demo modes with pre-populated data:
+- **Interview:** `eqpqiq.com/interview` - Select Program Director or Core Faculty
+- **Pulse Check:** `eqpqiq.com/pulsecheck` - Select Regional Medical Director, Medical Director, or Executive Assistant
+
+---
 
 ## Development Notes
 
@@ -271,11 +327,14 @@ kill -9 $(lsof -ti:3000)
 
 ## License
 
-Proprietary software for Elevate Medical Education Platform (lev8.ai).
+Proprietary software for Elevate Medical Education Platform.
 
 ---
 
-**Status:** Production-ready platform with all three modules operational (January 2025)
+**Status:** Production-ready platform with all modules operational (January 2026)
 
-**Live Site:** [www.lev8.ai](https://www.lev8.ai)  
+**Live Sites:**
+- **Elevate Platform:** [www.lev8.ai](https://www.lev8.ai)
+- **EQ·PQ·IQ Products:** [www.eqpqiq.com](https://www.eqpqiq.com)
+
 **Documentation:** [docs/README.md](docs/README.md)

@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
 
     ratingsByDirector.forEach((dirRatings, directorId) => {
       const director = directorMap.get(directorId);
-      if (!director) return;
+      if (!director || !dirRatings) return;
 
       const pending = dirRatings.filter(r => r.status !== 'completed');
       const completed = dirRatings.filter(r => r.status === 'completed');

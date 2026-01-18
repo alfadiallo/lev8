@@ -93,7 +93,7 @@ export async function middleware(request: NextRequest) {
   // When accessed via eqpqiq.com, route all traffic to /interview/*
   // ============================================================================
   if (isEqpqiq) {
-    // Allow API routes, static files, and interview routes to pass through
+    // Allow API routes, static files, and interview/pulsecheck routes to pass through
     if (
       pathname.startsWith('/api') ||
       pathname.startsWith('/_next') ||
@@ -105,8 +105,8 @@ export async function middleware(request: NextRequest) {
       return response;
     }
 
-    // If already on /interview path, continue
-    if (pathname.startsWith('/interview')) {
+    // If already on /interview or /pulsecheck path, continue
+    if (pathname.startsWith('/interview') || pathname.startsWith('/pulsecheck')) {
       const response = NextResponse.next();
       response.headers.set('x-lev8-context', 'eqpqiq');
       return response;

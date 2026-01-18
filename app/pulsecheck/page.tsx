@@ -364,8 +364,8 @@ export default function PulseCheckLandingPage() {
                   value={visitorEmail}
                   onChange={(e) => setVisitorEmail(e.target.value)}
                   placeholder="your@email.com"
-                  className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2"
-                  style={{ borderColor: COLORS.light, focusRing: COLORS.medium }}
+                  className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300"
+                  style={{ borderColor: COLORS.light }}
                   autoFocus
                   required
                 />

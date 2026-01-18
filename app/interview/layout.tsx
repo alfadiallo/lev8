@@ -4,8 +4,8 @@ import InterviewLayoutClient from './InterviewLayoutClient';
 import { InterviewUserProvider } from '@/context/InterviewUserContext';
 
 export const metadata: Metadata = {
-  title: 'EQ·PQ·IQ',
-  description: 'Interview Assessment Tool - Evaluate candidates on Emotional, Professional, and Intellectual Quotients',
+  title: 'Interview Assessment Tool',
+  description: 'Evaluate candidates on Emotional, Professional, and Intellectual Quotients using the EQ·PQ·IQ framework',
   icons: {
     icon: '/interview/icon.svg',
   },

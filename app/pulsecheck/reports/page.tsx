@@ -672,12 +672,12 @@ export default function PulseCheckReportsPage() {
                             {dept.name}
                           </td>
                           <td className="px-6 py-3 text-center text-slate-400 text-sm">
-                            <span className={`capitalize px-2 py-0.5 rounded-full text-xs ${
+                            <span className={`px-2 py-0.5 rounded-full text-xs ${
                               provider.provider_type === 'physician' 
                                 ? 'bg-blue-100 text-blue-700' 
                                 : 'bg-purple-100 text-purple-700'
                             }`}>
-                              {provider.provider_type}
+                              {provider.provider_type === 'physician' ? 'Physician' : 'APC'}
                             </span>
                           </td>
                           <td className="px-6 py-3 text-center text-slate-500 text-sm">

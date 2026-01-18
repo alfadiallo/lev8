@@ -85,7 +85,7 @@ export default function InterviewLayoutClient({ children }: InterviewLayoutClien
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-500 dark:text-slate-400">
             <div>
-              &copy; {new Date().getFullYear()} eqpqiq.com - A lev8.ai Product
+              &copy; {new Date().getFullYear()} EQ·PQ·IQ
             </div>
             <div className="flex gap-6">
               <a 
@@ -107,7 +107,7 @@ export default function InterviewLayoutClient({ children }: InterviewLayoutClien
                 Terms
               </a>
               <a 
-                href="https://lev8.ai" 
+                href="#" 
                 className="transition-colors"
                 style={{ color: COLORS.dark }}
                 onMouseOver={(e) => e.currentTarget.style.color = COLORS.darker}

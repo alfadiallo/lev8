@@ -15,6 +15,7 @@ const NON_TENANT_PREFIXES = [
   'reset',
   'studio',  // Studio has its own routing
   'interview',  // Interview tool (eqpqiq.com) - publicly accessible
+  'pulsecheck', // Pulse Check tool - publicly accessible
   '_next',
   'favicon.ico',
   'public'
@@ -124,6 +125,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon.ico') ||
     pathname.startsWith('/interview') ||  // Interview tool is publicly accessible
+    pathname.startsWith('/pulsecheck') || // Pulse Check tool is publicly accessible
     pathname.match(/\.(ico|png|jpg|jpeg|svg|gif|webp|woff|woff2|ttf|eot)$/)
   ) {
     return NextResponse.next();

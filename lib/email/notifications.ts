@@ -10,6 +10,7 @@
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'alfadiallo@mac.com';
 const FROM_EMAIL = process.env.FROM_EMAIL || 'Elevate <noreply@lev8.ai>';
+const PULSECHECK_FROM_EMAIL = process.env.PULSECHECK_FROM_EMAIL || 'EQ·PQ·IQ <noreply@eqpqiq.com>';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://lev8.ai';
 
 interface EmailOptions {
@@ -17,6 +18,7 @@ interface EmailOptions {
   subject: string;
   html: string;
   text?: string;
+  from?: string; // Optional override for workflow-specific from address
 }
 
 /**
@@ -24,11 +26,13 @@ interface EmailOptions {
  * Falls back to console logging if RESEND_API_KEY is not configured
  */
 async function sendEmail(options: EmailOptions): Promise<boolean> {
-  const { to, subject, html, text } = options;
+  const { to, subject, html, text, from } = options;
+  const fromAddress = from || FROM_EMAIL;
 
   // If no API key, log to console (development mode)
   if (!RESEND_API_KEY) {
     console.log('[Email] (DEV MODE - No RESEND_API_KEY configured)');
+    console.log('[Email] From:', fromAddress);
     console.log('[Email] To:', to);
     console.log('[Email] Subject:', subject);
     console.log('[Email] Content:', text || html.replace(/<[^>]*>/g, ''));
@@ -43,7 +47,7 @@ async function sendEmail(options: EmailOptions): Promise<boolean> {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: FROM_EMAIL,
+        from: fromAddress,
         to,
         subject,
         html,
@@ -364,6 +368,100 @@ The Elevate Team
     subject: '[Elevate] Access Request Update',
     html,
     text,
+  });
+}
+
+/**
+ * Notify admin of a demo visitor (Pulse Check / EQ·PQ·IQ)
+ */
+export async function notifyDemoVisitor(visitor: {
+  email: string | null;
+  visitorId: string;
+  ip: string;
+  isReturning: boolean;
+  timestamp: string;
+}): Promise<boolean> {
+  const { email, visitorId, ip, isReturning, timestamp } = visitor;
+  
+  const DEMO_ADMIN_EMAIL = process.env.DEMO_NOTIFICATION_EMAIL || 'alfa@lev8.ai';
+
+  const visitorType = isReturning ? 'Returning Visitor' : 'New Visitor';
+  const formattedTime = new Date(timestamp).toLocaleString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short'
+  });
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #7C3AED 0%, #8B5CF6 100%); color: white; padding: 30px; border-radius: 12px 12px 0 0; }
+          .content { background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; border-top: none; }
+          .field { margin-bottom: 15px; }
+          .label { font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
+          .value { font-size: 16px; color: #111827; }
+          .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+          .new { background: #DCFCE7; color: #166534; }
+          .returning { background: #DBEAFE; color: #1E40AF; }
+          .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1 style="margin: 0; font-size: 24px;">📊 EQ·PQ·IQ Demo Access</h1>
+            <p style="margin: 10px 0 0; opacity: 0.9;">${formattedTime}</p>
+          </div>
+          <div class="content">
+            <div class="field">
+              <span class="badge ${isReturning ? 'returning' : 'new'}">${visitorType}</span>
+            </div>
+            ${email ? `
+            <div class="field">
+              <div class="label">Email</div>
+              <div class="value">${email}</div>
+            </div>
+            ` : ''}
+            <div class="field">
+              <div class="label">IP Address</div>
+              <div class="value">${ip}</div>
+            </div>
+            <div class="field">
+              <div class="label">Visitor ID</div>
+              <div class="value" style="font-family: monospace; font-size: 14px;">${visitorId}</div>
+            </div>
+          </div>
+          <div class="footer">
+            <p>EQ·PQ·IQ Pulse Check Demo</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  const text = `
+EQ·PQ·IQ Demo Access - ${visitorType}
+
+${email ? `Email: ${email}` : 'Email: Not provided'}
+IP: ${ip}
+Visitor ID: ${visitorId}
+Time: ${formattedTime}
+  `.trim();
+
+  return sendEmail({
+    to: DEMO_ADMIN_EMAIL,
+    subject: `[EQ·PQ·IQ] ${isReturning ? '🔄 Returning' : '🆕 New'} Demo Visitor${email ? `: ${email}` : ''}`,
+    html,
+    text,
+    from: PULSECHECK_FROM_EMAIL, // Use eqpqiq.com for Pulse Check emails
   });
 }
 

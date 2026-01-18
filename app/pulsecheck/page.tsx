@@ -300,7 +300,7 @@ export default function PulseCheckLandingPage() {
         <p className="text-center text-sm text-slate-500 dark:text-slate-400 mt-6">
           Want your own account?{' '}
           <a 
-            href="mailto:support@lev8.ai" 
+            href="mailto:support@eqpqiq.com" 
             className="font-medium hover:underline"
             style={{ color: COLORS.dark }}
           >

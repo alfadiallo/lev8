@@ -729,7 +729,7 @@ export default function PulseCheckReportsPage() {
               </div>
               <h3 className="text-xl font-bold text-slate-900 text-center mb-2">Record Voice Memo</h3>
               <p className="text-slate-600 text-center mb-6">
-                Record a voice note about this report. Your memo will be transcribed and saved with the current report data.
+                Record a voice note and your memo will be transcribed and saved. Provide sufficient detail so it can be linked appropriately. Recordings and mappings will be visible in Voice Memos.
               </p>
               <div className="flex gap-3">
                 <button

@@ -60,12 +60,8 @@ export default function PulseCheckLayoutClient({ children }: PulseCheckLayoutCli
             {/* Navigation + User */}
             <div className="flex items-center gap-2">
               <PulseCheckNavigationMenu />
-              {isAuthenticated ? (
+              {isAuthenticated && (
                 <PulseCheckUserDropdown />
-              ) : (
-                <div className="text-sm text-slate-500 dark:text-slate-400">
-                  Powered by <span className="font-medium" style={{ color: COLORS.darker }}>lev8.ai</span>
-                </div>
               )}
             </div>
           </div>
@@ -107,7 +103,7 @@ export default function PulseCheckLayoutClient({ children }: PulseCheckLayoutCli
                 Terms
               </a>
               <a 
-                href="https://lev8.ai" 
+                href="#" 
                 className="transition-colors"
                 style={{ color: COLORS.dark }}
                 onMouseOver={(e) => e.currentTarget.style.color = COLORS.darker}

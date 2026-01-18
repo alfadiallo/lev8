@@ -2,7 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Heart, Award, Brain, Plus, Users, ArrowLeft, LayoutDashboard } from 'lucide-react';
+import { 
+  Heart, Award, Brain, Plus, Users, ArrowLeft, LayoutDashboard, 
+  GraduationCap, UserCog, ClipboardList, Mail 
+} from 'lucide-react';
 import { useInterviewUserContext } from '@/context/InterviewUserContext';
 
 // Green color palette
@@ -18,6 +21,11 @@ const COLORS = {
   darkest: '#081C15',
 };
 
+// Generate a unique visitor ID
+const generateVisitorId = () => {
+  return 'interview_visitor_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+};
+
 export default function InterviewLandingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -28,6 +36,11 @@ export default function InterviewLandingPage() {
   const [error, setError] = useState('');
   const [mode, setMode] = useState<'landing' | 'create' | 'join' | 'dashboard'>('landing');
   const [sessionCode, setSessionCode] = useState('');
+  
+  // Visitor tracking state
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [visitorEmail, setVisitorEmail] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // If email is in URL params and we're not authenticated, auto-login
   useEffect(() => {
@@ -43,6 +56,66 @@ export default function InterviewLandingPage() {
       setEmail(user.email);
     }
   }, [user, email]);
+
+  // Visitor tracking on mount
+  useEffect(() => {
+    const trackVisitor = async () => {
+      const storedVisitorId = localStorage.getItem('interview_visitor_id');
+      
+      if (storedVisitorId) {
+        // Returning visitor - track silently
+        try {
+          await fetch('/api/pulsecheck/track-visitor', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              visitorId: storedVisitorId,
+              isReturning: true,
+              source: 'interview',
+            }),
+          });
+        } catch (error) {
+          console.error('[Visitor Tracking] Error:', error);
+        }
+      } else {
+        // New visitor - show email modal
+        setShowEmailModal(true);
+      }
+    };
+
+    // Small delay to ensure page loads first
+    const timer = setTimeout(trackVisitor, 1000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleVisitorEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!visitorEmail.trim()) return;
+
+    setIsSubmitting(true);
+    const newVisitorId = generateVisitorId();
+
+    try {
+      await fetch('/api/pulsecheck/track-visitor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          visitorId: newVisitorId,
+          email: visitorEmail.trim(),
+          isReturning: false,
+          source: 'interview',
+        }),
+      });
+
+      // Store visitor ID in localStorage
+      localStorage.setItem('interview_visitor_id', newVisitorId);
+      setShowEmailModal(false);
+    } catch (error) {
+      console.error('[Visitor Tracking] Submit error:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -161,7 +234,109 @@ export default function InterviewLandingPage() {
         </div>
       </div>
 
-      {/* Action Section */}
+      {/* Demo Access Section - 2x2 Grid */}
+      <div className="max-w-3xl mx-auto w-full mb-12">
+        <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-2 text-center">
+          Explore the Demo
+        </h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-6">
+          Select a role to see the platform from different perspectives
+        </p>
+        
+        <div className="grid grid-cols-2 gap-4">
+          {/* Program Director */}
+          <button
+            onClick={() => {
+              login('sarah.chen@hospital.edu');
+              router.push('/interview/dashboard?email=sarah.chen%40hospital.edu');
+            }}
+            className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border text-left transition-all hover:shadow-md hover:scale-[1.02] group"
+            style={{ borderColor: COLORS.light }}
+          >
+            <div 
+              className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 transition-colors"
+              style={{ backgroundColor: COLORS.lightest }}
+            >
+              <GraduationCap className="w-6 h-6" style={{ color: COLORS.dark }} />
+            </div>
+            <h3 className="font-semibold text-slate-900 dark:text-white mb-1 group-hover:text-green-700">
+              Program Director
+            </h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              View all candidates, analytics & rank list
+            </p>
+          </button>
+
+          {/* Core Faculty */}
+          <button
+            onClick={() => {
+              login('emily.watson@hospital.edu');
+              router.push('/interview/dashboard?email=emily.watson%40hospital.edu');
+            }}
+            className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border text-left transition-all hover:shadow-md hover:scale-[1.02] group"
+            style={{ borderColor: COLORS.light }}
+          >
+            <div 
+              className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 transition-colors"
+              style={{ backgroundColor: COLORS.lightest }}
+            >
+              <UserCog className="w-6 h-6" style={{ color: COLORS.dark }} />
+            </div>
+            <h3 className="font-semibold text-slate-900 dark:text-white mb-1 group-hover:text-green-700">
+              Core Faculty
+            </h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Rate candidates & view own ratings
+            </p>
+          </button>
+
+          {/* Guest Interviewer - Greyed out */}
+          <div
+            className="bg-slate-100 dark:bg-slate-800/50 rounded-xl p-6 shadow-sm border text-left opacity-50 cursor-not-allowed"
+            style={{ borderColor: '#E2E8F0' }}
+          >
+            <div 
+              className="w-12 h-12 rounded-lg flex items-center justify-center mb-4"
+              style={{ backgroundColor: '#F1F5F9' }}
+            >
+              <Users className="w-6 h-6 text-slate-400" />
+            </div>
+            <h3 className="font-semibold text-slate-500 dark:text-slate-400 mb-1">
+              Guest Interviewer
+            </h3>
+            <p className="text-sm text-slate-400 dark:text-slate-500">
+              One-time session access
+            </p>
+            <span className="inline-block mt-2 text-xs px-2 py-0.5 rounded bg-slate-200 text-slate-500">
+              Coming Soon
+            </span>
+          </div>
+
+          {/* Coordinator - Greyed out */}
+          <div
+            className="bg-slate-100 dark:bg-slate-800/50 rounded-xl p-6 shadow-sm border text-left opacity-50 cursor-not-allowed"
+            style={{ borderColor: '#E2E8F0' }}
+          >
+            <div 
+              className="w-12 h-12 rounded-lg flex items-center justify-center mb-4"
+              style={{ backgroundColor: '#F1F5F9' }}
+            >
+              <ClipboardList className="w-6 h-6 text-slate-400" />
+            </div>
+            <h3 className="font-semibold text-slate-500 dark:text-slate-400 mb-1">
+              Coordinator
+            </h3>
+            <p className="text-sm text-slate-400 dark:text-slate-500">
+              Administrative support
+            </p>
+            <span className="inline-block mt-2 text-xs px-2 py-0.5 rounded bg-slate-200 text-slate-500">
+              Coming Soon
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Alternative: Manual Login Section */}
       <div 
         className="bg-white dark:bg-slate-800 rounded-xl p-8 shadow-sm border max-w-xl mx-auto w-full"
         style={{ borderColor: COLORS.light }}
@@ -169,7 +344,7 @@ export default function InterviewLandingPage() {
         {mode === 'landing' ? (
           <>
             <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-6 text-center">
-              Get Started
+              Or Get Started Manually
             </h2>
             <div className="space-y-4">
               <button
@@ -206,14 +381,15 @@ export default function InterviewLandingPage() {
               </div>
             </div>
             <p className="text-center text-sm text-slate-500 dark:text-slate-400 mt-6">
-              Already have a lev8.ai account?{' '}
+              Want your own account?{' '}
               <a 
-                href="/login" 
+                href="mailto:support@eqpqiq.com" 
                 className="font-medium hover:underline"
                 style={{ color: COLORS.dark }}
               >
-                Sign in
+                Contact us
               </a>
+              {' '}for access.
             </p>
           </>
         ) : (
@@ -326,6 +502,50 @@ export default function InterviewLandingPage() {
           </div>
         </div>
       </div>
+
+      {/* Visitor Email Modal */}
+      {showEmailModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-hidden">
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div 
+                  className="w-10 h-10 rounded-lg flex items-center justify-center"
+                  style={{ backgroundColor: COLORS.lightest }}
+                >
+                  <Mail className="w-5 h-5" style={{ color: COLORS.dark }} />
+                </div>
+                <h2 className="text-xl font-semibold text-slate-900">Welcome!</h2>
+              </div>
+              
+              <p className="text-slate-600 mb-6">
+                Please enter your email to explore the EQ·PQ·IQ Interview Assessment demo.
+              </p>
+
+              <form onSubmit={handleVisitorEmailSubmit} className="space-y-4">
+                <input
+                  type="email"
+                  value={visitorEmail}
+                  onChange={(e) => setVisitorEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-300"
+                  style={{ borderColor: COLORS.light }}
+                  autoFocus
+                  required
+                />
+                <button
+                  type="submit"
+                  disabled={isSubmitting || !visitorEmail.trim()}
+                  className="w-full py-3 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: COLORS.dark }}
+                >
+                  {isSubmitting ? 'Submitting...' : 'Continue to Demo'}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

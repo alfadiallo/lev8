@@ -23,9 +23,13 @@ import {
   Clock,
   AlertCircle,
   Share2,
-  Mic
+  Mic,
+  User,
+  Presentation,
+  Mail
 } from 'lucide-react';
 import { usePulseCheckUserContext } from '@/context/PulseCheckUserContext';
+import ProviderProfileModal from '@/components/pulsecheck/ProviderProfileModal';
 
 // Purple color palette
 const COLORS = {
@@ -143,6 +147,11 @@ export default function PulseCheckReportsPage() {
   // Voice memo modal state
   const [showVoiceMemoModal, setShowVoiceMemoModal] = useState(false);
 
+  // Provider Profile & Share state
+  const [selectedProvider, setSelectedProvider] = useState<ProviderStats | null>(null);
+  const [providerShareMenu, setProviderShareMenu] = useState<{ id: string, name: string, x: number, y: number } | null>(null);
+  const shareMenuRef = useRef<HTMLDivElement>(null);
+
   // Auto-login if email in URL
   useEffect(() => {
     const emailParam = searchParams.get('email');
@@ -192,6 +201,48 @@ export default function PulseCheckReportsPage() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showSharePopup]);
+
+  // Close provider share menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (shareMenuRef.current && !shareMenuRef.current.contains(event.target as Node)) {
+        setProviderShareMenu(null);
+      }
+    };
+
+    if (providerShareMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [providerShareMenu]);
+
+  const handleProviderShareClick = (e: React.MouseEvent, provider: ProviderStats) => {
+    e.stopPropagation();
+    // Position relative to the button
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setProviderShareMenu({
+      id: provider.id,
+      name: provider.name,
+      x: rect.left - 180, // Offset to align right-ish or center
+      y: rect.bottom + 5
+    });
+  };
+
+  const handleProviderAction = (action: 'email' | 'presentation') => {
+    if (!providerShareMenu) return;
+    
+    if (action === 'email') {
+      const subject = encodeURIComponent(`Provider Profile: ${providerShareMenu.name}`);
+      const body = encodeURIComponent(`Please find attached the provider profile for ${providerShareMenu.name}.`);
+      window.location.href = `mailto:?subject=${subject}&body=${body}`;
+    } else {
+      // Mock presentation generation
+      alert(`Generating presentation for ${providerShareMenu.name}...`);
+    }
+    setProviderShareMenu(null);
+  };
 
   const emailParam = user?.email ? `?email=${encodeURIComponent(user.email)}` : '';
 
@@ -595,6 +646,7 @@ export default function PulseCheckReportsPage() {
                   <th className="px-6 py-3 font-medium text-center">PQ</th>
                   <th className="px-6 py-3 font-medium text-center">IQ</th>
                   <th className="px-6 py-3 font-medium text-center">Overall</th>
+                  <th className="px-6 py-3 font-medium text-center w-24">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y" style={{ borderColor: '#F1F5F9' }}>
@@ -703,6 +755,27 @@ export default function PulseCheckReportsPage() {
                           <td className={`px-6 py-3 text-center text-sm font-medium ${getScoreColor(provider.latestRating?.overall)}`}>
                             {formatScore(provider.latestRating?.overall)}
                           </td>
+                          <td className="px-6 py-3 text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedProvider(provider);
+                                }}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition-colors"
+                                title="View Profile"
+                              >
+                                <User className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={(e) => handleProviderShareClick(e, provider)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition-colors"
+                                title="Share Profile"
+                              >
+                                <Share2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
                         </tr>
                       ))
                     )}
@@ -752,6 +825,47 @@ export default function PulseCheckReportsPage() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Provider Profile Modal */}
+      {selectedProvider && (
+        <ProviderProfileModal
+          provider={selectedProvider}
+          onClose={() => setSelectedProvider(null)}
+        />
+      )}
+
+      {/* Provider Share Menu */}
+      {providerShareMenu && (
+        <div 
+          ref={shareMenuRef}
+          className="fixed bg-white rounded-xl shadow-lg border z-50 w-56 overflow-hidden"
+          style={{ 
+            left: providerShareMenu.x, 
+            top: providerShareMenu.y,
+            borderColor: COLORS.light 
+          }}
+        >
+          <div className="p-3 border-b bg-slate-50" style={{ borderColor: COLORS.lightest }}>
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Share Profile</p>
+          </div>
+          <div className="p-1">
+            <button
+              onClick={() => handleProviderAction('email')}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 text-left transition-colors"
+            >
+              <Mail className="w-4 h-4 text-slate-400" />
+              <span className="text-sm font-medium text-slate-700">Email Profile</span>
+            </button>
+            <button
+              onClick={() => handleProviderAction('presentation')}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-50 text-left transition-colors"
+            >
+              <Presentation className="w-4 h-4 text-slate-400" />
+              <span className="text-sm font-medium text-slate-700">Generate Presentation</span>
+            </button>
           </div>
         </div>
       )}

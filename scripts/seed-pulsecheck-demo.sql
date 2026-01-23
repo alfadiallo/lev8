@@ -15,10 +15,10 @@ DELETE FROM pulsecheck_sites;
 DELETE FROM pulsecheck_healthsystems;
 
 -- =====================================================
--- HEALTHSYSTEMS
+-- HEALTHSYSTEMS (with frequency configuration)
 -- =====================================================
-INSERT INTO pulsecheck_healthsystems (id, name, abbreviation, address, is_active) VALUES
-  ('00000000-0000-0000-0000-000000000001', 'Metro Healthsystem', 'MHS', '123 Medical Center Dr, Boston, MA', true);
+INSERT INTO pulsecheck_healthsystems (id, name, abbreviation, address, is_active, default_frequency, default_cycle_start_month) VALUES
+  ('00000000-0000-0000-0000-000000000001', 'Metro Healthsystem', 'MHS', '123 Medical Center Dr, Boston, MA', true, 'quarterly', 1);
 
 -- =====================================================
 -- SITES (All under Metro Healthsystem)
@@ -82,38 +82,184 @@ INSERT INTO pulsecheck_providers (id, name, email, provider_type, credential, pr
   ('44444444-0000-0000-0000-000000000016', 'Samantha Brown', 'samantha.brown@metrohealth.com', 'apc', 'PA-C', '22222222-0000-0000-0000-000000000005', '33333333-0000-0000-0000-000000000008', '2023-05-01', true);
 
 -- =====================================================
--- RATING CYCLE
+-- RATING CYCLES (Historical + Current)
 -- =====================================================
 INSERT INTO pulsecheck_cycles (id, name, description, start_date, due_date, reminder_cadence, status, created_by) VALUES
+  -- Historical cycles (completed)
+  ('55555555-0000-0000-0000-000000000002', 'Q2 2025 Pulse Check', 'Second quarter 2025 evaluation', '2025-04-01', '2025-06-30', 'weekly', 'completed', '33333333-0000-0000-0000-000000000001'),
+  ('55555555-0000-0000-0000-000000000003', 'Q3 2025 Pulse Check', 'Third quarter 2025 evaluation', '2025-07-01', '2025-09-30', 'weekly', 'completed', '33333333-0000-0000-0000-000000000001'),
+  ('55555555-0000-0000-0000-000000000004', 'Q4 2025 Pulse Check', 'Fourth quarter 2025 evaluation', '2025-10-01', '2025-12-31', 'weekly', 'completed', '33333333-0000-0000-0000-000000000001'),
+  -- Current cycle (active)
   ('55555555-0000-0000-0000-000000000001', 'Q1 2026 Pulse Check', 'First quarter provider performance evaluation', '2026-01-01', '2026-03-31', 'weekly', 'active', '33333333-0000-0000-0000-000000000001');
+
+-- =====================================================
+-- HISTORICAL RATINGS (Metro General - Q2/Q3/Q4 2025)
+-- Shows trends over time for sparklines
+-- =====================================================
+
+-- James Anderson: Improving trend (3.8 → 4.2 → 4.5)
+-- Q2 2025 - Starting point (overall ~3.8)
+INSERT INTO pulsecheck_ratings (id, cycle_id, provider_id, director_id, 
+  eq_empathy_rapport, eq_communication, eq_stress_management, eq_self_awareness, eq_adaptability,
+  pq_reliability, pq_integrity, pq_teachability, pq_documentation, pq_leadership,
+  iq_clinical_management, iq_evidence_based, iq_procedural,
+  metric_los, metric_imaging_util, metric_pph,
+  notes, status, completed_at) VALUES
+  ('77777777-0000-0000-0000-000000000001', '55555555-0000-0000-0000-000000000002', '44444444-0000-0000-0000-000000000001', '33333333-0000-0000-0000-000000000004',
+   4, 3, 4, 4, 4,
+   4, 4, 4, 3, 3,
+   4, 4, 4,
+   195, 42.5, 1.65,
+   'Good start, room for growth', 'completed', '2025-06-25');
+
+-- Q3 2025 - Improving (overall ~4.2)
+INSERT INTO pulsecheck_ratings (id, cycle_id, provider_id, director_id, 
+  eq_empathy_rapport, eq_communication, eq_stress_management, eq_self_awareness, eq_adaptability,
+  pq_reliability, pq_integrity, pq_teachability, pq_documentation, pq_leadership,
+  iq_clinical_management, iq_evidence_based, iq_procedural,
+  metric_los, metric_imaging_util, metric_pph,
+  notes, status, completed_at) VALUES
+  ('77777777-0000-0000-0000-000000000002', '55555555-0000-0000-0000-000000000003', '44444444-0000-0000-0000-000000000001', '33333333-0000-0000-0000-000000000004',
+   4, 4, 4, 4, 5,
+   5, 4, 4, 4, 4,
+   5, 4, 4,
+   178, 38.2, 1.78,
+   'Significant improvement this quarter', 'completed', '2025-09-28');
+
+-- Q4 2025 - Strong (overall ~4.5)
+INSERT INTO pulsecheck_ratings (id, cycle_id, provider_id, director_id, 
+  eq_empathy_rapport, eq_communication, eq_stress_management, eq_self_awareness, eq_adaptability,
+  pq_reliability, pq_integrity, pq_teachability, pq_documentation, pq_leadership,
+  iq_clinical_management, iq_evidence_based, iq_procedural,
+  metric_los, metric_imaging_util, metric_pph,
+  notes, status, completed_at) VALUES
+  ('77777777-0000-0000-0000-000000000003', '55555555-0000-0000-0000-000000000004', '44444444-0000-0000-0000-000000000001', '33333333-0000-0000-0000-000000000004',
+   5, 4, 5, 4, 5,
+   5, 5, 4, 4, 4,
+   5, 5, 5,
+   165, 35.8, 1.92,
+   'Excellent quarter, ready for leadership role', 'completed', '2025-12-20');
+
+-- Lisa Chen: Stable high performer (4.4 → 4.5 → 4.5)
+-- Q2 2025
+INSERT INTO pulsecheck_ratings (id, cycle_id, provider_id, director_id, 
+  eq_empathy_rapport, eq_communication, eq_stress_management, eq_self_awareness, eq_adaptability,
+  pq_reliability, pq_integrity, pq_teachability, pq_documentation, pq_leadership,
+  iq_clinical_management, iq_evidence_based, iq_procedural,
+  metric_los, metric_imaging_util, metric_pph,
+  notes, status, completed_at) VALUES
+  ('77777777-0000-0000-0000-000000000004', '55555555-0000-0000-0000-000000000002', '44444444-0000-0000-0000-000000000002', '33333333-0000-0000-0000-000000000004',
+   4, 5, 5, 4, 4,
+   4, 5, 4, 5, 4,
+   4, 5, 4,
+   152, 41.0, 2.05,
+   'Consistently excellent', 'completed', '2025-06-22');
+
+-- Q3 2025
+INSERT INTO pulsecheck_ratings (id, cycle_id, provider_id, director_id, 
+  eq_empathy_rapport, eq_communication, eq_stress_management, eq_self_awareness, eq_adaptability,
+  pq_reliability, pq_integrity, pq_teachability, pq_documentation, pq_leadership,
+  iq_clinical_management, iq_evidence_based, iq_procedural,
+  metric_los, metric_imaging_util, metric_pph,
+  notes, status, completed_at) VALUES
+  ('77777777-0000-0000-0000-000000000005', '55555555-0000-0000-0000-000000000003', '44444444-0000-0000-0000-000000000002', '33333333-0000-0000-0000-000000000004',
+   4, 5, 5, 4, 5,
+   4, 5, 5, 5, 4,
+   5, 5, 4,
+   148, 39.5, 2.12,
+   'Maintains high standards', 'completed', '2025-09-25');
+
+-- Q4 2025
+INSERT INTO pulsecheck_ratings (id, cycle_id, provider_id, director_id, 
+  eq_empathy_rapport, eq_communication, eq_stress_management, eq_self_awareness, eq_adaptability,
+  pq_reliability, pq_integrity, pq_teachability, pq_documentation, pq_leadership,
+  iq_clinical_management, iq_evidence_based, iq_procedural,
+  metric_los, metric_imaging_util, metric_pph,
+  notes, status, completed_at) VALUES
+  ('77777777-0000-0000-0000-000000000006', '55555555-0000-0000-0000-000000000004', '44444444-0000-0000-0000-000000000002', '33333333-0000-0000-0000-000000000004',
+   4, 5, 5, 5, 4,
+   5, 5, 5, 5, 4,
+   4, 5, 5,
+   145, 38.0, 2.18,
+   'Role model for the department', 'completed', '2025-12-18');
+
+-- Marcus Williams: Declining trend (4.0 → 3.9 → 3.8)
+-- Q2 2025
+INSERT INTO pulsecheck_ratings (id, cycle_id, provider_id, director_id, 
+  eq_empathy_rapport, eq_communication, eq_stress_management, eq_self_awareness, eq_adaptability,
+  pq_reliability, pq_integrity, pq_teachability, pq_documentation, pq_leadership,
+  iq_clinical_management, iq_evidence_based, iq_procedural,
+  metric_los, metric_imaging_util, metric_pph,
+  notes, status, completed_at) VALUES
+  ('77777777-0000-0000-0000-000000000007', '55555555-0000-0000-0000-000000000002', '44444444-0000-0000-0000-000000000003', '33333333-0000-0000-0000-000000000004',
+   4, 4, 4, 4, 4,
+   4, 4, 4, 4, 4,
+   4, 4, 4,
+   188, 48.5, 1.55,
+   'Solid performance', 'completed', '2025-06-28');
+
+-- Q3 2025
+INSERT INTO pulsecheck_ratings (id, cycle_id, provider_id, director_id, 
+  eq_empathy_rapport, eq_communication, eq_stress_management, eq_self_awareness, eq_adaptability,
+  pq_reliability, pq_integrity, pq_teachability, pq_documentation, pq_leadership,
+  iq_clinical_management, iq_evidence_based, iq_procedural,
+  metric_los, metric_imaging_util, metric_pph,
+  notes, status, completed_at) VALUES
+  ('77777777-0000-0000-0000-000000000008', '55555555-0000-0000-0000-000000000003', '44444444-0000-0000-0000-000000000003', '33333333-0000-0000-0000-000000000004',
+   4, 4, 3, 4, 4,
+   4, 4, 4, 3, 4,
+   4, 4, 4,
+   195, 52.0, 1.48,
+   'Some concerns about documentation and stress management', 'completed', '2025-09-30');
+
+-- Q4 2025
+INSERT INTO pulsecheck_ratings (id, cycle_id, provider_id, director_id, 
+  eq_empathy_rapport, eq_communication, eq_stress_management, eq_self_awareness, eq_adaptability,
+  pq_reliability, pq_integrity, pq_teachability, pq_documentation, pq_leadership,
+  iq_clinical_management, iq_evidence_based, iq_procedural,
+  metric_los, metric_imaging_util, metric_pph,
+  notes, status, completed_at) VALUES
+  ('77777777-0000-0000-0000-000000000009', '55555555-0000-0000-0000-000000000004', '44444444-0000-0000-0000-000000000003', '33333333-0000-0000-0000-000000000004',
+   4, 4, 3, 4, 4,
+   4, 4, 4, 3, 3,
+   4, 3, 4,
+   205, 55.2, 1.42,
+   'Need to address declining metrics and documentation', 'completed', '2025-12-22');
 
 -- =====================================================
 -- SAMPLE RATINGS (Mix of completed and pending)
 -- =====================================================
 
--- Dr. Wilson's (new medical director) completed ratings (3 of 5)
+-- Dr. Wilson's (new medical director) completed ratings (3 of 5) - Q1 2026
 INSERT INTO pulsecheck_ratings (id, cycle_id, provider_id, director_id, 
   eq_empathy_rapport, eq_communication, eq_stress_management, eq_self_awareness, eq_adaptability,
   pq_reliability, pq_integrity, pq_teachability, pq_documentation, pq_leadership,
   iq_clinical_management, iq_evidence_based, iq_procedural,
+  metric_los, metric_imaging_util, metric_pph,
   notes, strengths, areas_for_improvement, status, completed_at) VALUES
   
+  -- James Anderson Q1 2026 (continuing improvement trend: 4.5)
   ('66666666-0000-0000-0000-000000000001', '55555555-0000-0000-0000-000000000001', '44444444-0000-0000-0000-000000000001', '33333333-0000-0000-0000-000000000004',
    5, 4, 4, 4, 5,
    5, 5, 4, 4, 4,
    5, 4, 5,
+   158, 33.5, 2.01,
    'Strong performer, excellent team player', 'Exceptional clinical skills and patient rapport', 'Could improve documentation timeliness', 'completed', NOW() - INTERVAL '5 days'),
    
+  -- Lisa Chen Q1 2026 (stable high: 4.5)
   ('66666666-0000-0000-0000-000000000002', '55555555-0000-0000-0000-000000000001', '44444444-0000-0000-0000-000000000002', '33333333-0000-0000-0000-000000000004',
    4, 5, 5, 4, 4,
    4, 5, 5, 5, 4,
    4, 5, 4,
+   142, 36.5, 2.22,
    'Excellent physician with strong evidence-based approach', 'Thorough documentation, stays current with literature', 'Continue developing leadership skills', 'completed', NOW() - INTERVAL '3 days'),
    
+  -- Marcus Williams Q1 2026 (continuing decline: 3.8)
   ('66666666-0000-0000-0000-000000000003', '55555555-0000-0000-0000-000000000001', '44444444-0000-0000-0000-000000000003', '33333333-0000-0000-0000-000000000004',
    4, 4, 3, 4, 4,
    4, 4, 5, 3, 3,
    4, 3, 4,
+   212, 58.0, 1.38,
    'Good progress in first year', 'Very teachable, eager to learn', 'Work on stress management during high volume', 'completed', NOW() - INTERVAL '1 day');
 
 -- Dr. Wilson's pending ratings (2 of 5)

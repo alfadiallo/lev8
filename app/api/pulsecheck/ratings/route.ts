@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY!;
 
 /**
  * GET /api/pulsecheck/ratings
@@ -78,6 +78,10 @@ export async function POST(request: NextRequest) {
       areas_for_improvement,
       goals,
       status,
+      // Operational metrics
+      metric_los,
+      metric_imaging_util,
+      metric_pph,
     } = body;
 
     if (!provider_id || !director_id) {
@@ -123,6 +127,10 @@ export async function POST(request: NextRequest) {
       strengths,
       areas_for_improvement,
       goals,
+      // Operational metrics
+      metric_los,
+      metric_imaging_util,
+      metric_pph,
       status: status || 'in_progress',
       started_at: existing ? undefined : new Date().toISOString(),
       completed_at: status === 'completed' ? new Date().toISOString() : null,

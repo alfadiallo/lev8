@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Save, User, CheckCircle, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Save, CheckCircle, AlertCircle, Clock, Activity, Users } from 'lucide-react';
 import RatingSliders, { RatingValues } from '@/components/pulsecheck/RatingSliders';
 import { usePulseCheckUserContext } from '@/context/PulseCheckUserContext';
 
@@ -58,6 +58,12 @@ export default function PulseCheckRatePage() {
   const [strengths, setStrengths] = useState('');
   const [areasForImprovement, setAreasForImprovement] = useState('');
   const [goals, setGoals] = useState('');
+  
+  // Operational metrics
+  const [metricLos, setMetricLos] = useState<number | null>(null);
+  const [metricImagingUtil, setMetricImagingUtil] = useState<number | null>(null);
+  const [metricPph, setMetricPph] = useState<number | null>(null);
+  
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
@@ -106,6 +112,10 @@ export default function PulseCheckRatePage() {
           setStrengths(data.existingRating.strengths || '');
           setAreasForImprovement(data.existingRating.areas_for_improvement || '');
           setGoals(data.existingRating.goals || '');
+          // Load operational metrics
+          setMetricLos(data.existingRating.metric_los ?? null);
+          setMetricImagingUtil(data.existingRating.metric_imaging_util ?? null);
+          setMetricPph(data.existingRating.metric_pph ?? null);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load provider');
@@ -146,6 +156,9 @@ export default function PulseCheckRatePage() {
           strengths,
           areas_for_improvement: areasForImprovement,
           goals,
+          metric_los: metricLos,
+          metric_imaging_util: metricImagingUtil,
+          metric_pph: metricPph,
           status: 'completed',
         }),
       });
@@ -185,6 +198,9 @@ export default function PulseCheckRatePage() {
           strengths,
           areas_for_improvement: areasForImprovement,
           goals,
+          metric_los: metricLos,
+          metric_imaging_util: metricImagingUtil,
+          metric_pph: metricPph,
           status: 'in_progress',
         }),
       });
@@ -274,38 +290,42 @@ export default function PulseCheckRatePage() {
         </p>
       </div>
 
-      {/* Provider Info */}
+      {/* Provider Info - Sticky Header */}
       {provider && (
         <div 
-          className="bg-white rounded-xl border p-6 mb-6"
+          className="bg-white rounded-xl border p-4 mb-6 sticky top-0 z-10 shadow-sm"
           style={{ borderColor: COLORS.light }}
         >
           <div className="flex items-center gap-4">
             <div 
-              className="w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-bold"
+              className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-bold flex-shrink-0"
               style={{ backgroundColor: COLORS.dark }}
             >
               {provider.name.charAt(0)}
             </div>
-            <div className="flex-1">
-              <h2 className="text-xl font-semibold text-slate-900">
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg font-semibold text-slate-900 truncate">
                 {provider.name}
                 {provider.credential && (
                   <span className="text-slate-500 font-normal">, {provider.credential}</span>
                 )}
               </h2>
-              <p className="text-slate-600">{provider.email}</p>
-              <span 
-                className="inline-block mt-1 px-2 py-0.5 rounded text-xs font-medium"
-                style={{ backgroundColor: COLORS.lightest, color: COLORS.darker }}
-              >
-                {provider.provider_type === 'physician' ? 'Physician' : 'APC'}
-              </span>
+              <div className="flex items-center gap-2">
+                <span 
+                  className="px-2 py-0.5 rounded text-xs font-medium"
+                  style={{ backgroundColor: COLORS.lightest, color: COLORS.darker }}
+                >
+                  {provider.provider_type === 'physician' ? 'Physician' : 'APC'}
+                </span>
+                <span className="text-sm text-slate-500">{provider.email}</span>
+              </div>
             </div>
-            <div className="text-right">
-              <div className="text-sm text-slate-500">Completion</div>
-              <div className="text-2xl font-bold" style={{ color: COLORS.dark }}>
-                {completionPercent}%
+            <div className="text-right flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="text-sm text-slate-500">Completion</div>
+                <div className="text-xl font-bold" style={{ color: COLORS.dark }}>
+                  {completionPercent}%
+                </div>
               </div>
               <div className="w-24 h-2 bg-slate-100 rounded-full overflow-hidden mt-1">
                 <div 
@@ -340,7 +360,71 @@ export default function PulseCheckRatePage() {
         </div>
       )}
 
-      {/* Rating Sliders */}
+      {/* Operational Metrics Section - ABOVE EQ/PQ/IQ */}
+      <div 
+        className="mb-4 bg-white rounded-xl border p-4"
+        style={{ borderColor: COLORS.light }}
+      >
+        <h3 className="font-semibold text-slate-900 mb-3 text-sm">Operational Metrics</h3>
+        <div className="grid grid-cols-3 gap-4">
+          {/* LOS */}
+          <div>
+            <label className="flex items-center gap-1.5 text-xs font-medium text-slate-600 mb-1">
+              <Clock className="w-3.5 h-3.5" />
+              LOS (minutes)
+            </label>
+            <input
+              type="number"
+              value={metricLos ?? ''}
+              onChange={(e) => setMetricLos(e.target.value ? parseInt(e.target.value) : null)}
+              placeholder="e.g., 185"
+              className="w-full px-3 py-2 border rounded-lg text-sm"
+              style={{ borderColor: COLORS.light }}
+              min="0"
+              step="1"
+            />
+          </div>
+          
+          {/* Imaging Utilization */}
+          <div>
+            <label className="flex items-center gap-1.5 text-xs font-medium text-slate-600 mb-1">
+              <Activity className="w-3.5 h-3.5" />
+              Imaging Utilization (%)
+            </label>
+            <input
+              type="number"
+              value={metricImagingUtil ?? ''}
+              onChange={(e) => setMetricImagingUtil(e.target.value ? parseFloat(e.target.value) : null)}
+              placeholder="e.g., 45.5"
+              className="w-full px-3 py-2 border rounded-lg text-sm"
+              style={{ borderColor: COLORS.light }}
+              min="0"
+              max="100"
+              step="0.01"
+            />
+          </div>
+          
+          {/* PPH */}
+          <div>
+            <label className="flex items-center gap-1.5 text-xs font-medium text-slate-600 mb-1">
+              <Users className="w-3.5 h-3.5" />
+              PPH (patients/hr)
+            </label>
+            <input
+              type="number"
+              value={metricPph ?? ''}
+              onChange={(e) => setMetricPph(e.target.value ? parseFloat(e.target.value) : null)}
+              placeholder="e.g., 1.85"
+              className="w-full px-3 py-2 border rounded-lg text-sm"
+              style={{ borderColor: COLORS.light }}
+              min="0"
+              step="0.01"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Rating Sliders (EQ/PQ/IQ) */}
       <RatingSliders 
         values={ratings} 
         onChange={setRatings}

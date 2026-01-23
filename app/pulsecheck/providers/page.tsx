@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Search, User, CheckCircle, Clock, Filter, Stethoscope, UserCog } from 'lucide-react';
+import { ArrowLeft, Search, User, CheckCircle, Clock, Filter, Stethoscope, UserCog, ChevronDown, ChevronUp } from 'lucide-react';
 import { usePulseCheckUserContext } from '@/context/PulseCheckUserContext';
+import { MiniSparkline } from '@/components/pulsecheck/Sparkline';
 
 // Purple color palette
 const COLORS = {
@@ -43,6 +44,20 @@ interface Rating {
   status: string;
   overall_total: number | null;
   completed_at: string | null;
+  eq_total?: number | null;
+  pq_total?: number | null;
+  iq_total?: number | null;
+  metric_los?: number | null;
+  metric_imaging_util?: number | null;
+  metric_pph?: number | null;
+}
+
+interface RatingHistory {
+  provider_id: string;
+  scores: number[];
+  eq_scores: number[];
+  pq_scores: number[];
+  iq_scores: number[];
 }
 
 export default function PulseCheckProvidersPage() {
@@ -52,8 +67,10 @@ export default function PulseCheckProvidersPage() {
 
   const [providers, setProviders] = useState<Provider[]>([]);
   const [ratings, setRatings] = useState<Rating[]>([]);
+  const [ratingHistory, setRatingHistory] = useState<RatingHistory[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'pending' | 'completed'>('all');
+  const [expandedProviderId, setExpandedProviderId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -74,16 +91,19 @@ export default function PulseCheckProvidersPage() {
       }
 
       try {
-        const [providersRes, ratingsRes] = await Promise.all([
+        const [providersRes, ratingsRes, historyRes] = await Promise.all([
           fetch(`/api/pulsecheck/providers?director_id=${user.directorId}`),
-          fetch(`/api/pulsecheck/ratings?director_id=${user.directorId}`),
+          fetch(`/api/pulsecheck/ratings?director_id=${user.directorId}&include_scores=true`),
+          fetch(`/api/pulsecheck/ratings/history?director_id=${user.directorId}`),
         ]);
 
         const providersData = await providersRes.json();
         const ratingsData = await ratingsRes.json();
+        const historyData = await historyRes.json();
 
         setProviders(providersData.providers || []);
         setRatings(ratingsData.ratings || []);
+        setRatingHistory(historyData.history || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load providers');
       } finally {
@@ -136,75 +156,184 @@ export default function PulseCheckProvidersPage() {
   }).length;
   const completedCount = providers.length - pendingCount;
 
-  // Provider row component
+  // Provider row component with accordion
   const ProviderRow = ({ provider }: { provider: Provider }) => {
     const rating = ratings.find(r => r.provider_id === provider.id);
     const isCompleted = rating?.status === 'completed';
     const isPending = rating && !isCompleted;
+    const isExpanded = expandedProviderId === provider.id;
+    const history = ratingHistory.find(h => h.provider_id === provider.id);
+
+    const toggleExpanded = () => {
+      setExpandedProviderId(isExpanded ? null : provider.id);
+    };
 
     return (
-      <div className="px-6 py-4 hover:bg-slate-50">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div 
-              className="w-12 h-12 rounded-full flex items-center justify-center text-white font-medium"
-              style={{ backgroundColor: COLORS.medium }}
-            >
-              {provider.name.charAt(0)}
+      <div className={`transition-colors ${isExpanded ? 'bg-slate-50' : 'hover:bg-slate-50'}`}>
+        {/* Main row */}
+        <div className="px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              {/* Expand button */}
+              {isCompleted && (
+                <button 
+                  onClick={toggleExpanded}
+                  className="p-1 rounded hover:bg-slate-200 transition-colors"
+                >
+                  {isExpanded ? (
+                    <ChevronUp className="w-5 h-5 text-slate-400" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-slate-400" />
+                  )}
+                </button>
+              )}
+              <div 
+                className="w-12 h-12 rounded-full flex items-center justify-center text-white font-medium"
+                style={{ backgroundColor: COLORS.medium }}
+              >
+                {provider.name.charAt(0)}
+              </div>
+              <div>
+                <p className="font-medium text-slate-900">
+                  {provider.name}
+                  {provider.credential && (
+                    <span className="text-slate-500 font-normal">, {provider.credential}</span>
+                  )}
+                </p>
+                <p className="text-sm text-slate-500">{provider.email}</p>
+              </div>
             </div>
-            <div>
-              <p className="font-medium text-slate-900">
-                {provider.name}
-                {provider.credential && (
-                  <span className="text-slate-500 font-normal">, {provider.credential}</span>
-                )}
-              </p>
-              <p className="text-sm text-slate-500">{provider.email}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            {/* Status Badge */}
-            {isCompleted ? (
-              <div className="flex items-center gap-2 text-green-600">
-                <CheckCircle className="w-4 h-4" />
-                <span className="text-sm font-medium">Completed</span>
-              </div>
-            ) : isPending ? (
-              <div className="flex items-center gap-2 text-amber-600">
-                <Clock className="w-4 h-4" />
-                <span className="text-sm font-medium">In Progress</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 text-slate-400">
-                <Clock className="w-4 h-4" />
-                <span className="text-sm font-medium">Not Started</span>
-              </div>
-            )}
+            <div className="flex items-center gap-4">
+              {/* Sparkline trend (if has history) */}
+              {isCompleted && history && history.scores.length > 1 && (
+                <MiniSparkline data={history.scores} />
+              )}
 
-            {/* Score */}
-            {isCompleted && rating?.overall_total && (
-              <div className="text-right min-w-[60px]">
-                <div className="font-bold text-lg" style={{ color: COLORS.dark }}>
-                  {rating.overall_total.toFixed(1)}
+              {/* Status Badge */}
+              {isCompleted ? (
+                <div className="flex items-center gap-2 text-green-600">
+                  <CheckCircle className="w-4 h-4" />
+                  <span className="text-sm font-medium">Completed</span>
                 </div>
-                <div className="text-xs text-slate-500">Score</div>
-              </div>
-            )}
+              ) : isPending ? (
+                <div className="flex items-center gap-2 text-amber-600">
+                  <Clock className="w-4 h-4" />
+                  <span className="text-sm font-medium">In Progress</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-slate-400">
+                  <Clock className="w-4 h-4" />
+                  <span className="text-sm font-medium">Not Started</span>
+                </div>
+              )}
 
-            {/* Action Button */}
-            <Link
-              href={`/pulsecheck/rate${emailParam}&provider=${provider.id}`}
-              className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                !isCompleted ? 'text-white' : 'text-slate-700'
-              }`}
-              style={!isCompleted 
-                ? { backgroundColor: COLORS.dark }
-                : { backgroundColor: COLORS.lightest }}
-            >
-              {isPending ? 'Continue' : isCompleted ? 'View/Edit' : 'Start Rating'}
-            </Link>
+              {/* Score */}
+              {isCompleted && rating?.overall_total && (
+                <div className="text-right min-w-[60px]">
+                  <div className="font-bold text-lg" style={{ color: COLORS.dark }}>
+                    {rating.overall_total.toFixed(1)}
+                  </div>
+                  <div className="text-xs text-slate-500">Score</div>
+                </div>
+              )}
+
+              {/* Action Button */}
+              <Link
+                href={`/pulsecheck/rate${emailParam}&provider=${provider.id}`}
+                className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                  !isCompleted ? 'text-white' : 'text-slate-700'
+                }`}
+                style={!isCompleted 
+                  ? { backgroundColor: COLORS.dark }
+                  : { backgroundColor: COLORS.lightest }}
+              >
+                {isPending ? 'Continue' : isCompleted ? 'View/Edit' : 'Start Rating'}
+              </Link>
+            </div>
           </div>
         </div>
+
+        {/* Accordion expanded content */}
+        {isExpanded && isCompleted && rating && (
+          <div className="px-6 pb-4 pt-0 ml-[68px]">
+            <div 
+              className="rounded-lg p-4 border"
+              style={{ borderColor: COLORS.light, backgroundColor: 'white' }}
+            >
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {/* EQ/PQ/IQ Scores */}
+                <div>
+                  <p className="text-xs text-slate-500 mb-1">EQ Score</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-semibold" style={{ color: COLORS.dark }}>
+                      {rating.eq_total?.toFixed(1) || '-'}
+                    </span>
+                    {history && history.eq_scores.length > 1 && (
+                      <MiniSparkline data={history.eq_scores} />
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 mb-1">PQ Score</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-semibold" style={{ color: COLORS.dark }}>
+                      {rating.pq_total?.toFixed(1) || '-'}
+                    </span>
+                    {history && history.pq_scores.length > 1 && (
+                      <MiniSparkline data={history.pq_scores} />
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 mb-1">IQ Score</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-semibold" style={{ color: COLORS.dark }}>
+                      {rating.iq_total?.toFixed(1) || '-'}
+                    </span>
+                    {history && history.iq_scores.length > 1 && (
+                      <MiniSparkline data={history.iq_scores} />
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 mb-1">Last Updated</p>
+                  <span className="text-sm text-slate-700">
+                    {rating.completed_at 
+                      ? new Date(rating.completed_at).toLocaleDateString()
+                      : '-'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Operational Metrics */}
+              {(rating.metric_los || rating.metric_imaging_util || rating.metric_pph) && (
+                <div className="mt-4 pt-4 border-t" style={{ borderColor: COLORS.lightest }}>
+                  <p className="text-xs font-medium text-slate-500 mb-2">Operational Metrics</p>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-xs text-slate-400">LOS (min)</p>
+                      <span className="text-sm font-medium text-slate-700">
+                        {rating.metric_los || '-'}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400">Imaging Util</p>
+                      <span className="text-sm font-medium text-slate-700">
+                        {rating.metric_imaging_util ? `${rating.metric_imaging_util}%` : '-'}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400">PPH</p>
+                      <span className="text-sm font-medium text-slate-700">
+                        {rating.metric_pph?.toFixed(2) || '-'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     );
   };

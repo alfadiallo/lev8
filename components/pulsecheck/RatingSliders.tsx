@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Heart, Award, Brain, Info, ChevronDown, ChevronUp } from 'lucide-react';
+import { Heart, Award, Brain, Info, ChevronDown, ChevronUp, X } from 'lucide-react';
 
 // Purple color palette for Pulse Check
 const COLORS = {
@@ -17,12 +17,12 @@ const COLORS = {
 };
 
 // Rating scale labels
-const RATING_LABELS: Record<number, { label: string; description: string }> = {
-  1: { label: 'Unsatisfactory', description: 'Significant concerns' },
-  2: { label: 'Needs Improvement', description: 'Inconsistent, requires support' },
-  3: { label: 'Developing', description: 'Meets most expectations, areas for growth' },
-  4: { label: 'Proficient', description: 'Meets expectations reliably' },
-  5: { label: 'Exemplary', description: 'Consistently exceeds expectations' },
+const RATING_LABELS: Record<number, { label: string; color: string; bg: string }> = {
+  1: { label: 'Unsatisfactory', color: '#DC2626', bg: '#FEE2E2' },
+  2: { label: 'Needs Improvement', color: '#EA580C', bg: '#FFEDD5' },
+  3: { label: 'Developing', color: '#CA8A04', bg: '#FEF9C3' },
+  4: { label: 'Proficient', color: '#15803D', bg: '#D1FAE5' },
+  5: { label: 'Exemplary', color: '#166534', bg: '#DCFCE7' },
 };
 
 // Attribute definitions
@@ -33,31 +33,11 @@ const ATTRIBUTES = {
     icon: Heart,
     color: '#10B981',
     attributes: [
-      {
-        id: 'eq_empathy_rapport',
-        name: 'Empathy & Rapport',
-        description: 'Demonstrates genuine empathy and builds meaningful rapport with patients, families, and colleagues.',
-      },
-      {
-        id: 'eq_communication',
-        name: 'Communication Effectiveness',
-        description: 'Communicates clearly and adapts style appropriately to diverse patients, families, and team members.',
-      },
-      {
-        id: 'eq_stress_management',
-        name: 'Stress Management',
-        description: 'Maintains composure, focus, and clinical effectiveness during high-acuity or high-volume situations.',
-      },
-      {
-        id: 'eq_self_awareness',
-        name: 'Self-Awareness',
-        description: 'Recognizes personal strengths, limitations, and emotional triggers; seeks feedback proactively.',
-      },
-      {
-        id: 'eq_adaptability',
-        name: 'Adaptability & Growth Mindset',
-        description: 'Responds constructively to change, setbacks, or criticism; demonstrates curiosity and commitment to personal development.',
-      },
+      { id: 'eq_empathy_rapport', name: 'Empathy & Rapport', description: 'Demonstrates genuine empathy and builds meaningful rapport with patients, families, and colleagues.' },
+      { id: 'eq_communication', name: 'Communication Effectiveness', description: 'Communicates clearly and adapts style appropriately to diverse patients, families, and team members.' },
+      { id: 'eq_stress_management', name: 'Stress Management', description: 'Maintains composure, focus, and clinical effectiveness during high-acuity or high-volume situations.' },
+      { id: 'eq_self_awareness', name: 'Self-Awareness', description: 'Recognizes personal strengths, limitations, and emotional triggers; seeks feedback proactively.' },
+      { id: 'eq_adaptability', name: 'Adaptability & Growth Mindset', description: 'Responds constructively to change, setbacks, or criticism; demonstrates curiosity and commitment to personal development.' },
     ],
   },
   PQ: {
@@ -66,31 +46,11 @@ const ATTRIBUTES = {
     icon: Award,
     color: '#6366F1',
     attributes: [
-      {
-        id: 'pq_reliability',
-        name: 'Reliability & Work Ethic',
-        description: 'Consistently dependable; arrives prepared, completes responsibilities, and follows through on commitments.',
-      },
-      {
-        id: 'pq_integrity',
-        name: 'Integrity & Accountability',
-        description: 'Takes ownership of decisions and outcomes; acknowledges errors and addresses them transparently.',
-      },
-      {
-        id: 'pq_teachability',
-        name: 'Teachability & Receptiveness',
-        description: 'Accepts constructive feedback gracefully and implements changes meaningfully.',
-      },
-      {
-        id: 'pq_documentation',
-        name: 'Documentation Quality',
-        description: 'Produces accurate, thorough, and timely clinical documentation.',
-      },
-      {
-        id: 'pq_leadership',
-        name: 'Leadership & Collaboration',
-        description: 'Fosters positive team dynamics, models leadership and collaborates well with colleagues, staff and residents.',
-      },
+      { id: 'pq_reliability', name: 'Reliability & Work Ethic', description: 'Consistently dependable; arrives prepared, completes responsibilities, and follows through on commitments.' },
+      { id: 'pq_integrity', name: 'Integrity & Accountability', description: 'Takes ownership of decisions and outcomes; acknowledges errors and addresses them transparently.' },
+      { id: 'pq_teachability', name: 'Teachability & Receptiveness', description: 'Accepts constructive feedback gracefully and implements changes meaningfully.' },
+      { id: 'pq_documentation', name: 'Documentation Quality', description: 'Produces accurate, thorough, and timely clinical documentation.' },
+      { id: 'pq_leadership', name: 'Leadership & Collaboration', description: 'Fosters positive team dynamics, models leadership and collaborates well with colleagues, staff and residents.' },
     ],
   },
   IQ: {
@@ -99,21 +59,9 @@ const ATTRIBUTES = {
     icon: Brain,
     color: '#F59E0B',
     attributes: [
-      {
-        id: 'iq_clinical_management',
-        name: 'Clinical Management',
-        description: 'Applies systematic, logical diagnostic thinking towards workups and utilization.',
-      },
-      {
-        id: 'iq_evidence_based',
-        name: 'Evidence-Based Practice',
-        description: 'Integrates current literature and guidelines into clinical decision-making.',
-      },
-      {
-        id: 'iq_procedural',
-        name: 'Procedural & Technical Competence',
-        description: 'Performs clinical skills, procedures and ultrasounds proficiently.',
-      },
+      { id: 'iq_clinical_management', name: 'Clinical Management', description: 'Applies systematic, logical diagnostic thinking towards workups and utilization.' },
+      { id: 'iq_evidence_based', name: 'Evidence-Based Practice', description: 'Integrates current literature and guidelines into clinical decision-making.' },
+      { id: 'iq_procedural', name: 'Procedural & Technical Competence', description: 'Performs clinical skills, procedures and ultrasounds proficiently.' },
     ],
   },
 };
@@ -140,24 +88,6 @@ interface RatingSlidersProps {
   readOnly?: boolean;
 }
 
-function getScoreColor(score: number | null): string {
-  if (score === null) return '#E2E8F0';
-  if (score >= 5) return '#166534';
-  if (score >= 4) return '#15803D';
-  if (score >= 3) return '#CA8A04';
-  if (score >= 2) return '#EA580C';
-  return '#DC2626';
-}
-
-function getScoreBackground(score: number | null): string {
-  if (score === null) return '#F1F5F9';
-  if (score >= 5) return '#DCFCE7';
-  if (score >= 4) return '#D1FAE5';
-  if (score >= 3) return '#FEF9C3';
-  if (score >= 2) return '#FFEDD5';
-  return '#FEE2E2';
-}
-
 export default function RatingSliders({ values, onChange, readOnly = false }: RatingSlidersProps) {
   const [expandedDomains, setExpandedDomains] = useState<Record<string, boolean>>({
     EQ: true,
@@ -165,7 +95,7 @@ export default function RatingSliders({ values, onChange, readOnly = false }: Ra
     IQ: true,
   });
 
-  const handleRatingChange = (attributeId: string, value: number) => {
+  const handleRatingChange = (attributeId: string, value: number | null) => {
     onChange({
       ...values,
       [attributeId]: value,
@@ -186,8 +116,15 @@ export default function RatingSliders({ values, onChange, readOnly = false }: Ra
     return Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) / 10;
   };
 
+  const getSliderBackground = (value: number | null) => {
+    if (value === null) return '#E2E8F0';
+    const percentage = ((value - 1) / 4) * 100;
+    const colorInfo = RATING_LABELS[value];
+    return `linear-gradient(to right, ${colorInfo.color} ${percentage}%, #E2E8F0 ${percentage}%)`;
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {(Object.keys(ATTRIBUTES) as Array<'EQ' | 'PQ' | 'IQ'>).map((domainKey) => {
         const domain = ATTRIBUTES[domainKey];
         const Icon = domain.icon;
@@ -200,107 +137,104 @@ export default function RatingSliders({ values, onChange, readOnly = false }: Ra
             className="bg-white rounded-xl border overflow-hidden"
             style={{ borderColor: COLORS.light }}
           >
-            {/* Domain Header */}
+            {/* Domain Header - Compact */}
             <button
               onClick={() => toggleDomain(domainKey)}
-              className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
+              className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors"
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <div
-                  className="w-10 h-10 rounded-lg flex items-center justify-center"
+                  className="w-8 h-8 rounded-lg flex items-center justify-center"
                   style={{ backgroundColor: `${domain.color}20` }}
                 >
-                  <Icon className="w-5 h-5" style={{ color: domain.color }} />
+                  <Icon className="w-4 h-4" style={{ color: domain.color }} />
                 </div>
                 <div className="text-left">
-                  <h3 className="font-semibold text-slate-900">{domain.name}</h3>
-                  <p className="text-sm text-slate-500">{domain.description}</p>
+                  <h3 className="font-semibold text-slate-900 text-sm">{domain.name}</h3>
+                  <p className="text-xs text-slate-500">{domain.description}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 {domainAvg !== null && (
                   <div 
-                    className="px-3 py-1 rounded-full text-sm font-medium"
+                    className="px-2 py-0.5 rounded-full text-xs font-medium"
                     style={{ 
-                      backgroundColor: getScoreBackground(domainAvg),
-                      color: getScoreColor(domainAvg),
+                      backgroundColor: RATING_LABELS[Math.round(domainAvg)]?.bg || '#F1F5F9',
+                      color: RATING_LABELS[Math.round(domainAvg)]?.color || '#64748B',
                     }}
                   >
-                    Avg: {domainAvg}
+                    {domainAvg}
                   </div>
                 )}
                 {isExpanded ? (
-                  <ChevronUp className="w-5 h-5 text-slate-400" />
+                  <ChevronUp className="w-4 h-4 text-slate-400" />
                 ) : (
-                  <ChevronDown className="w-5 h-5 text-slate-400" />
+                  <ChevronDown className="w-4 h-4 text-slate-400" />
                 )}
               </div>
             </button>
 
-            {/* Attributes */}
+            {/* Attributes - Compact List */}
             {isExpanded && (
-              <div className="px-6 pb-6 space-y-4">
+              <div className="px-4 pb-4 space-y-3">
                 {domain.attributes.map((attr) => {
                   const currentValue = values[attr.id as keyof RatingValues];
                   
                   return (
-                    <div key={attr.id} className="space-y-2">
-                      {/* Attribute Header */}
+                    <div key={attr.id} className="space-y-1">
+                      {/* Attribute Header Row */}
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-slate-700">{attr.name}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-medium text-slate-700 text-sm">{attr.name}</span>
                           <div className="group relative">
-                            <Info className="w-4 h-4 text-slate-400 cursor-help" />
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-slate-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                            <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-2 bg-slate-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
                               {attr.description}
                               <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
                             </div>
                           </div>
                         </div>
-                        {currentValue !== null && (
-                          <div 
-                            className="px-2 py-0.5 rounded text-sm font-medium"
-                            style={{ 
-                              backgroundColor: getScoreBackground(currentValue),
-                              color: getScoreColor(currentValue),
-                            }}
-                          >
-                            {currentValue} - {RATING_LABELS[currentValue]?.label}
-                          </div>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {currentValue !== null && (
+                            <span 
+                              className="px-2 py-0.5 rounded text-xs font-medium"
+                              style={{ 
+                                backgroundColor: RATING_LABELS[currentValue]?.bg,
+                                color: RATING_LABELS[currentValue]?.color,
+                              }}
+                            >
+                              {currentValue} - {RATING_LABELS[currentValue]?.label}
+                            </span>
+                          )}
+                          {!readOnly && currentValue !== null && (
+                            <button
+                              onClick={() => handleRatingChange(attr.id, null)}
+                              className="p-0.5 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-600"
+                              title="Clear rating"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
                       </div>
 
-                      {/* Rating Buttons */}
-                      <div className="flex gap-2">
-                        {[1, 2, 3, 4, 5].map((rating) => {
-                          const isSelected = currentValue === rating;
-                          return (
-                            <button
-                              key={rating}
-                              onClick={() => !readOnly && handleRatingChange(attr.id, rating)}
-                              disabled={readOnly}
-                              className={`flex-1 py-3 px-2 rounded-lg border-2 transition-all ${
-                                isSelected
-                                  ? 'shadow-md transform scale-105 ring-2 ring-offset-1'
-                                  : 'hover:shadow-sm hover:scale-[1.02]'
-                              } ${readOnly ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'}`}
-                              style={{
-                                backgroundColor: getScoreBackground(rating),
-                                borderColor: isSelected ? getScoreColor(rating) : 'transparent',
-                                color: getScoreColor(rating),
-                                ...(isSelected ? { ringColor: getScoreColor(rating) } : {}),
-                              }}
-                              title={`${rating} - ${RATING_LABELS[rating].label}: ${RATING_LABELS[rating].description}`}
-                            >
-                              <div className="text-center">
-                                <div className="text-lg font-bold">{rating}</div>
-                                <div className="text-xs truncate hidden sm:block">
-                                  {RATING_LABELS[rating].label}
-                                </div>
-                              </div>
-                            </button>
-                          );
-                        })}
+                      {/* Slider Row */}
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-slate-400 w-4 text-center">1</span>
+                        <input
+                          type="range"
+                          min="1"
+                          max="5"
+                          step="1"
+                          value={currentValue || 3}
+                          onChange={(e) => !readOnly && handleRatingChange(attr.id, parseInt(e.target.value))}
+                          disabled={readOnly}
+                          className="flex-1 h-2 rounded-full appearance-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                          style={{
+                            background: currentValue !== null ? getSliderBackground(currentValue) : '#E2E8F0',
+                          }}
+                        />
+                        <span className="text-xs text-slate-400 w-4 text-center">5</span>
                       </div>
                     </div>
                   );
@@ -311,6 +245,37 @@ export default function RatingSliders({ values, onChange, readOnly = false }: Ra
         );
       })}
 
+      {/* Custom slider styles */}
+      <style jsx>{`
+        input[type='range']::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: ${COLORS.dark};
+          cursor: pointer;
+          border: 2px solid white;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        input[type='range']::-moz-range-thumb {
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: ${COLORS.dark};
+          cursor: pointer;
+          border: 2px solid white;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        input[type='range']:disabled::-webkit-slider-thumb {
+          background: #94A3B8;
+          cursor: not-allowed;
+        }
+        input[type='range']:disabled::-moz-range-thumb {
+          background: #94A3B8;
+          cursor: not-allowed;
+        }
+      `}</style>
     </div>
   );
 }

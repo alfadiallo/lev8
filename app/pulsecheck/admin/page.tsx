@@ -772,7 +772,7 @@ function SettingsPanel({
             </label>
             <select
               value={frequency}
-              onChange={(e) => setFrequency(e.target.value)}
+              onChange={(e) => setFrequency(e.target.value as 'quarterly' | 'biannually' | 'annually')}
               className="w-full px-3 py-2 border rounded-lg text-sm"
               style={{ borderColor: COLORS.light }}
             >

@@ -73,6 +73,7 @@ lev8/
 │   ├── modules/                  # Learn module UIs
 │   ├── analytics/                # SWOT, ITE, radar charts
 │   ├── forms/                    # EQ+PQ+IQ rating forms
+│   ├── pulsecheck/               # Sparkline, ProviderProfileModal, RatingSliders
 │   └── ui/                       # Shadcn/ui components
 ├── lib/                          # Shared utilities
 │   ├── ai/                       # Claude API, anonymization, SWOT prompts
@@ -112,8 +113,14 @@ lev8/
 ### Pulse Check
 - Provider performance evaluation for health systems
 - Hierarchical structure (Healthsystem → Sites → Departments)
+- **Frequency Management:** Configurable quarterly/biannually/annually per site
+- **Operational Metrics:** LOS, Imaging Utilization, PPH tracking
+- **Sparkline Trends:** Smooth bezier curve visualizations for score trends
+- **Accordion Details:** Expandable EQ/PQ/IQ breakdown in provider list
+- **Provider Profile Modal:** Current scores + historical trends view
 - Voice memo recording with transcription
 - Email reminders and reporting
+- Demo accounts for Regional Director, Medical Director, Admin Assistant
 
 ## Known Issues / TODOs
 
@@ -135,14 +142,22 @@ lev8/
 ## Recent Changes
 
 From git history:
-1. Update README with EQ·PQ·IQ product documentation
-2. Remove lev8.ai references from Pulse Check
-3. Fix Interview module - favicon, title, footer, API env var
-4. Update Supabase service key env var naming
-5. Add demo role tiles to Interview landing page with visitor tracking
-6. Allow /pulsecheck routes on eqpqiq.com domain
-7. Fix invalid focusRing CSS property
-8. Fix null check for dirRatings in reminders route
+1. **Pulse Check Frequency & Trends Enhancement**
+   - Add Settings tab to Admin panel for frequency config (quarterly/biannually/annually)
+   - Create Sparkline component with smooth bezier curves for trend visualization
+   - Add accordion details in Medical Director providers view with EQ/PQ/IQ breakdown
+   - Make provider header sticky on rating page
+   - Move operational metrics (LOS, Imaging, PPH) above EQ section
+   - Add historical seed data (Q2-Q4 2025) for Metro General providers
+   - Add Provider Profile Modal with history tab
+   - Database migrations for frequency fields and operational metrics
+2. Update README with EQ·PQ·IQ product documentation
+3. Remove lev8.ai references from Pulse Check
+4. Fix Interview module - favicon, title, footer, API env var
+5. Update Supabase service key env var naming
+6. Add demo role tiles to Interview landing page with visitor tracking
+7. Allow /pulsecheck routes on eqpqiq.com domain
+8. Fix invalid focusRing CSS property
 9. Add eqpqiq.com email support, apply rating colors
 10. Enhance interview tool: navigation, stats, normalization
 

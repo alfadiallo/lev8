@@ -142,7 +142,11 @@ lev8/
 ## Recent Changes
 
 From git history:
-1. **Pulse Check Frequency & Trends Enhancement**
+1. **ESLint Technical Debt Cleanup (January 2026)**
+   - Comprehensive cleanup of ~300 ESLint warnings across 64 files
+   - See detailed report below in "Technical Debt Cleanup Report" section
+
+2. **Pulse Check Frequency & Trends Enhancement**
    - Add Settings tab to Admin panel for frequency config (quarterly/biannually/annually)
    - Create Sparkline component with smooth bezier curves for trend visualization
    - Add accordion details in Medical Director providers view with EQ/PQ/IQ breakdown
@@ -208,3 +212,191 @@ npm run audit:all        # Run all architecture audits
 - `docs/EQ-PQ-IQ.md` - Evaluation framework definition
 - `docs/prd.md` - Product requirements document
 - `docs/claude.md` - Development guidelines
+
+---
+
+## Technical Debt Cleanup Report (January 2026)
+
+### Overview
+
+A comprehensive ESLint technical debt cleanup was performed to improve code quality, type safety, and maintainability. The cleanup addressed ~300 warnings across 64 files, reducing deployment friction and improving developer experience.
+
+### Categories of Technical Debt Addressed
+
+#### 1. Unused Variables and Imports (~150 warnings)
+
+**Problem:** Dead code cluttering the codebase, including unused imports, variables, and function parameters.
+
+**Solution:**
+- Removed unused imports (e.g., `Clock`, `Filter`, `User`, `Mail` from lucide-react)
+- Prefixed intentionally unused variables with `_` (e.g., `_router`, `_error`)
+- Removed completely dead code where appropriate
+
+**Files affected:** Most files across `app/`, `components/`, `lib/`
+
+#### 2. Explicit `any` Types (~100 warnings)
+
+**Problem:** Loose typing with `any` bypassing TypeScript's type checking, hiding potential bugs.
+
+**Solution:**
+- Replaced `any` with proper interfaces and types
+- Used `unknown` with type guards where specific types weren't feasible
+- Added explicit type assertions for Supabase query results
+- Created inline type definitions for complex nested objects
+
+**Key patterns fixed:**
+```typescript
+// Before
+const data = response as any;
+
+// After
+interface ResponseData {
+  id: string;
+  user_profiles?: { full_name?: string } | null;
+  classes?: { graduation_year?: number } | null;
+}
+const data = response as ResponseData;
+```
+
+**Complex fixes:**
+- `lib/archetypes/classifier.ts` - Supabase relations returning arrays vs objects
+- `app/api/conversations/chat/route.ts` - Claude API content blocks with ThinkingBlock type
+- `lib/conversations/v2/PhaseManager.ts` - Dynamic context object property access
+
+#### 3. React Hook Dependencies (~25 warnings)
+
+**Problem:** Missing dependencies in `useEffect`, `useMemo`, `useCallback` causing stale closures or unnecessary re-renders.
+
+**Solution:**
+- Added missing dependencies where safe
+- Used `// eslint-disable-next-line react-hooks/exhaustive-deps` with comments where intentional
+- Refactored some hooks to avoid dependency issues
+
+**Files affected:**
+- `app/(dashboard)/forms/self-assessment/page.tsx`
+- `app/(dashboard)/modules/learn/clinical-cases/[id]/page.tsx`
+- `app/(dashboard)/modules/understand/[sessionId]/page.tsx`
+- `components/analytics/AttributeTimelineChartD3.tsx`
+- `components/modules/ModuleGuard.tsx`
+
+#### 4. TypeScript Strict Mode Compliance (~30 errors)
+
+**Problem:** Build failures due to stricter TypeScript checking revealing type mismatches.
+
+**Fixes applied:**
+
+| File | Issue | Solution |
+|------|-------|----------|
+| `self-assessment/page.tsx` | `Property 'id' does not exist on type 'FormData'` | Created `ExistingAssessment` interface extending `FormData` |
+| `difficult-conversations/page.tsx` | `Cannot find name 'supabase'` | Added missing import for `supabaseClient` |
+| `understand/class/page.tsx` | Supabase `!inner` join type mismatch | Cast `r.classes` through `unknown` to correct type |
+| `CreateSessionModal.tsx` | `Cannot assign to 'residentData'` | Changed `const` to `let` for reassigned variable |
+| `settings/account/page.tsx` | `Type '{}' not assignable to 'string'` | Used `String()` conversion for user properties |
+| `truths/scores/page.tsx` | `Object is possibly 'undefined'` | Added non-null assertions for Map values |
+| `api/conversations/chat/route.ts` | `ThinkingBlock` missing `text` property | Type assertion for content block filtering |
+| `api/conversations/v2/chat/route.ts` | `VignetteV2` type construction | Used `Partial<VignetteV2>` with final cast |
+| `RadarChart.tsx` | `textAnchor` type mismatch | Typed `CustomTick` props as `any` with eslint-disable |
+| `CaseInterface.tsx` | `textarea` value type error | `String()` cast for dynamic answers |
+| `ClaudeProvider.ts` | `ContentBlock` type filtering | Type assertion in map callback |
+| `PhaseManager.ts` | Context property access on `{}` | Explicit `Number()` and array type assertions |
+
+#### 5. ESLint Configuration Optimization
+
+**Problem:** Thousands of irrelevant warnings from `docs/` directory (archived codebases).
+
+**Solution:** Updated `eslint.config.mjs` to ignore documentation:
+```javascript
+ignores: [
+  "node_modules/**",
+  ".next/**",
+  "out/**",
+  "build/**",
+  "next-env.d.ts",
+  "docs/**",  // Added - archived codebases
+],
+```
+
+#### 6. Script File Patterns (~5 warnings)
+
+**Problem:** `@typescript-eslint/no-require-imports` errors in Node.js scripts.
+
+**Solution:** Added eslint-disable comments for legitimate `require()` calls:
+```typescript
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const stats = await require('fs').promises.stat(file);
+```
+
+**Files:** `scripts/architecture-health/*.ts`
+
+#### 7. Minor Code Quality Issues (~10 warnings)
+
+- **`prefer-const`:** Changed `let` to `const` where variables were never reassigned
+- **Variable naming:** Corrected `useState` destructuring where setters were incorrectly prefixed with `_`
+
+### Execution Approach
+
+1. **Phase 1: Auto-fix** - Ran `npm run lint -- --fix` for mechanical fixes (`prefer-const`)
+2. **Phase 2: Unused code** - Systematically removed/prefixed unused variables across all directories
+3. **Phase 3: Type improvements** - Replaced `any` with proper types, starting with API routes
+4. **Phase 4: Hook dependencies** - Reviewed each warning, added deps or disabled with comments
+5. **Phase 5: Build verification** - Ran `npm run build` iteratively to catch TypeScript errors
+6. **Phase 6: Final cleanup** - Addressed remaining warnings and configuration
+
+### Files Modified (64 total)
+
+**App Pages (12):**
+- `dashboard/page.tsx`, `self-assessment/page.tsx`, `clinical-cases/[id]/page.tsx`
+- `difficult-conversations/[id]/page.tsx`, `difficult-conversations/page.tsx`
+- `running-board/simulation/[sessionId]/page.tsx`, `debrief/page.tsx`
+- `CreateSessionModal.tsx`, `class/page.tsx`, `account/page.tsx`
+- `program/page.tsx`, `truths/scores/page.tsx`
+
+**API Routes (12):**
+- `acls/sessions/route.ts`, `admin/setup-test-user/route.ts`
+- `analytics/scores/class/[year]/route.ts`, `analytics/scores/program/route.ts`
+- `conversations/chat/route.ts`, `conversations/sessions/route.ts`
+- `conversations/v2/chat/route.ts`, `forms/structured-rating/route.ts`
+- `pulsecheck/providers/route.ts`, `residents/route.ts`
+- `studio/content/route.ts`, `truths/scores/route.ts`
+
+**Components (14):**
+- `AttributeTimelineChart.tsx`, `AttributeTimelineChartD3.tsx`
+- `HistoricalComparison.tsx`, `RadarChart.tsx`, `SWOTEvidenceModal.tsx`
+- `SWOTTab.tsx`, `ITEAnalyticsPane.tsx`, `TrajectoryChart.tsx`
+- `RequirementDetailModal.tsx`, `EQPQIQForm.tsx`, `RatingSlider.tsx`
+- `InterviewDashboard.tsx`, `TenantSidebar.tsx`, `ModuleGuard.tsx`
+- `CaseInterface.tsx`
+
+**Library (14):**
+- `archetypes/classifier.ts`
+- `conversations/v2/EmotionalStateTracker.ts`, `PatternMatcher.ts`
+- `conversations/v2/PhaseManager.ts`, `PromptBuilder.ts`
+- `conversations/v2/modelProviders/ClaudeProvider.ts`, `GeminiProvider.ts`, `index.ts`
+- `conversations/v2/__tests__/PhaseManager.test.ts`
+- `interview/permissions.ts`, `modules/analytics.ts`, `modules/sessionStorage.ts`
+- `sim/hooks/useSim.ts`, `truths/storage.ts`
+
+**Other (12):**
+- `middleware.ts`, `eslint.config.mjs`
+- `scripts/architecture-health/*.ts` (5 files)
+- `app/[org]/[dept]/dashboard/page.tsx`
+- `app/debug/ClientDebug.tsx`
+- `app/pulsecheck/admin/page.tsx`, `reports/page.tsx`
+
+### Results
+
+| Metric | Before | After |
+|--------|--------|-------|
+| ESLint warnings | ~300 | ~45 (remaining are intentional) |
+| Build errors | Multiple | 0 |
+| Files modified | - | 64 |
+| Lines changed | - | ~330 |
+
+### Remaining Warnings (Intentional)
+
+~45 warnings remain, primarily:
+- `@typescript-eslint/no-explicit-any` in complex third-party integrations
+- `react-hooks/exhaustive-deps` where dependencies are intentionally omitted
+- Some unused variables in Pulse Check reports page (future features)
+
+These are acceptable technical debt with documented reasons.

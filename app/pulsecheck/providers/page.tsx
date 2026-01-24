@@ -127,10 +127,10 @@ export default function PulseCheckProvidersPage() {
           const totalValues = completedRatings.map((r: Rating) => r.metric_imaging_util!);
           
           setDeptAverages({
-            avg_ct: ctValues.length > 0 ? ctValues.reduce((a, b) => a + b, 0) / ctValues.length : null,
-            avg_us: usValues.length > 0 ? usValues.reduce((a, b) => a + b, 0) / usValues.length : null,
-            avg_mri: mriValues.length > 0 ? mriValues.reduce((a, b) => a + b, 0) / mriValues.length : null,
-            avg_total: totalValues.length > 0 ? totalValues.reduce((a, b) => a + b, 0) / totalValues.length : null,
+            avg_ct: ctValues.length > 0 ? ctValues.reduce((a: number, b: number) => a + b, 0) / ctValues.length : null,
+            avg_us: usValues.length > 0 ? usValues.reduce((a: number, b: number) => a + b, 0) / usValues.length : null,
+            avg_mri: mriValues.length > 0 ? mriValues.reduce((a: number, b: number) => a + b, 0) / mriValues.length : null,
+            avg_total: totalValues.length > 0 ? totalValues.reduce((a: number, b: number) => a + b, 0) / totalValues.length : null,
           });
         }
       } catch (err) {

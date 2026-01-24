@@ -37,7 +37,7 @@ interface UnderstandClientProps {
 export default function UnderstandClient({ initialSessions }: UnderstandClientProps) {
   const router = useRouter();
   const permissions = usePermissions();
-  const [sessions, setSessions] = useState<CCCSession[]>(initialSessions);
+  const [sessions, _setSessions] = useState<CCCSession[]>(initialSessions);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   const handleSessionCreated = (sessionId: string) => {

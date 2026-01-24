@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Upload, FileText } from 'lucide-react';
-import { TruthDocument, TruthCategory, CATEGORY_LABELS } from '@/lib/types/truths';
+import { Upload, FileText } from 'lucide-react';
+import { TruthDocument, CATEGORY_LABELS } from '@/lib/types/truths';
 import DocumentCard from '@/components/truths/DocumentCard';
 import UploadDocumentModal from '@/components/truths/UploadDocumentModal';
 import { useAuth } from '@/context/AuthContext';
 
 export default function TruthsPage() {
-  const { user, role } = useAuth();
+  const { role } = useAuth();
   const [documents, setDocuments] = useState<TruthDocument[]>([]);
   const [filteredDocuments, setFilteredDocuments] = useState<TruthDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -28,6 +28,7 @@ export default function TruthsPage() {
   // Filter documents when category or search changes
   useEffect(() => {
     filterDocuments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [documents, selectedCategory, searchQuery]);
   
   const fetchDocuments = async () => {

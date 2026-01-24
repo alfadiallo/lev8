@@ -18,7 +18,6 @@ import {
   RiskLevel,
   STATUS_CONFIG,
   RISK_CONFIG,
-  OWNER_LABELS,
   CATEGORY_ORDER
 } from '@/lib/types/acgme';
 import RequirementDetailModal from '@/components/expectations/RequirementDetailModal';

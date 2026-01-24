@@ -18,12 +18,12 @@ interface VoiceJournalEntry {
 
 export default function VoiceJournalPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const _auth = useAuth();
   const [showRecorder, setShowRecorder] = useState(false);
   const [entries, setEntries] = useState<VoiceJournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'transcribing' | 'summarizing' | 'done'>('idle');
-  const [currentEntryId, setCurrentEntryId] = useState<string | null>(null);
+  const [_currentEntryId, setCurrentEntryId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!showRecorder) {

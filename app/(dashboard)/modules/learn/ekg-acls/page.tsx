@@ -9,7 +9,7 @@ import ModuleGuard from '@/components/modules/ModuleGuard';
 import EducatorActions from '@/components/modules/EducatorActions';
 import { usePermissions } from '@/hooks/usePermissions';
 import { ACLSScenario } from '@/lib/types/modules';
-import { Activity, Clock } from 'lucide-react';
+import { Activity } from 'lucide-react';
 
 export default function EKGACLSPage() {
   const router = useRouter();

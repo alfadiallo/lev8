@@ -6,14 +6,11 @@ import { useRouter } from 'next/navigation';
 import {
   Plus,
   Search,
-  Filter,
   BookOpen,
   Eye,
-  Edit2,
   MoreVertical,
   Clock,
   CheckCircle,
-  AlertCircle,
   FileText
 } from 'lucide-react';
 

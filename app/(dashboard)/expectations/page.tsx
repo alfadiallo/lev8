@@ -18,7 +18,6 @@ import {
   ComplianceSummary, 
   CategoryCompliance, 
   UpcomingDeadline,
-  STATUS_CONFIG,
   PRIORITY_CONFIG 
 } from '@/lib/types/acgme';
 
@@ -55,7 +54,7 @@ export default function ExpectationsDashboard() {
     }
   };
 
-  const getStatusIcon = (status: string) => {
+  const _getStatusIcon = (status: string) => {
     switch (status) {
       case 'compliant':
         return <CheckCircle2 className="text-emerald-600" size={20} />;

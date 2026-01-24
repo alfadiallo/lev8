@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { 
   Plus, 
-  Filter, 
   Calendar,
   User,
   CheckCircle2,
@@ -15,7 +14,6 @@ import {
 import Link from 'next/link';
 import { 
   ActionItem, 
-  ActionPriority, 
   ActionStatus,
   PRIORITY_CONFIG 
 } from '@/lib/types/acgme';

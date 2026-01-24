@@ -27,7 +27,7 @@ interface CreateSessionModalProps {
 
 export default function CreateSessionModal({ onClose, onCreated }: CreateSessionModalProps) {
   const [loading, setLoading] = useState(false);
-  const [classes, setClasses] = useState<Array<{ id: string; graduation_year: number; name: string }>>([]);
+  const [_classes, setClasses] = useState<Array<{ id: string; graduation_year: number; name: string }>>([]);
   const [residents, setResidents] = useState<ResidentWithPGY[]>([]);
   const [selectedPGY, setSelectedPGY] = useState<number | 'all'>(3); // Default to PGY-3
   
@@ -58,7 +58,7 @@ export default function CreateSessionModal({ onClose, onCreated }: CreateSession
 
       // Try to fetch residents with PGY info using the view
       // Filter to only active classes (graduation_year >= current year)
-      let { data: residentData, error: viewError } = await supabaseClient
+      const { data: residentData, error: viewError } = await supabaseClient
         .from('residents_with_pgy')
         .select('id, full_name, anon_code, graduation_year, class_name, current_pgy_level')
         .gte('graduation_year', 2026) // Only current residents (not graduated)

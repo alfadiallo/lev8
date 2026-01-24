@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Search, User, CheckCircle, Clock, Filter, Stethoscope, UserCog, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, User, CheckCircle, Clock, Stethoscope, UserCog, ChevronDown, ChevronUp } from 'lucide-react';
 import { usePulseCheckUserContext } from '@/context/PulseCheckUserContext';
 import { MiniSparkline } from '@/components/pulsecheck/Sparkline';
 
@@ -21,7 +21,7 @@ const COLORS = {
 };
 
 // Role labels for display
-const ROLE_LABELS: Record<string, string> = {
+const _ROLE_LABELS: Record<string, string> = {
   regional_director: 'Regional Director',
   medical_director: 'Medical Director',
   associate_medical_director: 'Associate Medical Director',
@@ -71,9 +71,9 @@ interface RatingHistory {
 }
 
 export default function PulseCheckProvidersPage() {
-  const router = useRouter();
+  const _router = useRouter();
   const searchParams = useSearchParams();
-  const { user, isLoading: isUserLoading, isAuthenticated, login, isMedicalDirector } = usePulseCheckUserContext();
+  const { user, isLoading: isUserLoading, isAuthenticated, login, isMedicalDirector: _isMedicalDirector } = usePulseCheckUserContext();
 
   const [providers, setProviders] = useState<Provider[]>([]);
   const [ratings, setRatings] = useState<Rating[]>([]);
@@ -83,7 +83,7 @@ export default function PulseCheckProvidersPage() {
   const [filterType, setFilterType] = useState<'all' | 'pending' | 'completed'>('all');
   const [expandedProviderId, setExpandedProviderId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [_error, setError] = useState('');
 
   // Auto-login if email in URL
   useEffect(() => {
@@ -183,7 +183,7 @@ export default function PulseCheckProvidersPage() {
     const rating = ratings.find(r => r.provider_id === p.id);
     return !rating || rating.status !== 'completed';
   }).length;
-  const completedCount = providers.length - pendingCount;
+  const _completedCount = providers.length - pendingCount;
 
   // Provider row component with accordion
   const ProviderRow = ({ provider }: { provider: Provider }) => {

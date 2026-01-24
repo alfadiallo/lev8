@@ -13,7 +13,6 @@ import {
   Download,
   Search,
   Edit,
-  Trash2,
   CheckCircle,
   AlertCircle,
   X,
@@ -104,9 +103,9 @@ export default function PulseCheckAdminPage() {
   const [success, setSuccess] = useState('');
   
   // Modal state
-  const [showModal, setShowModal] = useState(false);
-  const [modalType, setModalType] = useState<'add' | 'edit'>('add');
-  const [editingItem, setEditingItem] = useState<unknown>(null);
+  const [_showModal, _setShowModal] = useState(false);
+  const [_modalType, _setModalType] = useState<'add' | 'edit'>('add');
+  const [_editingItem, _setEditingItem] = useState<unknown>(null);
 
   // Auto-login if email in URL
   useEffect(() => {

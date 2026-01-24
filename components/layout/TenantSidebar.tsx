@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { 
   ChevronRight, 
@@ -203,9 +204,11 @@ export function TenantSidebar() {
         style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}
       >
         <div className="mr-3 flex items-center justify-center">
-          <img 
+          <Image 
             src="/logo-small.png" 
             alt="Logo" 
+            width={32}
+            height={32}
             className="h-8 w-auto rounded-lg shadow-sm"
           />
         </div>

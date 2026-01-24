@@ -103,10 +103,10 @@ export async function GET(request: NextRequest) {
       comments: filteredComments,
       total_count: filteredComments.length,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Evidence API] Unexpected error:', error);
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

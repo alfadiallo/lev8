@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { 
   ChevronRight, 
@@ -101,9 +102,11 @@ export default function StudioSidebar({ creatorProfile, specialty = 'Emergency M
         style={{ borderBottom: '1px solid var(--theme-border-solid)' }}
       >
         <div className="mr-3 flex items-center justify-center">
-          <img 
+          <Image 
             src="/logo-small.png" 
             alt="Logo" 
+            width={32}
+            height={32}
             className="h-8 w-auto rounded-lg shadow-sm"
           />
         </div>

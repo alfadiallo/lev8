@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { generateDeviceFingerprint, getClientIpAddress, getClientUserAgent } from '@/lib/deviceTrust';
+import { generateDeviceFingerprint as _generateDeviceFingerprint, getClientIpAddress as _getClientIpAddress, getClientUserAgent as _getClientUserAgent } from '@/lib/deviceTrust';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY!;

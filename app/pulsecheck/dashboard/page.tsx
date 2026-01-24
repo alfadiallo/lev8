@@ -7,13 +7,10 @@ import {
   Users, 
   CheckCircle, 
   Clock, 
-  AlertCircle, 
   Activity,
   BarChart3,
   Settings,
-  ChevronRight,
-  User,
-  Calendar
+  ChevronRight
 } from 'lucide-react';
 import { usePulseCheckUserContext } from '@/context/PulseCheckUserContext';
 
@@ -77,7 +74,7 @@ export default function PulseCheckDashboardPage() {
 
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [_error, setError] = useState('');
 
   // Auto-login if email in URL
   useEffect(() => {

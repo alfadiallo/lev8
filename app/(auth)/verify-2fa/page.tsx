@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/Button';
 
 function Verify2FAContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const userId = searchParams.get('userId');
+  const _searchParams = useSearchParams();
+  const _userId = _searchParams.get('userId');
   const { verify2FA } = useAuth();
 
   const [token, setToken] = useState('');

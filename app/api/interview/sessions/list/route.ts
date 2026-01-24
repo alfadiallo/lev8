@@ -50,14 +50,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Get rating counts per session (via candidates)
-    const candidateIds = candidates?.map(c => c.session_id) || [];
+    const _candidateIds = candidates?.map(c => c.session_id) || [];
     
     const { data: candidatesWithIds, error: candidateIdsError } = await supabase
       .from('interview_candidates')
       .select('id, session_id')
       .in('session_id', sessionIds);
 
-    let ratingCounts: Record<string, number> = {};
+    const ratingCounts: Record<string, number> = {};
     
     if (!candidateIdsError && candidatesWithIds && candidatesWithIds.length > 0) {
       const allCandidateIds = candidatesWithIds.map(c => c.id);

@@ -49,7 +49,7 @@ export default function ConversationInterface({ vignette, difficulty, onEnd }: C
     // Reset messages when vignette changes
     if (isV2 && vignetteV2) {
       // Initialize with opening phase message
-      const currentPhase = vignetteV2.conversation?.phases?.find((p: any) => p.id === 'opening') || vignetteV2.conversation?.phases?.[0];
+      const currentPhase = vignetteV2.conversation?.phases?.find((p: { id?: string }) => p.id === 'opening') || vignetteV2.conversation?.phases?.[0];
       const openingLine = currentPhase?.avatarState?.openingLine || vignette.description || 'Hello, how can I help you?';
       
       const initialMessage: Message = {
@@ -197,12 +197,12 @@ export default function ConversationInterface({ vignette, difficulty, onEnd }: C
 
         setMessages(prev => [...prev, avatarMessage]);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[ConversationInterface] Error:', error);
       // Show error message to user
       const errorMessage: Message = {
         id: `error-${Date.now()}`,
-        text: `Error: ${error.message || 'Failed to get response. Please try again.'}`,
+        text: `Error: ${error instanceof Error ? error.message : 'Failed to get response. Please try again.'}`,
         sender: 'avatar',
         timestamp: new Date(),
       };

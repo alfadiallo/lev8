@@ -135,12 +135,12 @@ export async function POST(request: NextRequest) {
       },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[ConversationV2] Error:', error);
     return NextResponse.json(
       {
         error: 'Failed to process conversation',
-        details: error.message,
+        details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

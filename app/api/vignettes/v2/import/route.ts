@@ -153,16 +153,16 @@ export async function POST(request: NextRequest) {
       {
         success: true,
         ...result,
-        version: (result.vignette.vignette_data as any)?.version || 'unknown',
+        version: (result.vignette.vignette_data as Record<string, unknown>)?.version || 'unknown',
       },
       { status: result.action === 'created' ? 201 : 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[V2Import] Unexpected error:', error);
     return NextResponse.json(
       {
         error: 'Internal server error',
-        details: error.message,
+        details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

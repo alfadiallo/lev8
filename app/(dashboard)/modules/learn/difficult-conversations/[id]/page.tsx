@@ -8,8 +8,6 @@ import ModuleLayout from '@/components/modules/ModuleLayout';
 import ModuleGuard from '@/components/modules/ModuleGuard';
 import ConversationInterface from '@/components/modules/difficult-conversations/ConversationInterface';
 import { Vignette } from '@/lib/types/modules';
-import { supabaseClient as supabase } from '@/lib/supabase-client';
-import { User } from 'lucide-react';
 
 export default function DifficultConversationDetailPage() {
   const router = useRouter();
@@ -25,6 +23,7 @@ export default function DifficultConversationDetailPage() {
     if (vignetteId) {
       loadVignette();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vignetteId]);
 
   const loadVignette = async () => {

@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
 
     // Create user_profiles record - match actual schema
     const fullName = `${firstName} ${lastName}`.trim();
-    const profileData: any = {
+    const profileData = {
       id: authData.user?.id,
       email,
       full_name: fullName,
@@ -192,10 +192,10 @@ export async function POST(req: NextRequest) {
       },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Register error:', error);
     return NextResponse.json(
-      { error: error?.message || 'Registration failed' },
+      { error: error instanceof Error ? error.message : 'Registration failed' },
       { status: 500 }
     );
   }

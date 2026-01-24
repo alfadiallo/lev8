@@ -30,7 +30,7 @@ export default function AccountSettingsPage() {
     role: 'resident'
   };
 
-  const displayUser = (user as any) || mockUser;
+  const displayUser = (user as Record<string, unknown>) || mockUser;
 
   useEffect(() => {
     if (displayUser) {
@@ -105,9 +105,9 @@ export default function AccountSettingsPage() {
 
       setMessage({ type: 'success', text: 'Password changed successfully!' });
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Password change error:', error);
-      setMessage({ type: 'error', text: error.message || 'Failed to change password' });
+      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Failed to change password' });
     } finally {
       setIsSaving(false);
     }

@@ -18,7 +18,7 @@ interface LegacyClassificationResult {
 
 // Helper to get score for a PGY level
 // Handles string "PGY-1" or "1", or number 1
-function getScore(scores: any[], pgy: string): { percentile: number, raw: number } | null {
+function getScore(scores: Array<{ pgy_level: string | number; percentile: number | null; raw_score: number }>, pgy: string): { percentile: number, raw: number } | null {
   // Extract number from requested pgy (e.g. "PGY-1" -> 1)
   const pgyNum = parseInt(pgy.replace(/\D/g, ''));
   
@@ -80,13 +80,13 @@ export async function classifyResident(residentId: string, supabaseClient?: Retu
   // 3. Evaluate Archetypes
   let bestArchetype = ArchetypeName.UNCLASSIFIED;
   let bestConfidence = 0;
-  let bestFitDetails: any = {};
+  let bestFitDetails: Record<string, unknown> = {};
   const alternatives: { archetype: ArchetypeName; confidence: number }[] = [];
 
   for (const def of DEFAULT_ARCHETYPE_DEFINITIONS) {
     let score = 0;
     let maxScore = 0;
-    const details: any = {};
+    const details: Record<string, unknown> = {};
 
     // PGY1 Fit (Weight 30%)
     if (def.pgy1_range[0] !== null || def.pgy1_range[1] !== null) {
@@ -167,7 +167,7 @@ export async function classifyResident(residentId: string, supabaseClient?: Retu
 }
 
 async function findSimilarResidents(
-  supabase: any,
+  supabase: ReturnType<typeof createClient>,
   currentResidentId: string,
   pgy1: number,
   pgy2: number,

@@ -8,7 +8,6 @@ import { useAuth } from '@/context/AuthContext';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 import { 
   ArrowLeft, 
-  User, 
   TrendingUp, 
   FileText, 
   BookOpen,

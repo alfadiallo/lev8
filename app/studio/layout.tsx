@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { cookies, headers } from 'next/headers';
+import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { redirect } from 'next/navigation';
 import { AuthProvider } from '@/context/AuthContext';

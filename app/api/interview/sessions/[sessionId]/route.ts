@@ -17,7 +17,7 @@ export async function GET(
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Fetch the session
-    let query = supabase
+    const query = supabase
       .from('interview_sessions')
       .select('*')
       .eq('id', sessionId);

@@ -7,7 +7,7 @@ import { Sparkles, Send, ArrowLeft, CheckCircle } from 'lucide-react';
 
 export default function RequestStudioAccessPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const _auth = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [formData, setFormData] = useState({

@@ -8,7 +8,7 @@ import { join } from 'path';
 async function getBuildInfo() {
   let gitCommit = 'unknown';
   let gitMessage = 'unknown';
-  let buildTime = new Date().toISOString();
+  const buildTime = new Date().toISOString();
   let version = '0.1.0';
   let nextVersion = '15.5.9';
   
@@ -18,7 +18,7 @@ async function getBuildInfo() {
     const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
     version = packageJson.version || '0.1.0';
     nextVersion = packageJson.dependencies?.next || '15.5.9';
-  } catch (e) {
+  } catch {
     // Use defaults
   }
 
@@ -29,7 +29,7 @@ async function getBuildInfo() {
     if (buildId) {
       gitCommit = buildId.substring(0, 7); // Use first 7 chars as short hash
     }
-  } catch (e) {
+  } catch {
     // Fallback to environment variables
   }
 

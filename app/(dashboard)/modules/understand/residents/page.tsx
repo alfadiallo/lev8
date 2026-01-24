@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef, memo, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { 
@@ -12,7 +12,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  ChevronUp,
   FileText,
   Target,
   Brain,
@@ -25,7 +24,7 @@ import {
   UserCircle,
   GraduationCap
 } from 'lucide-react';
-import { calculatePGYLevel, formatPGYLevel } from '@/lib/utils/pgy-calculator';
+import { calculatePGYLevel } from '@/lib/utils/pgy-calculator';
 import ITEAnalyticsPane from '@/components/analytics/ite/ITEAnalyticsPane';
 import { useAuth } from '@/context/AuthContext';
 
@@ -116,7 +115,7 @@ function formatClassHeader(graduationYear: number, pgyLevel: number | null): str
 
 export default function ResidentsPortalPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const _auth = useAuth();
   
   // Data state
   const [residents, setResidents] = useState<ResidentWithPGY[]>([]);
@@ -151,6 +150,7 @@ export default function ResidentsPortalPage() {
   // Fetch residents data
   useEffect(() => {
     fetchResidents();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Timer effect
@@ -583,8 +583,8 @@ interface PaneContentProps {
   notes: ResidentNote[];
 }
 
-function PaneContent({ paneId, resident, notes }: PaneContentProps) {
-  const pgyLevel = resident.current_pgy_level;
+function PaneContent({ paneId, resident, notes: _notes }: PaneContentProps) {
+  const _pgyLevel = resident.current_pgy_level;
 
   const paneContent: Record<PaneId, React.ReactNode> = {
     overview: (

@@ -8,7 +8,6 @@ import {
   Play,
   Pause,
   SkipForward,
-  Clock,
   Users,
   ChevronLeft,
   ChevronRight,
@@ -105,6 +104,7 @@ export default function CCCSessionPage({ params }: { params: Promise<{ sessionId
   // Fetch session data
   useEffect(() => {
     fetchSessionData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
   // Timer effect
@@ -195,7 +195,7 @@ export default function CCCSessionPage({ params }: { params: Promise<{ sessionId
   // Timer controls
   const toggleTimer = () => setIsTimerRunning(!isTimerRunning);
   
-  const resetResidentTimer = () => setResidentTimer(0);
+  const _resetResidentTimer = () => setResidentTimer(0);
   
   const nextResident = useCallback(() => {
     const currentIndex = residents.findIndex(r => r.resident_id === selectedResidentId);
@@ -474,7 +474,7 @@ interface PaneContentProps {
   notes: CCCNote[];
 }
 
-function PaneContent({ paneId, resident, sessionDate, notes }: PaneContentProps) {
+function PaneContent({ paneId, resident, sessionDate, notes: _notes }: PaneContentProps) {
   if (!resident) {
     return (
       <div className="flex items-center justify-center h-full text-neutral-500">

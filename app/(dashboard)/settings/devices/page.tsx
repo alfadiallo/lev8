@@ -31,9 +31,9 @@ export default function DevicesSettingsPage() {
       }
       const data = await response.json();
       setDevices(data.devices || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching devices:', err);
-      setError(err.message);
+      setError(err instanceof Error ? err.message : 'Failed to fetch devices');
     } finally {
       setIsLoading(false);
     }
@@ -55,9 +55,9 @@ export default function DevicesSettingsPage() {
 
       setMessage({ type: 'success', text: 'Device trust revoked successfully' });
       setDevices(devices.filter(d => d.id !== deviceId));
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error revoking device:', err);
-      setMessage({ type: 'error', text: err.message });
+      setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to revoke device' });
     }
   };
 
@@ -77,9 +77,9 @@ export default function DevicesSettingsPage() {
 
       setMessage({ type: 'success', text: 'All device trusts revoked successfully' });
       setDevices([]);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error revoking all devices:', err);
-      setMessage({ type: 'error', text: err.message });
+      setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to revoke devices' });
     }
   };
 

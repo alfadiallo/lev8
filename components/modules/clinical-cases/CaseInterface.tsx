@@ -6,15 +6,28 @@ import { useState } from 'react';
 import { ClinicalCase, CaseAttempt } from '@/lib/types/modules';
 import { CheckCircle2, Circle, ArrowRight } from 'lucide-react';
 
+interface CaseStep {
+  id?: string;
+  title?: string;
+  content?: string;
+}
+
+interface CaseQuestion {
+  id?: string;
+  question?: string;
+  options?: string[];
+  answer?: string | number;
+}
+
 interface CaseInterfaceProps {
   case_: ClinicalCase;
   attempt: CaseAttempt | null;
-  onSaveProgress: (progressData: Record<string, any>, completed: boolean, score?: number) => Promise<void>;
+  onSaveProgress: (progressData: Record<string, unknown>, completed: boolean, score?: number) => Promise<void>;
 }
 
 export default function CaseInterface({ case_, attempt, onSaveProgress }: CaseInterfaceProps) {
   const [currentStep, setCurrentStep] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, any>>(attempt?.progress_data || {});
+  const [answers, setAnswers] = useState<Record<string, unknown>>(attempt?.progress_data || {});
   const [completed, setCompleted] = useState(attempt?.completed || false);
 
   // Extract case content from case_data
@@ -22,7 +35,7 @@ export default function CaseInterface({ case_, attempt, onSaveProgress }: CaseIn
   const steps = caseData.steps || [];
   const questions = caseData.questions || [];
 
-  const handleAnswer = async (questionId: string, answer: any) => {
+  const handleAnswer = async (questionId: string, answer: unknown) => {
     const newAnswers = { ...answers, [questionId]: answer };
     setAnswers(newAnswers);
 
@@ -37,7 +50,7 @@ export default function CaseInterface({ case_, attempt, onSaveProgress }: CaseIn
     await onSaveProgress(answers, true, score);
   };
 
-  const calculateScore = (userAnswers: Record<string, any>, questions: any[]): number => {
+  const calculateScore = (_userAnswers: Record<string, unknown>, _questions: CaseQuestion[]): number => {
     // TODO: Implement scoring logic based on questions and answers
     // For now, return a placeholder score
     return 0;
@@ -71,7 +84,7 @@ export default function CaseInterface({ case_, attempt, onSaveProgress }: CaseIn
         <h2 className="text-2xl font-semibold mb-4 text-neutral-800">Case Presentation</h2>
         {steps.length > 0 ? (
           <div className="space-y-4">
-            {steps.map((step: any, index: number) => (
+            {steps.map((step: CaseStep, index: number) => (
               <div
                 key={index}
                 className={`p-4 rounded-xl ${
@@ -95,7 +108,7 @@ export default function CaseInterface({ case_, attempt, onSaveProgress }: CaseIn
         <div className="bg-white/90 backdrop-blur-sm p-8 rounded-2xl shadow-lg border border-white/30">
           <h2 className="text-2xl font-semibold mb-4 text-neutral-800">Questions</h2>
           <div className="space-y-6">
-            {questions.map((question: any, index: number) => (
+            {questions.map((question: CaseQuestion & { text?: string; type?: string }, index: number) => (
               <div key={question.id || index} className="border-b border-white/30 pb-6 last:border-0">
                 <h3 className="font-semibold mb-3 text-neutral-800">{question.text}</h3>
                 {question.type === 'multiple_choice' && question.options && (

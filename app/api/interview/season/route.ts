@@ -98,8 +98,8 @@ export async function GET(request: NextRequest) {
     });
     
     let allRatings: RatingData[] = [];
-    let ratingCounts: Record<string, number> = {};
-    let ratingsByCandidate: Record<string, RatingData[]> = {};
+    const ratingCounts: Record<string, number> = {};
+    const ratingsByCandidate: Record<string, RatingData[]> = {};
     
     if (candidateIds.length > 0) {
       const { data: ratings, error: ratingsError } = await supabase

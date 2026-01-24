@@ -9,20 +9,13 @@ import {
   Filter,
   RefreshCw,
   Loader2,
-  MoreVertical,
   UserPlus,
-  Mail,
-  Phone,
-  Building,
-  Shield,
   CheckCircle,
   XCircle,
-  Edit,
-  Trash2,
   X
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { Input, Textarea } from '@/components/ui/Input';
+import { Input } from '@/components/ui/Input';
 
 interface UserProfile {
   id: string;
@@ -155,7 +148,7 @@ export default function AdminUsersPage() {
         throw new Error(data.error || 'Failed to create user');
       }
 
-      const data = await res.json();
+      await res.json();
       alert(`User created successfully! ${createForm.send_invite ? 'Invite email sent.' : ''}`);
       setShowCreateModal(false);
       setCreateForm({

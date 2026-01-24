@@ -107,8 +107,8 @@ export async function POST(request: NextRequest) {
         } else {
           migrated.push(newVignette);
         }
-      } catch (error: any) {
-        errors.push({ vignette: vignette.title, error: error.message });
+      } catch (error: unknown) {
+        errors.push({ vignette: vignette.title, error: error instanceof Error ? error.message : 'Unknown error' });
       }
     }
 

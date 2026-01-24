@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import ModuleLayout from '@/components/modules/ModuleLayout';
 import ModuleGuard from '@/components/modules/ModuleGuard';
 import ACLSInterface from '@/components/modules/ekg-acls/ACLSInterface';
@@ -10,9 +10,8 @@ import vfvtScenario from '@/lib/sim/scenarios/vfvt-click-advance';
 import { Scenario } from '@/lib/sim/state/types';
 
 export default function ACLSScenarioPage() {
-  const params = useParams();
-  const router = useRouter();
-  const scenarioId = params.scenarioId as string;
+  const _params = useParams();
+  const _scenarioId = _params.scenarioId as string;
 
   // For now, use the hardcoded scenario. Later, fetch from database
   const scenario: Scenario = vfvtScenario;

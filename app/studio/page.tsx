@@ -63,7 +63,7 @@ const contentTypes = [
 ];
 
 export default function StudioDashboard() {
-  const { user } = useAuth();
+  const _auth = useAuth();
   const [stats, setStats] = useState<ContentStats>({
     total: 0,
     published: 0,

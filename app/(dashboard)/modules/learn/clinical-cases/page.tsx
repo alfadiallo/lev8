@@ -3,14 +3,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import ModuleLayout from '@/components/modules/ModuleLayout';
 import ModuleGuard from '@/components/modules/ModuleGuard';
 import EducatorActions from '@/components/modules/EducatorActions';
 import CaseCard from '@/components/modules/clinical-cases/CaseCard';
 import { usePermissions } from '@/hooks/usePermissions';
 import { ClinicalCase } from '@/lib/types/modules';
-import { Clock, Filter } from 'lucide-react';
+import { Filter } from 'lucide-react';
 
 export default function ClinicalCasesPage() {
   const { canCreateContent } = usePermissions();

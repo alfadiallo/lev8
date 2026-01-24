@@ -9,9 +9,9 @@ export default function SelfAssessmentPage() {
   const router = useRouter();
   const { user } = useAuth();
   
-  const [residentData, setResidentData] = useState<any>(null);
+  const [residentData, setResidentData] = useState<Record<string, unknown> | null>(null);
   const [currentPeriod, setCurrentPeriod] = useState<string>('');
-  const [existingAssessment, setExistingAssessment] = useState<any>(null);
+  const [existingAssessment, setExistingAssessment] = useState<Record<string, unknown> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -20,6 +20,7 @@ export default function SelfAssessmentPage() {
     if (user) {
       loadResidentData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const loadResidentData = async () => {
@@ -48,8 +49,8 @@ export default function SelfAssessmentPage() {
           setExistingAssessment(checkData.data);
         }
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to load data');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load data');
     } finally {
       setIsLoading(false);
     }
@@ -58,7 +59,6 @@ export default function SelfAssessmentPage() {
   const determineCurrentPeriod = (): string => {
     const now = new Date();
     const month = now.getMonth() + 1; // 1-12
-    const year = now.getFullYear();
     
     // Determine PGY level (this is simplified - you may need to fetch from class_id)
     // For now, we'll use a placeholder
@@ -129,8 +129,8 @@ export default function SelfAssessmentPage() {
       setTimeout(() => {
         router.push('/forms/my-evaluations');
       }, 2000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to submit assessment');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to submit assessment');
     }
   };
 

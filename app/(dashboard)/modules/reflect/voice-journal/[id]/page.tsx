@@ -18,7 +18,7 @@ interface VoiceJournalEntry {
 export default function VoiceJournalEntryPage() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useAuth();
+  const _auth = useAuth();
   const entryId = params.id as string;
 
   const [entry, setEntry] = useState<VoiceJournalEntry | null>(null);
@@ -26,10 +26,11 @@ export default function VoiceJournalEntryPage() {
   const [error, setError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [_isPlaying, _setIsPlaying] = useState(false);
 
   useEffect(() => {
     fetchEntry();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entryId]);
 
   const fetchEntry = async () => {

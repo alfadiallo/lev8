@@ -3,14 +3,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import ModuleLayout from '@/components/modules/ModuleLayout';
 import ModuleGuard from '@/components/modules/ModuleGuard';
 import EducatorActions from '@/components/modules/EducatorActions';
 import VignetteCard from '@/components/modules/difficult-conversations/VignetteCard';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Vignette } from '@/lib/types/modules';
-import { supabaseClient as supabase } from '@/lib/supabase-client';
 import { MessageSquare, Filter } from 'lucide-react';
 
 const CONVERSATION_CATEGORIES = [
@@ -65,7 +63,6 @@ const CONVERSATION_CATEGORIES = [
 ];
 
 export default function DifficultConversationsPage() {
-  const router = useRouter();
   const { canCreateContent } = usePermissions();
   const [vignettes, setVignettes] = useState<Vignette[]>([]);
   const [loading, setLoading] = useState(true);

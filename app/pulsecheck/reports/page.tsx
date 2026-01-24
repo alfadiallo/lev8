@@ -132,13 +132,13 @@ export default function PulseCheckReportsPage() {
   } = usePulseCheckUserContext();
 
   const [data, setData] = useState<ReportsData | null>(null);
-  const [selectedSite, setSelectedSite] = useState<string | null>(null);
+  const [_selectedSite, _setSelectedSite] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [_error, setError] = useState('');
   
   // Expandable state
   const [expandedSites, setExpandedSites] = useState<Set<string>>(new Set());
-  const [expandedDepartments, setExpandedDepartments] = useState<Set<string>>(new Set());
+  const [_expandedDepartments, setExpandedDepartments] = useState<Set<string>>(new Set());
   
   // Share popup state
   const [showSharePopup, setShowSharePopup] = useState(false);
@@ -270,7 +270,7 @@ export default function PulseCheckReportsPage() {
     });
   };
 
-  const toggleDepartment = (deptId: string) => {
+  const _toggleDepartment = (deptId: string) => {
     setExpandedDepartments(prev => {
       const newSet = new Set(prev);
       if (newSet.has(deptId)) {

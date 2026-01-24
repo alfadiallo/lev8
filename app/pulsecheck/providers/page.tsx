@@ -49,7 +49,17 @@ interface Rating {
   iq_total?: number | null;
   metric_los?: number | null;
   metric_imaging_util?: number | null;
+  metric_imaging_ct?: number | null;
+  metric_imaging_us?: number | null;
+  metric_imaging_mri?: number | null;
   metric_pph?: number | null;
+}
+
+interface DeptImagingAverages {
+  avg_ct: number | null;
+  avg_us: number | null;
+  avg_mri: number | null;
+  avg_total: number | null;
 }
 
 interface RatingHistory {
@@ -68,6 +78,7 @@ export default function PulseCheckProvidersPage() {
   const [providers, setProviders] = useState<Provider[]>([]);
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [ratingHistory, setRatingHistory] = useState<RatingHistory[]>([]);
+  const [deptAverages, setDeptAverages] = useState<DeptImagingAverages | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'pending' | 'completed'>('all');
   const [expandedProviderId, setExpandedProviderId] = useState<string | null>(null);
@@ -104,6 +115,24 @@ export default function PulseCheckProvidersPage() {
         setProviders(providersData.providers || []);
         setRatings(ratingsData.ratings || []);
         setRatingHistory(historyData.history || []);
+        
+        // Calculate department imaging averages from completed ratings
+        const completedRatings = (ratingsData.ratings || []).filter(
+          (r: Rating) => r.status === 'completed' && r.metric_imaging_util != null
+        );
+        if (completedRatings.length > 0) {
+          const ctValues = completedRatings.filter((r: Rating) => r.metric_imaging_ct != null).map((r: Rating) => r.metric_imaging_ct!);
+          const usValues = completedRatings.filter((r: Rating) => r.metric_imaging_us != null).map((r: Rating) => r.metric_imaging_us!);
+          const mriValues = completedRatings.filter((r: Rating) => r.metric_imaging_mri != null).map((r: Rating) => r.metric_imaging_mri!);
+          const totalValues = completedRatings.map((r: Rating) => r.metric_imaging_util!);
+          
+          setDeptAverages({
+            avg_ct: ctValues.length > 0 ? ctValues.reduce((a, b) => a + b, 0) / ctValues.length : null,
+            avg_us: usValues.length > 0 ? usValues.reduce((a, b) => a + b, 0) / usValues.length : null,
+            avg_mri: mriValues.length > 0 ? mriValues.reduce((a, b) => a + b, 0) / mriValues.length : null,
+            avg_total: totalValues.length > 0 ? totalValues.reduce((a, b) => a + b, 0) / totalValues.length : null,
+          });
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load providers');
       } finally {
@@ -174,19 +203,6 @@ export default function PulseCheckProvidersPage() {
         <div className="px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              {/* Expand button */}
-              {isCompleted && (
-                <button 
-                  onClick={toggleExpanded}
-                  className="p-1 rounded hover:bg-slate-200 transition-colors"
-                >
-                  {isExpanded ? (
-                    <ChevronUp className="w-5 h-5 text-slate-400" />
-                  ) : (
-                    <ChevronDown className="w-5 h-5 text-slate-400" />
-                  )}
-                </button>
-              )}
               <div 
                 className="w-12 h-12 rounded-full flex items-center justify-center text-white font-medium"
                 style={{ backgroundColor: COLORS.medium }}
@@ -249,6 +265,20 @@ export default function PulseCheckProvidersPage() {
               >
                 {isPending ? 'Continue' : isCompleted ? 'View/Edit' : 'Start Rating'}
               </Link>
+
+              {/* Expand button - far right */}
+              {isCompleted && (
+                <button 
+                  onClick={toggleExpanded}
+                  className="p-1 rounded hover:bg-slate-200 transition-colors ml-2"
+                >
+                  {isExpanded ? (
+                    <ChevronUp className="w-5 h-5 text-slate-400" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-slate-400" />
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -308,18 +338,12 @@ export default function PulseCheckProvidersPage() {
               {/* Operational Metrics */}
               {(rating.metric_los || rating.metric_imaging_util || rating.metric_pph) && (
                 <div className="mt-4 pt-4 border-t" style={{ borderColor: COLORS.lightest }}>
-                  <p className="text-xs font-medium text-slate-500 mb-2">Operational Metrics</p>
-                  <div className="grid grid-cols-3 gap-4">
+                  <p className="text-xs font-medium text-slate-500 mb-3">Operational Metrics</p>
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-xs text-slate-400">LOS (min)</p>
                       <span className="text-sm font-medium text-slate-700">
                         {rating.metric_los || '-'}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-400">Imaging Util</p>
-                      <span className="text-sm font-medium text-slate-700">
-                        {rating.metric_imaging_util ? `${rating.metric_imaging_util}%` : '-'}
                       </span>
                     </div>
                     <div>
@@ -329,6 +353,51 @@ export default function PulseCheckProvidersPage() {
                       </span>
                     </div>
                   </div>
+                  
+                  {/* Enhanced Imaging Utilization Section */}
+                  {(rating.metric_imaging_util || rating.metric_imaging_ct || rating.metric_imaging_us || rating.metric_imaging_mri) && (
+                    <div className="mt-3 pt-3 border-t" style={{ borderColor: COLORS.lightest }}>
+                      <p className="text-xs font-medium text-slate-500 mb-2">Imaging Utilization</p>
+                      <div className="grid grid-cols-3 gap-3">
+                        {/* CT */}
+                        <div className="rounded-lg p-2" style={{ backgroundColor: COLORS.lightest }}>
+                          <p className="text-xs text-slate-500 font-medium">CT</p>
+                          <span className="text-sm font-semibold" style={{ color: COLORS.dark }}>
+                            {rating.metric_imaging_ct != null ? `${rating.metric_imaging_ct}%` : '-'}
+                          </span>
+                          {deptAverages?.avg_ct != null && (
+                            <p className="text-[10px] text-slate-400 mt-0.5">
+                              Dept avg: {deptAverages.avg_ct.toFixed(1)}%
+                            </p>
+                          )}
+                        </div>
+                        {/* U/S */}
+                        <div className="rounded-lg p-2" style={{ backgroundColor: COLORS.lightest }}>
+                          <p className="text-xs text-slate-500 font-medium">U/S</p>
+                          <span className="text-sm font-semibold" style={{ color: COLORS.dark }}>
+                            {rating.metric_imaging_us != null ? `${rating.metric_imaging_us}%` : '-'}
+                          </span>
+                          {deptAverages?.avg_us != null && (
+                            <p className="text-[10px] text-slate-400 mt-0.5">
+                              Dept avg: {deptAverages.avg_us.toFixed(1)}%
+                            </p>
+                          )}
+                        </div>
+                        {/* MRI */}
+                        <div className="rounded-lg p-2" style={{ backgroundColor: COLORS.lightest }}>
+                          <p className="text-xs text-slate-500 font-medium">MRI</p>
+                          <span className="text-sm font-semibold" style={{ color: COLORS.dark }}>
+                            {rating.metric_imaging_mri != null ? `${rating.metric_imaging_mri}%` : '-'}
+                          </span>
+                          {deptAverages?.avg_mri != null && (
+                            <p className="text-[10px] text-slate-400 mt-0.5">
+                              Dept avg: {deptAverages.avg_mri.toFixed(1)}%
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

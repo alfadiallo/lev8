@@ -62,6 +62,9 @@ export default function PulseCheckRatePage() {
   // Operational metrics
   const [metricLos, setMetricLos] = useState<number | null>(null);
   const [metricImagingUtil, setMetricImagingUtil] = useState<number | null>(null);
+  const [metricImagingCt, setMetricImagingCt] = useState<number | null>(null);
+  const [metricImagingUs, setMetricImagingUs] = useState<number | null>(null);
+  const [metricImagingMri, setMetricImagingMri] = useState<number | null>(null);
   const [metricPph, setMetricPph] = useState<number | null>(null);
   
   const [isLoading, setIsLoading] = useState(true);
@@ -115,6 +118,9 @@ export default function PulseCheckRatePage() {
           // Load operational metrics
           setMetricLos(data.existingRating.metric_los ?? null);
           setMetricImagingUtil(data.existingRating.metric_imaging_util ?? null);
+          setMetricImagingCt(data.existingRating.metric_imaging_ct ?? null);
+          setMetricImagingUs(data.existingRating.metric_imaging_us ?? null);
+          setMetricImagingMri(data.existingRating.metric_imaging_mri ?? null);
           setMetricPph(data.existingRating.metric_pph ?? null);
         }
       } catch (err) {
@@ -158,6 +164,9 @@ export default function PulseCheckRatePage() {
           goals,
           metric_los: metricLos,
           metric_imaging_util: metricImagingUtil,
+          metric_imaging_ct: metricImagingCt,
+          metric_imaging_us: metricImagingUs,
+          metric_imaging_mri: metricImagingMri,
           metric_pph: metricPph,
           status: 'completed',
         }),
@@ -200,6 +209,9 @@ export default function PulseCheckRatePage() {
           goals,
           metric_los: metricLos,
           metric_imaging_util: metricImagingUtil,
+          metric_imaging_ct: metricImagingCt,
+          metric_imaging_us: metricImagingUs,
+          metric_imaging_mri: metricImagingMri,
           metric_pph: metricPph,
           status: 'in_progress',
         }),
@@ -385,23 +397,74 @@ export default function PulseCheckRatePage() {
             />
           </div>
           
-          {/* Imaging Utilization */}
-          <div>
-            <label className="flex items-center gap-1.5 text-xs font-medium text-slate-600 mb-1">
+          {/* Imaging Utilization - CT, U/S, MRI */}
+          <div className="col-span-3">
+            <label className="flex items-center gap-1.5 text-xs font-medium text-slate-600 mb-2">
               <Activity className="w-3.5 h-3.5" />
               Imaging Utilization (%)
             </label>
-            <input
-              type="number"
-              value={metricImagingUtil ?? ''}
-              onChange={(e) => setMetricImagingUtil(e.target.value ? parseFloat(e.target.value) : null)}
-              placeholder="e.g., 45.5"
-              className="w-full px-3 py-2 border rounded-lg text-sm"
-              style={{ borderColor: COLORS.light }}
-              min="0"
-              max="100"
-              step="0.01"
-            />
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <label className="block text-[10px] text-slate-400 mb-1">CT</label>
+                <input
+                  type="number"
+                  value={metricImagingCt ?? ''}
+                  onChange={(e) => {
+                    const val = e.target.value ? parseFloat(e.target.value) : null;
+                    setMetricImagingCt(val);
+                    // Auto-calculate average for storage
+                    const total = (val ?? 0) + (metricImagingUs ?? 0) + (metricImagingMri ?? 0);
+                    setMetricImagingUtil(total > 0 ? parseFloat((total / 3).toFixed(2)) : null);
+                  }}
+                  placeholder="CT %"
+                  className="w-full px-2 py-1.5 border rounded-lg text-sm"
+                  style={{ borderColor: COLORS.light }}
+                  min="0"
+                  max="100"
+                  step="0.1"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] text-slate-400 mb-1">U/S</label>
+                <input
+                  type="number"
+                  value={metricImagingUs ?? ''}
+                  onChange={(e) => {
+                    const val = e.target.value ? parseFloat(e.target.value) : null;
+                    setMetricImagingUs(val);
+                    // Auto-calculate average for storage
+                    const total = (metricImagingCt ?? 0) + (val ?? 0) + (metricImagingMri ?? 0);
+                    setMetricImagingUtil(total > 0 ? parseFloat((total / 3).toFixed(2)) : null);
+                  }}
+                  placeholder="U/S %"
+                  className="w-full px-2 py-1.5 border rounded-lg text-sm"
+                  style={{ borderColor: COLORS.light }}
+                  min="0"
+                  max="100"
+                  step="0.1"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] text-slate-400 mb-1">MRI</label>
+                <input
+                  type="number"
+                  value={metricImagingMri ?? ''}
+                  onChange={(e) => {
+                    const val = e.target.value ? parseFloat(e.target.value) : null;
+                    setMetricImagingMri(val);
+                    // Auto-calculate average for storage
+                    const total = (metricImagingCt ?? 0) + (metricImagingUs ?? 0) + (val ?? 0);
+                    setMetricImagingUtil(total > 0 ? parseFloat((total / 3).toFixed(2)) : null);
+                  }}
+                  placeholder="MRI %"
+                  className="w-full px-2 py-1.5 border rounded-lg text-sm"
+                  style={{ borderColor: COLORS.light }}
+                  min="0"
+                  max="100"
+                  step="0.1"
+                />
+              </div>
+            </div>
           </div>
           
           {/* PPH */}

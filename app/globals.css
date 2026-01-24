@@ -242,13 +242,9 @@ aside[class*="w-64"] {
   0% { box-shadow: inset 0 0 0 2px #38BDF8; }
   50% { box-shadow: inset 0 0 0 4px #38BDF8; }
   100% { box-shadow: inset 0 0 0 2px #38BDF8; }
-}
-
-.current-phase-row {
+}.current-phase-row {
   animation: phase-highlight 2s ease-in-out infinite;
-}
-
-/* Checkbox animation */
+}/* Checkbox animation */
 @keyframes check-bounce {
   0% { transform: scale(1); }
   50% { transform: scale(1.1); }

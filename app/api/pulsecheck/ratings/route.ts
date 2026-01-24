@@ -81,6 +81,9 @@ export async function POST(request: NextRequest) {
       // Operational metrics
       metric_los,
       metric_imaging_util,
+      metric_imaging_ct,
+      metric_imaging_us,
+      metric_imaging_mri,
       metric_pph,
     } = body;
 
@@ -130,6 +133,9 @@ export async function POST(request: NextRequest) {
       // Operational metrics
       metric_los,
       metric_imaging_util,
+      metric_imaging_ct,
+      metric_imaging_us,
+      metric_imaging_mri,
       metric_pph,
       status: status || 'in_progress',
       started_at: existing ? undefined : new Date().toISOString(),

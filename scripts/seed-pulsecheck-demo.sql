@@ -1,18 +1,49 @@
 -- =====================================================
 -- PULSE CHECK - Demo Seed Data
--- Run this after the migration to test locally
+-- Run this after the migrations to populate demo data
+-- =====================================================
+-- 
+-- IMPORTANT: Run these migrations FIRST (in order):
+--   1. supabase/migrations/20260118000001_pulsecheck_module.sql
+--   2. supabase/migrations/20260119000001_add_pulsecheck_healthsystems.sql
+--   3. supabase/migrations/20260119000002_pulsecheck_demo_visitors.sql
+--   4. supabase/migrations/20260122000001_pulsecheck_metrics.sql
+--   5. supabase/migrations/20260123000001_pulsecheck_frequency.sql
+--
 -- =====================================================
 
--- Clear existing data (for re-running)
-DELETE FROM pulsecheck_reminders;
-DELETE FROM pulsecheck_ratings;
-DELETE FROM pulsecheck_imports;
-DELETE FROM pulsecheck_cycles;
-DELETE FROM pulsecheck_providers;
-DELETE FROM pulsecheck_directors;
-DELETE FROM pulsecheck_departments;
-DELETE FROM pulsecheck_sites;
-DELETE FROM pulsecheck_healthsystems;
+-- Clear existing data (for re-running) - safe delete that won't fail if tables don't exist
+DO $$
+BEGIN
+  -- Delete in correct order due to foreign key constraints
+  IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'pulsecheck_reminders') THEN
+    DELETE FROM pulsecheck_reminders;
+  END IF;
+  IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'pulsecheck_ratings') THEN
+    DELETE FROM pulsecheck_ratings;
+  END IF;
+  IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'pulsecheck_imports') THEN
+    DELETE FROM pulsecheck_imports;
+  END IF;
+  IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'pulsecheck_cycles') THEN
+    DELETE FROM pulsecheck_cycles;
+  END IF;
+  IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'pulsecheck_providers') THEN
+    DELETE FROM pulsecheck_providers;
+  END IF;
+  IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'pulsecheck_directors') THEN
+    DELETE FROM pulsecheck_directors;
+  END IF;
+  IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'pulsecheck_departments') THEN
+    DELETE FROM pulsecheck_departments;
+  END IF;
+  IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'pulsecheck_sites') THEN
+    DELETE FROM pulsecheck_sites;
+  END IF;
+  IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'pulsecheck_healthsystems') THEN
+    DELETE FROM pulsecheck_healthsystems;
+  END IF;
+END $$;
 
 -- =====================================================
 -- HEALTHSYSTEMS (with frequency configuration)
@@ -103,13 +134,13 @@ INSERT INTO pulsecheck_ratings (id, cycle_id, provider_id, director_id,
   eq_empathy_rapport, eq_communication, eq_stress_management, eq_self_awareness, eq_adaptability,
   pq_reliability, pq_integrity, pq_teachability, pq_documentation, pq_leadership,
   iq_clinical_management, iq_evidence_based, iq_procedural,
-  metric_los, metric_imaging_util, metric_pph,
+  metric_los, metric_imaging_util, metric_imaging_ct, metric_imaging_us, metric_imaging_mri, metric_pph,
   notes, status, completed_at) VALUES
   ('77777777-0000-0000-0000-000000000001', '55555555-0000-0000-0000-000000000002', '44444444-0000-0000-0000-000000000001', '33333333-0000-0000-0000-000000000004',
    4, 3, 4, 4, 4,
    4, 4, 4, 3, 3,
    4, 4, 4,
-   195, 42.5, 1.65,
+   195, 42.5, 55.0, 32.5, 40.0, 1.65,
    'Good start, room for growth', 'completed', '2025-06-25');
 
 -- Q3 2025 - Improving (overall ~4.2)
@@ -117,13 +148,13 @@ INSERT INTO pulsecheck_ratings (id, cycle_id, provider_id, director_id,
   eq_empathy_rapport, eq_communication, eq_stress_management, eq_self_awareness, eq_adaptability,
   pq_reliability, pq_integrity, pq_teachability, pq_documentation, pq_leadership,
   iq_clinical_management, iq_evidence_based, iq_procedural,
-  metric_los, metric_imaging_util, metric_pph,
+  metric_los, metric_imaging_util, metric_imaging_ct, metric_imaging_us, metric_imaging_mri, metric_pph,
   notes, status, completed_at) VALUES
   ('77777777-0000-0000-0000-000000000002', '55555555-0000-0000-0000-000000000003', '44444444-0000-0000-0000-000000000001', '33333333-0000-0000-0000-000000000004',
    4, 4, 4, 4, 5,
    5, 4, 4, 4, 4,
    5, 4, 4,
-   178, 38.2, 1.78,
+   178, 38.2, 48.0, 28.5, 38.0, 1.78,
    'Significant improvement this quarter', 'completed', '2025-09-28');
 
 -- Q4 2025 - Strong (overall ~4.5)
@@ -131,13 +162,13 @@ INSERT INTO pulsecheck_ratings (id, cycle_id, provider_id, director_id,
   eq_empathy_rapport, eq_communication, eq_stress_management, eq_self_awareness, eq_adaptability,
   pq_reliability, pq_integrity, pq_teachability, pq_documentation, pq_leadership,
   iq_clinical_management, iq_evidence_based, iq_procedural,
-  metric_los, metric_imaging_util, metric_pph,
+  metric_los, metric_imaging_util, metric_imaging_ct, metric_imaging_us, metric_imaging_mri, metric_pph,
   notes, status, completed_at) VALUES
   ('77777777-0000-0000-0000-000000000003', '55555555-0000-0000-0000-000000000004', '44444444-0000-0000-0000-000000000001', '33333333-0000-0000-0000-000000000004',
    5, 4, 5, 4, 5,
    5, 5, 4, 4, 4,
    5, 5, 5,
-   165, 35.8, 1.92,
+   165, 35.8, 42.5, 26.0, 39.0, 1.92,
    'Excellent quarter, ready for leadership role', 'completed', '2025-12-20');
 
 -- Lisa Chen: Stable high performer (4.4 → 4.5 → 4.5)
@@ -146,13 +177,13 @@ INSERT INTO pulsecheck_ratings (id, cycle_id, provider_id, director_id,
   eq_empathy_rapport, eq_communication, eq_stress_management, eq_self_awareness, eq_adaptability,
   pq_reliability, pq_integrity, pq_teachability, pq_documentation, pq_leadership,
   iq_clinical_management, iq_evidence_based, iq_procedural,
-  metric_los, metric_imaging_util, metric_pph,
+  metric_los, metric_imaging_util, metric_imaging_ct, metric_imaging_us, metric_imaging_mri, metric_pph,
   notes, status, completed_at) VALUES
   ('77777777-0000-0000-0000-000000000004', '55555555-0000-0000-0000-000000000002', '44444444-0000-0000-0000-000000000002', '33333333-0000-0000-0000-000000000004',
    4, 5, 5, 4, 4,
    4, 5, 4, 5, 4,
    4, 5, 4,
-   152, 41.0, 2.05,
+   152, 41.0, 52.0, 35.0, 36.0, 2.05,
    'Consistently excellent', 'completed', '2025-06-22');
 
 -- Q3 2025
@@ -160,13 +191,13 @@ INSERT INTO pulsecheck_ratings (id, cycle_id, provider_id, director_id,
   eq_empathy_rapport, eq_communication, eq_stress_management, eq_self_awareness, eq_adaptability,
   pq_reliability, pq_integrity, pq_teachability, pq_documentation, pq_leadership,
   iq_clinical_management, iq_evidence_based, iq_procedural,
-  metric_los, metric_imaging_util, metric_pph,
+  metric_los, metric_imaging_util, metric_imaging_ct, metric_imaging_us, metric_imaging_mri, metric_pph,
   notes, status, completed_at) VALUES
   ('77777777-0000-0000-0000-000000000005', '55555555-0000-0000-0000-000000000003', '44444444-0000-0000-0000-000000000002', '33333333-0000-0000-0000-000000000004',
    4, 5, 5, 4, 5,
    4, 5, 5, 5, 4,
    5, 5, 4,
-   148, 39.5, 2.12,
+   148, 39.5, 48.5, 32.0, 38.0, 2.12,
    'Maintains high standards', 'completed', '2025-09-25');
 
 -- Q4 2025
@@ -174,13 +205,13 @@ INSERT INTO pulsecheck_ratings (id, cycle_id, provider_id, director_id,
   eq_empathy_rapport, eq_communication, eq_stress_management, eq_self_awareness, eq_adaptability,
   pq_reliability, pq_integrity, pq_teachability, pq_documentation, pq_leadership,
   iq_clinical_management, iq_evidence_based, iq_procedural,
-  metric_los, metric_imaging_util, metric_pph,
+  metric_los, metric_imaging_util, metric_imaging_ct, metric_imaging_us, metric_imaging_mri, metric_pph,
   notes, status, completed_at) VALUES
   ('77777777-0000-0000-0000-000000000006', '55555555-0000-0000-0000-000000000004', '44444444-0000-0000-0000-000000000002', '33333333-0000-0000-0000-000000000004',
    4, 5, 5, 5, 4,
    5, 5, 5, 5, 4,
    4, 5, 5,
-   145, 38.0, 2.18,
+   145, 38.0, 45.0, 30.0, 39.0, 2.18,
    'Role model for the department', 'completed', '2025-12-18');
 
 -- Marcus Williams: Declining trend (4.0 → 3.9 → 3.8)
@@ -189,13 +220,13 @@ INSERT INTO pulsecheck_ratings (id, cycle_id, provider_id, director_id,
   eq_empathy_rapport, eq_communication, eq_stress_management, eq_self_awareness, eq_adaptability,
   pq_reliability, pq_integrity, pq_teachability, pq_documentation, pq_leadership,
   iq_clinical_management, iq_evidence_based, iq_procedural,
-  metric_los, metric_imaging_util, metric_pph,
+  metric_los, metric_imaging_util, metric_imaging_ct, metric_imaging_us, metric_imaging_mri, metric_pph,
   notes, status, completed_at) VALUES
   ('77777777-0000-0000-0000-000000000007', '55555555-0000-0000-0000-000000000002', '44444444-0000-0000-0000-000000000003', '33333333-0000-0000-0000-000000000004',
    4, 4, 4, 4, 4,
    4, 4, 4, 4, 4,
    4, 4, 4,
-   188, 48.5, 1.55,
+   188, 48.5, 62.0, 38.5, 45.0, 1.55,
    'Solid performance', 'completed', '2025-06-28');
 
 -- Q3 2025
@@ -203,13 +234,13 @@ INSERT INTO pulsecheck_ratings (id, cycle_id, provider_id, director_id,
   eq_empathy_rapport, eq_communication, eq_stress_management, eq_self_awareness, eq_adaptability,
   pq_reliability, pq_integrity, pq_teachability, pq_documentation, pq_leadership,
   iq_clinical_management, iq_evidence_based, iq_procedural,
-  metric_los, metric_imaging_util, metric_pph,
+  metric_los, metric_imaging_util, metric_imaging_ct, metric_imaging_us, metric_imaging_mri, metric_pph,
   notes, status, completed_at) VALUES
   ('77777777-0000-0000-0000-000000000008', '55555555-0000-0000-0000-000000000003', '44444444-0000-0000-0000-000000000003', '33333333-0000-0000-0000-000000000004',
    4, 4, 3, 4, 4,
    4, 4, 4, 3, 4,
    4, 4, 4,
-   195, 52.0, 1.48,
+   195, 52.0, 68.0, 42.0, 46.0, 1.48,
    'Some concerns about documentation and stress management', 'completed', '2025-09-30');
 
 -- Q4 2025
@@ -217,13 +248,13 @@ INSERT INTO pulsecheck_ratings (id, cycle_id, provider_id, director_id,
   eq_empathy_rapport, eq_communication, eq_stress_management, eq_self_awareness, eq_adaptability,
   pq_reliability, pq_integrity, pq_teachability, pq_documentation, pq_leadership,
   iq_clinical_management, iq_evidence_based, iq_procedural,
-  metric_los, metric_imaging_util, metric_pph,
+  metric_los, metric_imaging_util, metric_imaging_ct, metric_imaging_us, metric_imaging_mri, metric_pph,
   notes, status, completed_at) VALUES
   ('77777777-0000-0000-0000-000000000009', '55555555-0000-0000-0000-000000000004', '44444444-0000-0000-0000-000000000003', '33333333-0000-0000-0000-000000000004',
    4, 4, 3, 4, 4,
    4, 4, 4, 3, 3,
    4, 3, 4,
-   205, 55.2, 1.42,
+   205, 55.2, 72.5, 45.0, 48.0, 1.42,
    'Need to address declining metrics and documentation', 'completed', '2025-12-22');
 
 -- =====================================================
@@ -235,7 +266,7 @@ INSERT INTO pulsecheck_ratings (id, cycle_id, provider_id, director_id,
   eq_empathy_rapport, eq_communication, eq_stress_management, eq_self_awareness, eq_adaptability,
   pq_reliability, pq_integrity, pq_teachability, pq_documentation, pq_leadership,
   iq_clinical_management, iq_evidence_based, iq_procedural,
-  metric_los, metric_imaging_util, metric_pph,
+  metric_los, metric_imaging_util, metric_imaging_ct, metric_imaging_us, metric_imaging_mri, metric_pph,
   notes, strengths, areas_for_improvement, status, completed_at) VALUES
   
   -- James Anderson Q1 2026 (continuing improvement trend: 4.5)
@@ -243,7 +274,7 @@ INSERT INTO pulsecheck_ratings (id, cycle_id, provider_id, director_id,
    5, 4, 4, 4, 5,
    5, 5, 4, 4, 4,
    5, 4, 5,
-   158, 33.5, 2.01,
+   158, 33.5, 40.0, 25.0, 35.5, 2.01,
    'Strong performer, excellent team player', 'Exceptional clinical skills and patient rapport', 'Could improve documentation timeliness', 'completed', NOW() - INTERVAL '5 days'),
    
   -- Lisa Chen Q1 2026 (stable high: 4.5)
@@ -251,7 +282,7 @@ INSERT INTO pulsecheck_ratings (id, cycle_id, provider_id, director_id,
    4, 5, 5, 4, 4,
    4, 5, 5, 5, 4,
    4, 5, 4,
-   142, 36.5, 2.22,
+   142, 36.5, 42.0, 28.5, 39.0, 2.22,
    'Excellent physician with strong evidence-based approach', 'Thorough documentation, stays current with literature', 'Continue developing leadership skills', 'completed', NOW() - INTERVAL '3 days'),
    
   -- Marcus Williams Q1 2026 (continuing decline: 3.8)
@@ -259,7 +290,7 @@ INSERT INTO pulsecheck_ratings (id, cycle_id, provider_id, director_id,
    4, 4, 3, 4, 4,
    4, 4, 5, 3, 3,
    4, 3, 4,
-   212, 58.0, 1.38,
+   212, 58.0, 75.0, 48.0, 51.0, 1.38,
    'Good progress in first year', 'Very teachable, eager to learn', 'Work on stress management during high volume', 'completed', NOW() - INTERVAL '1 day');
 
 -- Dr. Wilson's pending ratings (2 of 5)

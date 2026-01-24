@@ -12,7 +12,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { useTenant, useTenantUrl, useTenantPermissions } from '@/context/TenantContext';
+import { useTenant, useTenantUrl } from '@/context/TenantContext';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 
 interface NavChild {
@@ -100,7 +100,7 @@ export function TenantSidebar() {
   const pathname = usePathname();
   const { logout, user } = useAuth();
   const { organization, department } = useTenant();
-  const { buildUrl, baseUrl } = useTenantUrl();
+  const { buildUrl, baseUrl: _baseUrl } = useTenantUrl();
   const { canAccessAdminPortal, isProgramLeadership, isSuperAdmin, role } = usePermissions();
   const [expandedModules, setExpandedModules] = useState<string[]>(['learn']);
   const [isLoggingOut, setIsLoggingOut] = useState(false);

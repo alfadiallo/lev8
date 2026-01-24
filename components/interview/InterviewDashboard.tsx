@@ -89,7 +89,7 @@ export default function InterviewDashboard({
   onBack 
 }: InterviewDashboardProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const _searchParams = useSearchParams();
   
   const isPDorAdmin = permission === 'program_director' || permission === 'admin';
   const displayName = userName || userEmail;

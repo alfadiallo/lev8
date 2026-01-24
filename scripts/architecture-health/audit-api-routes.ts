@@ -10,7 +10,7 @@
  * 5. Identify routes with single caller (candidate for server component)
  */
 
-import { readdir, readFile } from 'fs/promises';
+import { readFile } from 'fs/promises';
 import { join, relative } from 'path';
 
 interface RouteInfo {
@@ -188,7 +188,9 @@ async function main() {
     
     // Write report to file
     const reportPath = join(process.cwd(), 'docs', 'optimization', 'api-route-audit.md');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     await require('fs').promises.mkdir(join(process.cwd(), 'docs', 'optimization'), { recursive: true });
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     await require('fs').promises.writeFile(reportPath, report);
     console.log(`\n📄 Report written to: ${reportPath}`);
     

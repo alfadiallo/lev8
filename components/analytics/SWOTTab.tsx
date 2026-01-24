@@ -36,7 +36,7 @@ export default function SWOTTab({
   onPeriodChange,
   selectedElement: externalSelectedElement,
   onElementChange,
-  showCitations = false
+  showCitations: _showCitations = false
 }: SWOTTabProps) {
   const [internalSelectedPeriod, setInternalSelectedPeriod] = useState<string>('all');
   const [internalSelectedElement, setInternalSelectedElement] = useState<SWOTElementType>('all');
@@ -56,7 +56,7 @@ export default function SWOTTab({
     : swotData.filter(s => s.period_label === selectedPeriod);
   
   // Filter scores data by period
-  const filteredScores = selectedPeriod === 'all'
+  const _filteredScores = selectedPeriod === 'all'
     ? scoresData
     : scoresData.filter(s => s.period_label === selectedPeriod);
 

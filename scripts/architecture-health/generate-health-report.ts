@@ -88,6 +88,7 @@ async function generateHealthReport() {
   
   // Write combined report
   const combinedPath = join(process.cwd(), 'docs', 'optimization', 'architecture-health-report.md');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   await require('fs').promises.writeFile(combinedPath, combinedReport);
   console.log(`\n📄 Combined report written to: ${combinedPath}`);
   

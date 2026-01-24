@@ -18,7 +18,7 @@ export default function RatingSlider({
   required = false,
 }: RatingSliderProps) {
   // Color based on value (red → yellow → green)
-  const getColor = (val: number): string => {
+  const _getColor = (val: number): string => {
     if (val < 2.5) return 'bg-red-500';
     if (val < 3.5) return 'bg-yellow-500';
     if (val < 4.5) return 'bg-green-500';

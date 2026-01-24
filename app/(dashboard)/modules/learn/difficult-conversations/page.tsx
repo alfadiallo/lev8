@@ -9,6 +9,7 @@ import EducatorActions from '@/components/modules/EducatorActions';
 import VignetteCard from '@/components/modules/difficult-conversations/VignetteCard';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Vignette } from '@/lib/types/modules';
+import { supabaseClient as supabase } from '@/lib/supabase-client';
 import { MessageSquare, Filter } from 'lucide-react';
 
 const CONVERSATION_CATEGORIES = [

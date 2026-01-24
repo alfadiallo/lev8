@@ -56,8 +56,8 @@ export class ClaudeProvider implements ConversationProvider {
 
       // Extract response text
       const responseText = response.content
-        .filter((block: any) => block.type === 'text')
-        .map((block: any) => block.text)
+        .filter(block => block.type === 'text')
+        .map(block => (block as { type: 'text'; text: string }).text)
         .join('');
 
       // Analyze emotional impact
@@ -99,9 +99,9 @@ export class ClaudeProvider implements ConversationProvider {
           onChunk(chunk.delta.text);
         }
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('[ClaudeProvider] Streaming error:', error);
-      throw new Error(`Claude streaming error: ${error.message || 'Unknown error'}`);
+      throw new Error(`Claude streaming error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 

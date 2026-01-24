@@ -125,7 +125,7 @@ const PQ_ATTRIBUTES = [
 ];
 
 export default function EQPQIQForm({
-  residentId,
+  residentId: _residentId,
   residentName,
   raterType,
   periodLabel,
@@ -163,7 +163,7 @@ export default function EQPQIQForm({
     if (initialData) {
       const newValues: Record<string, number> = {};
       Object.keys(values).forEach((key) => {
-        newValues[key] = (initialData as any)[key] || 3.0;
+        newValues[key] = (initialData as Record<string, number>)[key] || 3.0;
       });
       setValues(newValues);
       
@@ -172,6 +172,7 @@ export default function EQPQIQForm({
         concerns_goals: initialData.concerns_goals || '',
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialData]);
 
   const handleValueChange = (key: string, value: number) => {

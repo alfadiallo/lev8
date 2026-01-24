@@ -46,6 +46,7 @@ export default function SWOTEvidenceModal({
     if (isOpen) {
       fetchComments();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, classYear, periodLabel, swotElement.description]);
 
   // Filter comments based on search query
@@ -88,9 +89,9 @@ export default function SWOTEvidenceModal({
       const data = await response.json();
       setComments(data.comments || []);
       setFilteredComments(data.comments || []);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error fetching comments:', err);
-      setError(err.message || 'Failed to load comments');
+      setError(err instanceof Error ? err.message : 'Failed to load comments');
     } finally {
       setLoading(false);
     }

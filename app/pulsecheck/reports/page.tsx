@@ -132,7 +132,7 @@ export default function PulseCheckReportsPage() {
   } = usePulseCheckUserContext();
 
   const [data, setData] = useState<ReportsData | null>(null);
-  const [_selectedSite, _setSelectedSite] = useState<string | null>(null);
+  const [selectedSite, setSelectedSite] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [_error, setError] = useState('');
   
@@ -184,6 +184,7 @@ export default function PulseCheckReportsPage() {
     };
 
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSite]);
 
   // Close share popup when clicking outside

@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user's creator profile
-    const { data: creator, error: creatorError } = await supabase
+    const { data: creator, error: _creatorError } = await supabase
       .from('studio_creators')
       .select('id, status')
       .eq('user_id', user.id)

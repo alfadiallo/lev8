@@ -108,7 +108,7 @@ export default function DifficultConversationDetailPage() {
   const vignetteData = vignette.vignette_data || {};
   
   // Get primary avatar based on version
-  let primaryAvatar: any = null;
+  let primaryAvatar: { name: string; role: string; color: string } | null = null;
   if (isV2 && vignetteData.avatars?.primaryAvatar) {
     const avatarKey = Object.keys(vignetteData.avatars.primaryAvatar)[0];
     const avatar = vignetteData.avatars.primaryAvatar[avatarKey];
@@ -218,7 +218,7 @@ export default function DifficultConversationDetailPage() {
                 <div>
                   <p className="text-sm font-medium text-neutral-700 mb-1">Learning Objectives:</p>
                   <ul className="text-sm text-neutral-600 space-y-1">
-                    {vignetteData.learningObjectives.map((obj: any, idx: number) => (
+                    {vignetteData.learningObjectives.map((obj: { objective: string }, idx: number) => (
                       <li key={idx}>• {obj.objective}</li>
                     ))}
                   </ul>

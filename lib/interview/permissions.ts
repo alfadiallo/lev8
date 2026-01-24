@@ -176,7 +176,7 @@ export function canViewAnalytics(context: InterviewUserContext | null): boolean 
 /**
  * Create a default guest context
  */
-export function createGuestContext(email: string): InterviewUserContext {
+export function createGuestContext(_email: string): InterviewUserContext {
   return {
     isLev8User: false,
     user: null,

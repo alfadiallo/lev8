@@ -43,8 +43,8 @@ export async function POST(request: NextRequest) {
 
     // Extract response text
     const responseText = response.content
-      .filter((block: any) => block.type === 'text')
-      .map((block: any) => block.text)
+      .filter(block => block.type === 'text')
+      .map(block => (block as { type: 'text'; text: string }).text)
       .join('');
 
     return NextResponse.json(
@@ -64,8 +64,8 @@ export async function POST(request: NextRequest) {
 }
 
 function buildSystemPrompt(
-  vignetteContext: any,
-  avatarPersonality: any,
+  vignetteContext: Record<string, unknown>,
+  avatarPersonality: Record<string, unknown>,
   difficulty: 'beginner' | 'intermediate' | 'advanced'
 ): string {
   const difficultyPrompts = {
@@ -91,7 +91,7 @@ CRITICAL CONTEXT:
 ${vignetteContext?.context || 'A medical incident has occurred.'}
 
 KNOWN FACTS (use these to ground your responses):
-${vignetteContext?.facts?.map((fact: string, i: number) => `${i + 1}. ${fact}`).join('\n') || 'No specific facts provided.'}
+${Array.isArray(vignetteContext?.facts) ? (vignetteContext.facts as string[]).map((fact: string, i: number) => `${i + 1}. ${fact}`).join('\n') : 'No specific facts provided.'}
 
 YOUR CHARACTER:
 - Name: ${avatarPersonality?.name || 'Unknown'}
@@ -106,7 +106,7 @@ RESPONSE RULES:
 2. Use the KNOWN FACTS above as general guidelines, but adapt to the specific details the doctor provides.
 3. Respond naturally as a ${avatarPersonality?.role || 'patient/family member'} would in this situation.
 4. Keep responses concise (2-3 sentences max).
-5. ${vignetteContext?.escalationTriggers?.length ? `If the user mentions any of these triggers: [${vignetteContext.escalationTriggers.join(', ')}], become more upset.` : ''}
+5. ${Array.isArray(vignetteContext?.escalationTriggers) && vignetteContext.escalationTriggers.length > 0 ? `If the user mentions any of these triggers: [${(vignetteContext.escalationTriggers as string[]).join(', ')}], become more upset.` : ''}
 6. Match the difficulty level's tone and traits.
 7. Ask for clarification if medical terms are used that a layperson would not understand.
 8. Show appropriate emotional responses based on the severity of the information provided.

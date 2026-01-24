@@ -2,7 +2,6 @@
 // Integrates emotional state, conversation history, information boundaries, and difficulty
 
 import {
-  ConversationContext,
   Message,
   VignetteV2,
   Difficulty,
@@ -224,7 +223,7 @@ CRITICAL INSTRUCTIONS:
   /**
    * Build conversation context summary
    */
-  private buildConversationContext(context?: any): string {
+  private buildConversationContext(_context?: unknown): string {
     const currentPhase = this.phaseManager.getCurrentPhase();
     const clinicalData = this.vignette.clinicalData;
 

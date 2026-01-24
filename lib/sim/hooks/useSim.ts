@@ -45,6 +45,7 @@ export function useSim(scenario: Scenario) {
       if (raf.current) cancelAnimationFrame(raf.current);
       last.current = null;
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ctx.currentId, node?.timer, scenario]);
 
   const choose = (choice: Choice) => {

@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
 
     // Calculate overall program statistics
     let totalEQ = 0, totalPQ = 0, totalIQ = 0, count = 0;
-    scoresData?.forEach((score: any) => {
+    scoresData?.forEach((score: { faculty_eq_avg?: number; faculty_pq_avg?: number; faculty_iq_avg?: number; resident_id?: string; residents?: { classes?: { graduation_year?: number } } }) => {
       if (score.faculty_eq_avg) {
         totalEQ += score.faculty_eq_avg;
         count++;
@@ -59,8 +59,8 @@ export async function GET(request: NextRequest) {
     };
 
     // Group by class year
-    const byClass = new Map<number, any>();
-    scoresData?.forEach((score: any) => {
+    const byClass = new Map<number, { class_year: number; eq_sum: number; pq_sum: number; iq_sum: number; count: number; residents: Set<string> }>();
+    scoresData?.forEach((score: { faculty_eq_avg?: number; faculty_pq_avg?: number; faculty_iq_avg?: number; resident_id?: string; residents?: { classes?: { graduation_year?: number } } }) => {
       const classYear = score.residents?.classes?.graduation_year;
       if (!classYear) return;
 
@@ -74,12 +74,12 @@ export async function GET(request: NextRequest) {
           residents: new Set()
         });
       }
-      const cls = byClass.get(classYear);
+      const cls = byClass.get(classYear)!;
       if (score.faculty_eq_avg) cls.eq_sum += score.faculty_eq_avg;
       if (score.faculty_pq_avg) cls.pq_sum += score.faculty_pq_avg;
       if (score.faculty_iq_avg) cls.iq_sum += score.faculty_iq_avg;
       cls.count += 1;
-      cls.residents.add(score.resident_id);
+      if (score.resident_id) cls.residents.add(score.resident_id);
     });
 
     const classStats = Array.from(byClass.values()).map(c => ({

@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
 
     // If session_id is provided, update existing session
     if (session_id) {
-      const updateData: any = {};
+      const updateData: Record<string, unknown> = {};
       if (current_state !== undefined) updateData.current_state = current_state;
       if (context_data !== undefined) updateData.context_data = context_data;
       if (choices_made !== undefined) updateData.choices_made = choices_made;

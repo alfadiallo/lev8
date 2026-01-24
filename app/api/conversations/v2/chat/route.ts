@@ -7,6 +7,7 @@ import { ConversationEngine, ConversationEngineConfig } from '@/lib/conversation
 import { createProvider } from '@/lib/conversations/v2/modelProviders/index';
 import { isVignetteV2 } from '@/lib/types/modules';
 import { VignetteV2 } from '@/lib/types/difficult-conversations';
+import type { AIModel } from '@/lib/types/difficult-conversations';
 
 export async function POST(request: NextRequest) {
   try {
@@ -64,8 +65,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Extract v2 structure from vignette_data
-    const vignetteData = vignetteRecord.vignette_data as any;
-    const vignetteV2: VignetteV2 = {
+    const vignetteData = vignetteRecord.vignette_data as Partial<VignetteV2>;
+    const vignetteV2 = {
       ...vignetteData,
       // Ensure required fields from database are included
       id: vignetteRecord.id,
@@ -75,7 +76,7 @@ export async function POST(request: NextRequest) {
       subcategory: vignetteRecord.subcategory || undefined,
       difficulty: vignetteRecord.difficulty,
       estimatedDuration: vignetteRecord.estimated_duration_minutes || 15,
-    };
+    } as VignetteV2;
 
     // Validate difficulty
     if (!vignetteV2.difficulty.includes(difficulty)) {
@@ -87,10 +88,10 @@ export async function POST(request: NextRequest) {
 
     // Create model provider based on vignette configuration
     const provider = createProvider({
-      model: vignetteV2.aiModel,
+      model: vignetteV2.aiModel as AIModel,
       maxTokens: vignetteV2.maxResponseLength || 500,
       temperature: 0.7,
-    } as any);
+    });
 
     // Create conversation engine configuration
     const engineConfig: ConversationEngineConfig = {

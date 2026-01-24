@@ -95,7 +95,7 @@ export default function ScoresPage() {
   const router = useRouter();
   const { user } = useAuth();
   const userRole = user?.role;
-  const canEdit = userRole === 'program_director' || userRole === 'admin' || userRole === 'super_admin';
+  const _canEdit = userRole === 'program_director' || userRole === 'admin' || userRole === 'super_admin';
   
   const [loading, setLoading] = useState(true);
   const [classGroups, setClassGroups] = useState<ClassGroup[]>([]);
@@ -186,14 +186,14 @@ export default function ScoresPage() {
           };
         }
 
-        const resIte = iteScores?.filter((s: any) => s.resident_id === res.id) || [];
-        const resOther = otherScores?.filter((s: any) => s.resident_id === res.id) || [];
+        const resIte = iteScores?.filter((s: { resident_id: string }) => s.resident_id === res.id) || [];
+        const resOther = otherScores?.filter((s: { resident_id: string }) => s.resident_id === res.id) || [];
 
         const getIte = (pgy: number) => {
-          return resIte.find((x: any) => x.pgy_level == pgy || x.pgy_level == `PGY-${pgy}` || x.pgy_level === pgy);
+          return resIte.find((x: { pgy_level: string | number; raw_score?: number; percentile?: number; id?: string }) => x.pgy_level == pgy || x.pgy_level == `PGY-${pgy}` || x.pgy_level === pgy);
         };
 
-        const getExam = (type: string) => resOther.find((x: any) => x.exam_type === type);
+        const getExam = (type: string) => resOther.find((x: { exam_type: string; score?: number; percentile?: number; year_taken?: number; id?: string }) => x.exam_type === type);
 
         const usmle1 = getExam('USMLE Step 1');
         const usmle2 = getExam('USMLE Step 2');
@@ -293,7 +293,7 @@ export default function ScoresPage() {
     try {
       setLoading(true);
       
-      const changes = new Map<string, any>();
+      const changes = new Map<string, { score?: number | null; percentile?: number | null; year?: number | null }>();
 
       Object.entries(editValues).forEach(([key, value]) => {
         const lastDash = key.lastIndexOf('-');
@@ -307,7 +307,10 @@ export default function ScoresPage() {
         if (!changes.has(compositeKey)) changes.set(compositeKey, {});
         
         const numericVal = value === '' ? null : (field === 'year' ? parseInt(value) : parseFloat(value));
-        changes.get(compositeKey)[field] = numericVal;
+        const changeObj = changes.get(compositeKey)!;
+        if (field === 'score') changeObj.score = numericVal;
+        else if (field === 'percentile') changeObj.percentile = numericVal;
+        else if (field === 'year') changeObj.year = numericVal;
       });
 
       for (const [key, data] of changes.entries()) {
@@ -362,7 +365,7 @@ export default function ScoresPage() {
               .maybeSingle();
               
             if (existing) {
-              const updateData: any = { updated_at: new Date().toISOString() };
+              const updateData: { updated_at: string; score?: number | null; percentile?: number | null; year_taken?: number | null } = { updated_at: new Date().toISOString() };
               if (data.score !== undefined) updateData.score = data.score;
               if (data.percentile !== undefined) updateData.percentile = data.percentile;
               if (data.year !== undefined) updateData.year_taken = data.year;

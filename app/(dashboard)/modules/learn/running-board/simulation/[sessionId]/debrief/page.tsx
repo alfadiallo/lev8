@@ -64,6 +64,7 @@ export default function DebriefPage() {
 
   useEffect(() => {
     loadDebrief();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
   const loadDebrief = async () => {

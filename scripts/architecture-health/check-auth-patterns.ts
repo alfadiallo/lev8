@@ -190,7 +190,9 @@ async function main() {
     
     // Write report to file
     const reportPath = join(process.cwd(), 'docs', 'optimization', 'auth-pattern-compliance.md');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     await require('fs').promises.mkdir(join(process.cwd(), 'docs', 'optimization'), { recursive: true });
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     await require('fs').promises.writeFile(reportPath, report);
     console.log(`\n📄 Report written to: ${reportPath}`);
     

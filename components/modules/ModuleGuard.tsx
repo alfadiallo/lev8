@@ -30,6 +30,7 @@ export default function ModuleGuard({ children, availableToRoles, fallback }: Mo
   });
   
   // Memoize the access check to prevent unnecessary re-renders
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const hasAccess = useMemo(
     () => {
       const access = hasModuleAccess(availableToRoles);

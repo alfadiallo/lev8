@@ -30,14 +30,14 @@ export default function AccountSettingsPage() {
     role: 'resident'
   };
 
-  const displayUser = (user as Record<string, unknown>) || mockUser;
+  const displayUser = (user as unknown as Record<string, unknown>) || mockUser;
 
   useEffect(() => {
     if (displayUser) {
       setFormData({
-        full_name: displayUser.full_name || '',
-        email: displayUser.email || '',
-        phone: displayUser.phone || '',
+        full_name: String(displayUser.full_name || ''),
+        email: String(displayUser.email || ''),
+        phone: String(displayUser.phone || ''),
       });
     }
   }, [displayUser]);
@@ -200,9 +200,9 @@ export default function AccountSettingsPage() {
                 onClick={() => {
                   setIsEditing(false);
                   setFormData({
-                    full_name: displayUser.full_name || '',
-                    email: displayUser.email || '',
-                    phone: displayUser.phone || '',
+                    full_name: String(displayUser.full_name || ''),
+                    email: String(displayUser.email || ''),
+                    phone: String(displayUser.phone || ''),
                   });
                 }}
                 className="px-6 py-2 border border-white/40 text-neutral-700 rounded-2xl hover:bg-white/20 transition-colors"
@@ -227,7 +227,7 @@ export default function AccountSettingsPage() {
             </div>
             <div>
               <div className="text-sm font-medium text-neutral-600">Role</div>
-              <div className="mt-1 text-neutral-800 capitalize">{displayUser.role || 'Not set'}</div>
+              <div className="mt-1 text-neutral-800 capitalize">{String(displayUser.role || 'Not set')}</div>
             </div>
           </div>
         )}
@@ -319,7 +319,7 @@ export default function AccountSettingsPage() {
         <div className="bg-white/30 rounded-2xl p-4 space-y-2 text-sm border border-white/20">
           <div className="flex justify-between">
             <span className="text-neutral-600">User ID:</span>
-            <span className="text-neutral-800 font-mono text-xs">{displayUser.id}</span>
+            <span className="text-neutral-800 font-mono text-xs">{String(displayUser.id || '')}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-neutral-600">Last Login:</span>

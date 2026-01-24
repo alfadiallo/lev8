@@ -32,6 +32,7 @@ export default function HistoricalComparison({
 
   useEffect(() => {
     fetchHistoricalData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [periodLabel, swotType, excludeClassYear]);
 
   const fetchHistoricalData = async () => {

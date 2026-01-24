@@ -38,6 +38,7 @@ export default function RunningBoardSimulationPage() {
   // Load session data
   useEffect(() => {
     loadSession();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
   // Timer effect

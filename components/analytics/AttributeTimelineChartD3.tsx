@@ -1,7 +1,7 @@
 // D3.js Line Chart for EQ/PQ/IQ Attribute Scores Over Time
 'use client';
 
-import React, { useMemo, useEffect, useState, useRef, useCallback } from 'react';
+import React, { useMemo, useEffect, useRef, useCallback } from 'react';
 import { Info } from 'lucide-react';
 import * as d3 from 'd3';
 
@@ -94,7 +94,7 @@ function shortPeriod(period: string): string {
   return period.replace('PGY-', '').replace(' Fall', 'F').replace(' Spring', 'S');
 }
 
-export function AttributeTimelineChartD3({ allPeriodScores, residentId, classYear }: AttributeTimelineChartD3Props) {
+export function AttributeTimelineChartD3({ allPeriodScores, residentId: _residentId, classYear: _classYear }: AttributeTimelineChartD3Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
 
@@ -290,6 +290,7 @@ export function AttributeTimelineChartD3({ allPeriodScores, residentId, classYea
         .text(val);
     });
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sortedPeriodLabels, getScore, showTooltip, hideTooltip]);
 
   // Single attribute chart component

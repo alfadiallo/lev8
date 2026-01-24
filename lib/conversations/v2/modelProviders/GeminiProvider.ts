@@ -62,9 +62,9 @@ export class GeminiProvider implements ConversationProvider {
         emotionDelta,
         shouldEscalate: emotionDelta > 0.2,
       };
-    } catch (error: any) {
+    } catch (error) {
       console.error('[GeminiProvider] Error:', error);
-      throw new Error(`Gemini API error: ${error.message || 'Unknown error'}`);
+      throw new Error(`Gemini API error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -91,9 +91,9 @@ export class GeminiProvider implements ConversationProvider {
         const chunkText = chunk.text();
         onChunk(chunkText);
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('[GeminiProvider] Streaming error:', error);
-      throw new Error(`Gemini streaming error: ${error.message || 'Unknown error'}`);
+      throw new Error(`Gemini streaming error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 

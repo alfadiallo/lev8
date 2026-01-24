@@ -58,7 +58,7 @@ export default function CreateSessionModal({ onClose, onCreated }: CreateSession
 
       // Try to fetch residents with PGY info using the view
       // Filter to only active classes (graduation_year >= current year)
-      const { data: residentData, error: viewError } = await supabaseClient
+      let { data: residentData, error: viewError } = await supabaseClient
         .from('residents_with_pgy')
         .select('id, full_name, anon_code, graduation_year, class_name, current_pgy_level')
         .gte('graduation_year', 2026) // Only current residents (not graduated)

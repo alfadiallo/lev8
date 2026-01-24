@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkApiPermission } from '@/lib/auth/checkApiPermission';
 import { getServiceSupabaseClient } from '@/lib/supabase/server';
-import { calculatePGYLevel } from '@/lib/utils/pgy-calculator';
 
 export async function GET(request: NextRequest) {
   const authResult = await checkApiPermission(request, { minimumRole: 'faculty' });
@@ -14,7 +13,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // Fetch residents
-    let residentsData: any[] = [];
+    let residentsData: Record<string, unknown>[] = [];
     
     const { data: viewData, error: viewError } = await supabase
       .from('residents_with_pgy')
@@ -36,12 +35,16 @@ export async function GET(request: NextRequest) {
       if (fallbackError) throw fallbackError;
       
       // Transform fallback data to match view format
-      residentsData = (fallbackData || []).map((r: any) => ({
-        id: r.id,
-        full_name: r.user_profiles?.full_name || 'Unknown Resident',
-        anon_code: r.anon_code || 'R000',
-        graduation_year: r.classes?.graduation_year || 2027
-      }));
+      residentsData = (fallbackData || []).map((r) => {
+        const userProfiles = r.user_profiles as { full_name?: string } | null;
+        const classes = r.classes as { graduation_year?: number } | null;
+        return {
+          id: r.id,
+          full_name: userProfiles?.full_name || 'Unknown Resident',
+          anon_code: r.anon_code || 'R000',
+          graduation_year: classes?.graduation_year || 2027
+        };
+      });
     }
 
     // Fetch ITE scores
@@ -52,11 +55,11 @@ export async function GET(request: NextRequest) {
     if (iteError) throw iteError;
 
     // Fetch Exam scores (USMLE, COMLEX, Boards) - handle if table doesn't exist
-    let otherScores: any[] = [];
+    let otherScores: Record<string, unknown>[] = [];
     try {
       const { data, error } = await supabase.from('exam_scores').select('*');
       if (!error && data) otherScores = data;
-    } catch (e) {
+    } catch {
       console.warn('exam_scores table might not exist yet');
     }
 

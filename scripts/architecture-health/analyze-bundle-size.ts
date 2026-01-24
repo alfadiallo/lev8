@@ -6,7 +6,7 @@
  * Compares against performance budgets.
  */
 
-import { readFile, readdir } from 'fs/promises';
+import { readFile } from 'fs/promises';
 import { join } from 'path';
 import { execSync } from 'child_process';
 
@@ -52,6 +52,7 @@ async function analyzeBuildOutput(): Promise<BundleAnalysis> {
   try {
     const jsFiles = await glob('chunks/**/*.js', { cwd: staticDir, absolute: true });
     for (const file of jsFiles) {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const stats = await require('fs').promises.stat(file);
       chunks.push({
         name: file.replace(staticDir + '/', ''),
@@ -67,6 +68,7 @@ async function analyzeBuildOutput(): Promise<BundleAnalysis> {
   try {
     const cssFiles = await glob('**/*.css', { cwd: staticDir, absolute: true });
     for (const file of cssFiles) {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const stats = await require('fs').promises.stat(file);
       cssSize += stats.size;
     }
@@ -160,7 +162,9 @@ async function main() {
     
     // Write report to file
     const reportPath = join(process.cwd(), 'docs', 'optimization', 'bundle-size-analysis.md');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     await require('fs').promises.mkdir(join(process.cwd(), 'docs', 'optimization'), { recursive: true });
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     await require('fs').promises.writeFile(reportPath, report);
     console.log(`\n📄 Report written to: ${reportPath}`);
     

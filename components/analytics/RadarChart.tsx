@@ -73,7 +73,9 @@ export default function RadarChart({ facultyData, selfData }: RadarChartProps) {
   ];
 
   // Custom tick component for color-coded labels
-  const CustomTick = ({ payload, x, y, textAnchor, radius }: { payload: { index: number; value: string }; x: number; y: number; textAnchor: string; stroke?: string; radius?: number }) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const CustomTick = (props: any) => {
+    const { payload, x, y, textAnchor, radius } = props;
     const section = chartData[payload.index]?.section || '';
     const colors: Record<string, string> = {
       'EQ': '#FF6B9D', // Pink for EQ
@@ -165,8 +167,8 @@ export default function RadarChart({ facultyData, selfData }: RadarChartProps) {
                 padding: '10px 14px',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
               }}
-              formatter={(value: unknown, name: string) => [
-                typeof value === 'number' ? value.toFixed(1) : value,
+              formatter={(value: number | string, name: string) => [
+                typeof value === 'number' ? value.toFixed(1) : String(value),
                 name
               ]}
             />

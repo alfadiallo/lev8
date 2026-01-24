@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const directorId = searchParams.get('director_id');
     const departmentId = searchParams.get('department_id');
-    const siteId = searchParams.get('site_id');
+    const _siteId = searchParams.get('site_id');
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 

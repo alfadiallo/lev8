@@ -4,7 +4,7 @@
 import { ConversationProvider, ProviderConfig } from './ConversationProvider';
 import { GeminiProvider } from './GeminiProvider';
 import { ClaudeProvider } from './ClaudeProvider';
-import { AIModel } from '../../../types/difficult-conversations';
+// AIModel type is re-exported from types
 
 export function createProvider(config: ProviderConfig): ConversationProvider {
   const model = config.model;

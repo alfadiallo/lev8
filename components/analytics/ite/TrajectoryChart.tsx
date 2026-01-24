@@ -62,7 +62,7 @@ export default function TrajectoryChart({
   similarResidents,
   classAverage
 }: TrajectoryChartProps) {
-  const [hoveredLine, setHoveredLine] = useState<string | null>(null);
+  const [_hoveredLine, setHoveredLine] = useState<string | null>(null);
   const [isClient, setIsClient] = React.useState(false);
 
   React.useEffect(() => {
@@ -101,11 +101,11 @@ export default function TrajectoryChart({
   }, [currentScores, classAverage, archetypeData, similarResidents]);
 
   // Memoize handlers
-  const handleMouseEnter = useCallback((lineKey: string) => {
+  const _handleMouseEnter = useCallback((lineKey: string) => {
     setHoveredLine(lineKey);
   }, []);
 
-  const handleMouseLeave = useCallback(() => {
+  const _handleMouseLeave = useCallback(() => {
     setHoveredLine(null);
   }, []);
 

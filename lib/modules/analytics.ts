@@ -1,7 +1,6 @@
 // Analytics tracking utilities for all modules
 
 import { supabase } from '@/lib/supabase';
-import { SessionMetrics } from '@/lib/types/modules';
 
 export interface SessionAnalytics {
   sessionId: string;
@@ -15,7 +14,7 @@ export interface SessionAnalytics {
   keywordsMatched: Record<string, any>;
   personalityAlignmentScore?: number;
   emotionalTone?: string;
-  moduleSpecificMetrics?: Record<string, any>;
+  moduleSpecificMetrics?: Record<string, unknown>;
 }
 
 export class AnalyticsService {
@@ -105,7 +104,7 @@ export class AnalyticsService {
    * Calculate empathy score using v2 AssessmentEngine
    * Note: For v2 conversations, use AssessmentEngine.assessConversation() instead
    */
-  static calculateEmpathyScore(messages: Array<{ text: string }>): number {
+  static calculateEmpathyScore(_messages: Array<{ text: string }>): number {
     // Legacy v1 method - placeholder
     // For v2 conversations, use AssessmentEngine directly
     return 0;
@@ -125,7 +124,7 @@ export class AnalyticsService {
    * Calculate de-escalation score using v2 AssessmentEngine
    * Note: For v2 conversations, use AssessmentEngine.assessConversation() instead
    */
-  static calculateDeEscalationScore(messages: Array<{ text: string }>): number {
+  static calculateDeEscalationScore(_messages: Array<{ text: string }>): number {
     // Legacy v1 method - placeholder
     // For v2 conversations, use AssessmentEngine directly
     // Note: De-escalation can be inferred from emotional state trajectory

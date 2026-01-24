@@ -39,8 +39,9 @@ export default function ClassCohortPage() {
         .select('class_id, classes!inner(graduation_year)');
 
       const countMap = new Map<number, number>();
-      residents?.forEach((r: { classes?: { graduation_year?: number } }) => {
-        const year = r.classes?.graduation_year;
+      residents?.forEach((r) => {
+        const classObj = r.classes as unknown as { graduation_year?: number };
+        const year = classObj?.graduation_year;
         if (year) {
           countMap.set(year, (countMap.get(year) || 0) + 1);
         }

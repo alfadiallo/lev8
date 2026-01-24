@@ -12,7 +12,7 @@ export interface SessionData {
   endTime?: Date;
   messages: Message[];
   metrics: SessionMetrics;
-  sessionData?: Record<string, any>;
+  sessionData?: Record<string, unknown>;
   completed: boolean;
   aiProvider?: string;
   sessionDurationSeconds?: number;
@@ -63,7 +63,7 @@ export class SessionStorageService {
    */
   static async updateSession(sessionId: string, updates: Partial<SessionData>): Promise<void> {
     try {
-      const updateData: any = {};
+      const updateData: Record<string, unknown> = {};
 
       if (updates.endTime) updateData.end_time = updates.endTime.toISOString();
       if (updates.messages) {

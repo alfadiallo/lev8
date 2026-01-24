@@ -44,9 +44,9 @@ export default function ProgramSettingsPage() {
       }
       const data = await response.json();
       setProgramData(data.program);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error fetching program data:', err);
-      setError(err.message);
+      setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setIsLoading(false);
     }

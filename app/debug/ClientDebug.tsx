@@ -6,8 +6,8 @@ import { supabaseClient } from '@/lib/supabase-client';
 export function ClientDebug() {
   const [getSessionStatus, setGetSessionStatus] = useState('Checking...');
   const [getUserStatus, setGetUserStatus] = useState('Checking...');
-  const [session, setSession] = useState<any>(null);
-  const [user, setUser] = useState<any>(null);
+  const [session, setSession] = useState<{ expires_at?: number; access_token: string } | null>(null);
+  const [user, setUser] = useState<{ id: string } | null>(null);
   const [sessionError, setSessionError] = useState<string | null>(null);
   const [userError, setUserError] = useState<string | null>(null);
   const [cookies, setCookies] = useState<string>('');
@@ -68,9 +68,9 @@ export function ClientDebug() {
         } else {
           setGetUserStatus('❌ No User');
         }
-      } catch (e: any) {
+      } catch (e) {
         setGetUserStatus('❌ Exception');
-        setUserError(e.message);
+        setUserError(e instanceof Error ? e.message : 'Unknown error');
       }
     };
     

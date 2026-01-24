@@ -73,7 +73,7 @@ export default function ClinicalCaseDetailPage() {
     }
   };
 
-  const handleSaveProgress = async (progressData: Record<string, any>, completed: boolean, score?: number) => {
+  const handleSaveProgress = async (progressData: Record<string, unknown>, completed: boolean, score?: number) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {

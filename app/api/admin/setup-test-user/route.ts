@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 // This is a one-time setup endpoint - should be removed or protected in production
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     // Create admin client with service role key
     const supabaseAdmin = createClient(

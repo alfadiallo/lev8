@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
         const userIdMap = new Map(residentUserData?.map(r => [r.id, r.user_id]) || []);
         const profileMap = new Map(profileData?.map(p => [p.id, p]) || []);
 
-        residents = fallbackData.map((r: any) => {
+        residents = fallbackData.map((r) => {
           const classesRaw = r.classes as unknown;
           let graduationYear = 0;
           let className = '';

@@ -22,7 +22,7 @@ export async function uploadTruthDocument(
   const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
   const storagePath = `${metadata.category}/${timestamp}-${sanitizedFileName}`;
   
-  const { data, error } = await supabase.storage
+  const { data: _data, error } = await supabase.storage
     .from('truth-documents')
     .upload(storagePath, file, {
       cacheControl: '3600',

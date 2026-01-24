@@ -5,13 +5,23 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import EQPQIQForm, { FormData } from '@/components/forms/EQPQIQForm';
 
+interface ResidentData {
+  resident_id: string;
+  full_name: string;
+  graduation_year?: number;
+}
+
+interface ExistingAssessment extends FormData {
+  id: string;
+}
+
 export default function SelfAssessmentPage() {
   const router = useRouter();
   const { user } = useAuth();
   
-  const [residentData, setResidentData] = useState<Record<string, unknown> | null>(null);
+  const [residentData, setResidentData] = useState<ResidentData | null>(null);
   const [currentPeriod, setCurrentPeriod] = useState<string>('');
-  const [existingAssessment, setExistingAssessment] = useState<Record<string, unknown> | null>(null);
+  const [existingAssessment, setExistingAssessment] = useState<ExistingAssessment | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -71,6 +81,11 @@ export default function SelfAssessmentPage() {
   };
 
   const handleSubmit = async (formData: FormData) => {
+    if (!residentData) {
+      setError('Resident data not loaded');
+      return;
+    }
+    
     try {
       const payload = {
         resident_id: residentData.resident_id,
@@ -197,7 +212,7 @@ export default function SelfAssessmentPage() {
             raterType="self"
             periodLabel={currentPeriod}
             onSubmit={handleSubmit}
-            initialData={existingAssessment}
+            initialData={existingAssessment ?? undefined}
             isEditMode={!!existingAssessment}
           />
         )}

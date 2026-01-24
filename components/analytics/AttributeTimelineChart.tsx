@@ -111,9 +111,9 @@ function formatPeriod(period: string): string {
   return period; // Keep full name: "PGY-1 Fall", "PGY-2 Spring", etc.
 }
 
-export function AttributeTimelineChart({ allPeriodScores, residentId, classYear }: AttributeTimelineChartProps) {
+export function AttributeTimelineChart({ allPeriodScores, residentId, classYear: _classYear }: AttributeTimelineChartProps) {
   const [trendlineData, setTrendlineData] = useState<TrendlineData | null>(null);
-  const [loadingTrendlines, setLoadingTrendlines] = useState(false);
+  const [_loadingTrendlines, setLoadingTrendlines] = useState(false);
 
   // Fetch trendline data when residentId is available
   useEffect(() => {
@@ -164,7 +164,7 @@ export function AttributeTimelineChart({ allPeriodScores, residentId, classYear 
     const periodData = validPeriods.find(p => p.period_label === periodLabel);
     if (!periodData?.ai_scores_detail) return 0;
     const categoryData = periodData.ai_scores_detail[category];
-    return Number((categoryData as any)[attrKey]) || 0;
+    return Number((categoryData as Record<string, number>)[attrKey]) || 0;
   };
 
   // Calculate trendline for a given data series

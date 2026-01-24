@@ -182,8 +182,8 @@ export class PhaseManager {
   private evaluateCondition(
     condition: string,
     userMessage: string,
-    emotionalState: number,
-    context: Record<string, any>
+    _emotionalState: number,
+    context: Record<string, unknown>
   ): boolean {
     const message = userMessage.toLowerCase();
     
@@ -200,10 +200,11 @@ export class PhaseManager {
         return this.matchesDefensivePattern(message);
       
       case 'objective_completed':
-        return (context.objectivesCompleted?.length || 0) >= (context.totalObjectives || 1);
+        const objectives = context.objectivesCompleted as unknown[] | undefined;
+        return (objectives?.length || 0) >= (Number(context.totalObjectives) || 1);
       
       case 'time_elapsed':
-        return (context.phaseDuration || 0) >= (context.minDuration || 0);
+        return (Number(context.phaseDuration) || 0) >= (Number(context.minDuration) || 0);
       
       default:
         // For custom conditions, check if message contains condition keywords
@@ -250,7 +251,7 @@ export class PhaseManager {
    * Check for automatic phase progression
    */
   private checkAutomaticProgression(
-    context: Record<string, any>
+    context: Record<string, unknown>
   ): PhaseTransition | null {
     const currentPhase = this.getCurrentPhase();
     const phaseIndex = this.vignette.conversation.phases.findIndex(
@@ -269,7 +270,7 @@ export class PhaseManager {
 
     // Check minimum time in phase (if specified)
     const minDuration = this.parsePhaseDuration(currentPhase.duration);
-    const timeElapsed = context.phaseDuration || this.currentPhaseState.timeInPhase;
+    const timeElapsed = Number(context.phaseDuration) || this.currentPhaseState.timeInPhase;
     const timeRequirementMet = timeElapsed >= minDuration;
 
     // Progress if objectives complete and time requirement met

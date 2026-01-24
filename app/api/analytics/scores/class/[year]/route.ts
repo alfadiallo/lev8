@@ -37,7 +37,7 @@ export async function GET(
       );
     }
 
-    const residentIds = residents?.map((r: any) => r.id) || [];
+    const residentIds = residents?.map((r: { id: string }) => r.id) || [];
 
     if (residentIds.length === 0) {
       return NextResponse.json({
@@ -64,8 +64,8 @@ export async function GET(
     }
 
     // Calculate class averages by period
-    const periodAverages = new Map<string, any>();
-    scoresData?.forEach((score: any) => {
+    const periodAverages = new Map<string, { period_label: string; eq_sum: number; pq_sum: number; iq_sum: number; count: number }>();
+    scoresData?.forEach((score: { period_label: string; faculty_eq_avg?: number; faculty_pq_avg?: number; faculty_iq_avg?: number }) => {
       if (!periodAverages.has(score.period_label)) {
         periodAverages.set(score.period_label, {
           period_label: score.period_label,
@@ -75,7 +75,7 @@ export async function GET(
           count: 0
         });
       }
-      const period = periodAverages.get(score.period_label);
+      const period = periodAverages.get(score.period_label)!;
       if (score.faculty_eq_avg) period.eq_sum += score.faculty_eq_avg;
       if (score.faculty_pq_avg) period.pq_sum += score.faculty_pq_avg;
       if (score.faculty_iq_avg) period.iq_sum += score.faculty_iq_avg;

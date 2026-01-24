@@ -55,6 +55,7 @@ export default function RequirementDetailModal({
       fetchComplianceData();
       fetchTruthsDocument();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, requirement]);
 
   const fetchComplianceData = async () => {
@@ -84,7 +85,7 @@ export default function RequirementDetailModal({
       const response = await fetch('/api/truths');
       if (response.ok) {
         const data = await response.json();
-        const cprDoc = data.documents?.find((doc: any) => 
+        const cprDoc = data.documents?.find((doc: { title?: string; id: string }) => 
           doc.title?.toLowerCase().includes('common program requirements') ||
           doc.title?.toLowerCase().includes('acgme') ||
           doc.title?.toLowerCase().includes('cpr')
@@ -142,7 +143,7 @@ export default function RequirementDetailModal({
     }
   };
 
-  const getStatusIcon = (status: ComplianceStatus) => {
+  const _getStatusIcon = (status: ComplianceStatus) => {
     switch (status) {
       case 'compliant':
         return <CheckCircle2 className="text-emerald-600" size={20} />;
@@ -158,7 +159,7 @@ export default function RequirementDetailModal({
   if (!isOpen || !requirement) return null;
 
   const riskConfig = RISK_CONFIG[requirement.risk_level as RiskLevel];
-  const statusConfig = STATUS_CONFIG[complianceData.status];
+  const _statusConfig = STATUS_CONFIG[complianceData.status];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">

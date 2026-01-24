@@ -93,6 +93,7 @@ export default function TenantDashboardPage() {
     },
   ];
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const modules = useMemo(() => {
     // Filter base modules based on role
     const result = baseModules.filter(module => {

@@ -137,7 +137,7 @@ export default function CaseInterface({ case_, attempt, onSaveProgress }: CaseIn
                 )}
                 {question.type === 'text' && (
                   <textarea
-                    value={answers[question.id || index.toString()] || ''}
+                    value={String(answers[question.id || index.toString()] || '')}
                     onChange={(e) => handleAnswer(question.id || index.toString(), e.target.value)}
                     className="w-full p-3 rounded-xl border border-white/40 bg-white/30 text-neutral-700 focus:outline-none focus:ring-2 focus:ring-[#7EC8E3]"
                     rows={4}

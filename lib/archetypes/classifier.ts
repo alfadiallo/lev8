@@ -197,12 +197,18 @@ async function findSimilarResidents(
   for (const row of allScores) {
     const resId = row.resident_id;
     if (!residentMap.has(resId)) {
-      // Safe navigation
-      const res = Array.isArray(row.residents) ? row.residents[0] : row.residents;
+      // Safe navigation - Supabase returns relations as either object or array
+      const res = (Array.isArray(row.residents) ? row.residents[0] : row.residents) as { 
+        user_profiles?: { full_name?: string } | { full_name?: string }[] | null; 
+        classes?: { graduation_year?: number } | { graduation_year?: number }[] | null;
+      } | null;
       if (!res) continue; 
       
-      const name = res.user_profiles?.full_name || 'Unknown';
-      const year = res.classes?.graduation_year || 0;
+      // Handle nested relations which may also be arrays
+      const userProfile = Array.isArray(res.user_profiles) ? res.user_profiles[0] : res.user_profiles;
+      const classData = Array.isArray(res.classes) ? res.classes[0] : res.classes;
+      const name = userProfile?.full_name || 'Unknown';
+      const year = classData?.graduation_year || 0;
       
       residentMap.set(resId, {
         id: resId,

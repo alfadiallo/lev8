@@ -221,13 +221,13 @@ export async function POST(request: NextRequest) {
       ? new Date(body.evaluation_date) 
       : new Date();
     
-    const graduationYear = (resident as any).classes?.graduation_year;
+    const graduationYear = (resident as { classes?: { graduation_year?: number } }).classes?.graduation_year;
     const pgyLevel = graduationYear ? calculatePGYLevel(graduationYear, evaluationDate) : null;
     const period = pgyLevel ? determinePeriod(pgyLevel, evaluationDate) : null;
     const periodLabel = pgyLevel && period ? `${pgyLevel} ${period}` : null;
 
     // Build insert data
-    const insertData: Record<string, any> = {
+    const insertData: Record<string, unknown> = {
       resident_id,
       rater_type,
       evaluation_date: evaluationDate.toISOString().split('T')[0],

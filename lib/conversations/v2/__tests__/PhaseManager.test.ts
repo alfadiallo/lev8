@@ -45,7 +45,7 @@ describe('PhaseManager', () => {
     });
 
     it('should detect medical jargon', () => {
-      const transition = phaseManager.evaluateBranch(
+      const _transition = phaseManager.evaluateBranch(
         'The patient experienced iatrogenic ventricular fibrillation due to adenosine administration.',
         0.6,
         {}
@@ -57,7 +57,7 @@ describe('PhaseManager', () => {
     });
 
     it('should detect defensive patterns', () => {
-      const transition = phaseManager.evaluateBranch(
+      const _transition = phaseManager.evaluateBranch(
         "It's not my fault, I was following protocol.",
         0.7,
         {}

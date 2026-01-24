@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
         vignette_title,
         module_type: 'vignette',
         difficulty,
-        messages: messages.map((msg: any) => ({
+        messages: messages.map((msg: { timestamp: string | Date; [key: string]: unknown }) => ({
           ...msg,
           timestamp: typeof msg.timestamp === 'string' ? msg.timestamp : msg.timestamp.toISOString(),
         })),

@@ -3,7 +3,6 @@
 
 import {
   EmotionalState,
-  ConversationPhase,
   VignetteV2,
   Difficulty,
 } from '../../types/difficult-conversations';
@@ -144,7 +143,7 @@ export class EmotionalStateTracker {
    */
   private getModifierReason(
     modifierType: string,
-    context?: Record<string, any>
+    _context?: Record<string, unknown>
   ): string {
     const reasons: Record<string, string> = {
       empathyShown: 'Learner showed empathy',

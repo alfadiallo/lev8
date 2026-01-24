@@ -230,7 +230,7 @@ export async function middleware(request: NextRequest) {
     // ========================================================================
     
     // Paths that residents ARE allowed to access
-    const RESIDENT_ALLOWED_PATHS = [
+    const _RESIDENT_ALLOWED_PATHS = [
       '/dashboard',
       '/modules/learn',
       '/settings',

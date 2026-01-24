@@ -83,7 +83,7 @@ export class PatternMatcher {
   private matchPatterns(
     message: string,
     patterns: string[],
-    category: string
+    _category: string
   ): PatternMatch[] {
     const matches: PatternMatch[] = [];
     const text = this.config.caseInsensitive ? message.toLowerCase() : message;

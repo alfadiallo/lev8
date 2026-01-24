@@ -29,11 +29,25 @@ export async function GET(
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
 
-    // Check access: either creator, share token, or public
-    const hasAccess = 
+    // Check access: creator, share token, public, or assigned interviewer
+    let hasAccess = 
       session.creator_email === email?.toLowerCase() ||
       session.share_token === shareToken ||
       session.is_public;
+
+    // Also check if user is an assigned interviewer for this session
+    if (!hasAccess && email) {
+      const { data: interviewerRecord } = await supabase
+        .from('interview_session_interviewers')
+        .select('id')
+        .eq('session_id', sessionId)
+        .eq('interviewer_email', email.toLowerCase())
+        .single();
+      
+      if (interviewerRecord) {
+        hasAccess = true;
+      }
+    }
 
     if (!hasAccess) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });

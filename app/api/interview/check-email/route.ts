@@ -193,7 +193,25 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const permission = getInterviewPermission(user?.role || null);
+    // First check user_profiles role
+    let permission = getInterviewPermission(user?.role || null);
+    
+    // Also check if they have program_director role in interview_session_interviewers
+    // This handles the case where someone is a PD for interviews but not in user_profiles
+    if (permission === 'guest' || permission === 'faculty') {
+      const { data: interviewerRole } = await supabase
+        .from('interview_session_interviewers')
+        .select('role')
+        .eq('interviewer_email', email.toLowerCase())
+        .eq('role', 'program_director')
+        .limit(1)
+        .single();
+      
+      if (interviewerRole) {
+        permission = 'program_director';
+      }
+    }
+    
     const capabilities = PERMISSION_CAPABILITIES[permission];
 
     return NextResponse.json({

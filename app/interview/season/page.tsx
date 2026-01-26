@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   ArrowLeft, Users, Calendar, TrendingUp, Heart, Award, Brain, 
   Download, Search, Filter, ChevronDown, ChevronUp, ExternalLink,
-  Trophy, Medal, Star, ToggleLeft, ToggleRight, Info
+  Trophy, Medal, Star, ToggleLeft, ToggleRight
 } from 'lucide-react';
 import { 
   calculateInterviewerStats, 
@@ -133,6 +133,7 @@ export default function SeasonOverviewPage() {
   // Normalization toggles
   const [showNormalized, setShowNormalized] = useState(false);
   const [excludeResidents, setExcludeResidents] = useState(false);
+  const [showNormalizationDetails, setShowNormalizationDetails] = useState(false);
 
   // If email is in URL and not logged in, log in
   useEffect(() => {
@@ -207,6 +208,46 @@ export default function SeasonOverviewPage() {
     };
   }, [data, showNormalized, excludeResidents]);
 
+  // Calculate normalized ranks when normalization is enabled
+  const normalizedRanks = useMemo(() => {
+    if (!showNormalized || !normalizedData || !data) return null;
+    
+    // Sort candidates by normalized score to determine rank
+    const candidatesWithNormScore = data.candidates.map(c => ({
+      id: c.id,
+      normalizedTotal: normalizedData.scores.get(c.id)?.normalized_interview_total || 0,
+    }));
+    
+    candidatesWithNormScore.sort((a, b) => b.normalizedTotal - a.normalizedTotal);
+    
+    // Assign ranks (handling ties)
+    const ranks = new Map<string, number>();
+    let currentRank = 1;
+    let previousScore: number | null = null;
+    
+    candidatesWithNormScore.forEach((c, idx) => {
+      if (previousScore !== null && c.normalizedTotal === previousScore) {
+        // Same score = same rank
+        ranks.set(c.id, currentRank);
+      } else {
+        // New score = new rank (accounting for ties)
+        currentRank = idx + 1;
+        ranks.set(c.id, currentRank);
+      }
+      previousScore = c.normalizedTotal;
+    });
+    
+    return ranks;
+  }, [showNormalized, normalizedData, data]);
+
+  // Helper to get display rank (normalized or raw)
+  const getDisplayRank = (candidate: Candidate): number => {
+    if (showNormalized && normalizedRanks) {
+      return normalizedRanks.get(candidate.id) || candidate.rank;
+    }
+    return candidate.rank;
+  };
+
   // Filter and sort candidates
   const filteredCandidates = data?.candidates.filter(candidate => {
     // Search filter
@@ -235,7 +276,7 @@ export default function SeasonOverviewPage() {
     
     switch (sortField) {
       case 'rank':
-        comparison = (a.rank || 999) - (b.rank || 999);
+        comparison = (getDisplayRank(a) || 999) - (getDisplayRank(b) || 999);
         break;
       case 'candidate_name':
         comparison = a.candidate_name.localeCompare(b.candidate_name);
@@ -291,20 +332,38 @@ export default function SeasonOverviewPage() {
   const exportToCsv = () => {
     if (!data) return;
     
-    const headers = ['Rank', 'Name', 'Email', 'Medical School', 'Interview Date', 'EQ Total', 'PQ Total', 'IQ Total', 'Interview Total', '# Ratings'];
+    const headers = showNormalized 
+      ? ['Rank (Normalized)', 'Raw Rank', 'Name', 'Email', 'Medical School', 'Interview Date', 'Normalized Total', 'Raw Total', '# Ratings']
+      : ['Rank', 'Name', 'Email', 'Medical School', 'Interview Date', 'EQ Total', 'PQ Total', 'IQ Total', 'Interview Total', '# Ratings'];
     
-    const rows = sortedCandidates.map(c => [
-      c.rank || '',
-      c.candidate_name,
-      c.candidate_email || '',
-      c.medical_school || '',
-      c.session?.session_date || '',
-      c.eq_total || '',
-      c.pq_total || '',
-      c.iq_total || '',
-      c.interview_total || '',
-      c.ratingCount,
-    ]);
+    const rows = sortedCandidates.map(c => {
+      if (showNormalized && normalizedData) {
+        const scores = normalizedData.scores.get(c.id);
+        return [
+          getDisplayRank(c) || '',
+          c.rank || '',
+          c.candidate_name,
+          c.candidate_email || '',
+          c.medical_school || '',
+          c.session?.session_date || '',
+          scores?.normalized_interview_total?.toFixed(0) || '',
+          c.interview_total || '',
+          c.ratingCount,
+        ];
+      }
+      return [
+        c.rank || '',
+        c.candidate_name,
+        c.candidate_email || '',
+        c.medical_school || '',
+        c.session?.session_date || '',
+        c.eq_total || '',
+        c.pq_total || '',
+        c.iq_total || '',
+        c.interview_total || '',
+        c.ratingCount,
+      ];
+    });
     
     const csvContent = [headers, ...rows].map(row => 
       row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
@@ -450,155 +509,245 @@ export default function SeasonOverviewPage() {
             </div>
             <div>
               <p className="text-2xl font-bold" style={{ color: COLORS.darker }}>
-                {data.summary.distribution.exceptional}
+                {Math.ceil(data.summary.totalCandidates / 2)}
               </p>
-              <p className="text-sm text-slate-500">Top Tier (85+)</p>
+              <p className="text-sm text-slate-500">Top 50%</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Score Distribution */}
+      {/* Score Normalization Toggle - Prominent */}
       <div 
-        className="bg-white rounded-xl border mb-6 p-4"
-        style={{ borderColor: COLORS.light }}
+        className="rounded-xl border-2 mb-6 p-5"
+        style={{ 
+          borderColor: showNormalized ? COLORS.dark : COLORS.light,
+          backgroundColor: showNormalized ? COLORS.lightest : 'white',
+        }}
       >
-        <h3 className="font-semibold text-slate-900 mb-3">Score Distribution</h3>
-        <div className="flex items-center gap-2">
-          <div className="flex-1">
-            <div className="flex h-8 rounded-lg overflow-hidden">
-              {data.summary.distribution.exceptional > 0 && (
-                <div 
-                  className="flex items-center justify-center text-white text-xs font-medium"
-                  style={{ 
-                    width: `${(data.summary.distribution.exceptional / data.summary.totalCandidates) * 100}%`,
-                    backgroundColor: COLORS.dark,
-                    minWidth: data.summary.distribution.exceptional > 0 ? '30px' : 0,
-                  }}
-                >
-                  {data.summary.distribution.exceptional}
-                </div>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setShowNormalized(!showNormalized)}
+              className="flex items-center gap-3 px-4 py-2 rounded-lg font-medium transition-all"
+              style={{ 
+                backgroundColor: showNormalized ? COLORS.dark : COLORS.light,
+                color: showNormalized ? 'white' : COLORS.darker,
+              }}
+            >
+              {showNormalized ? (
+                <ToggleRight className="w-6 h-6" />
+              ) : (
+                <ToggleLeft className="w-6 h-6" />
               )}
-              {data.summary.distribution.strong > 0 && (
-                <div 
-                  className="flex items-center justify-center text-white text-xs font-medium"
-                  style={{ 
-                    width: `${(data.summary.distribution.strong / data.summary.totalCandidates) * 100}%`,
-                    backgroundColor: COLORS.mediumDark,
-                    minWidth: data.summary.distribution.strong > 0 ? '30px' : 0,
-                  }}
-                >
-                  {data.summary.distribution.strong}
-                </div>
-              )}
-              {data.summary.distribution.good > 0 && (
-                <div 
-                  className="flex items-center justify-center text-white text-xs font-medium"
-                  style={{ 
-                    width: `${(data.summary.distribution.good / data.summary.totalCandidates) * 100}%`,
-                    backgroundColor: COLORS.medium,
-                    minWidth: data.summary.distribution.good > 0 ? '30px' : 0,
-                  }}
-                >
-                  {data.summary.distribution.good}
-                </div>
-              )}
-              {data.summary.distribution.average > 0 && (
-                <div 
-                  className="flex items-center justify-center text-xs font-medium"
-                  style={{ 
-                    width: `${(data.summary.distribution.average / data.summary.totalCandidates) * 100}%`,
-                    backgroundColor: COLORS.mediumLight,
-                    color: COLORS.darker,
-                    minWidth: data.summary.distribution.average > 0 ? '30px' : 0,
-                  }}
-                >
-                  {data.summary.distribution.average}
-                </div>
-              )}
-              {data.summary.distribution.belowAverage > 0 && (
-                <div 
-                  className="flex items-center justify-center text-white text-xs font-medium"
-                  style={{ 
-                    width: `${(data.summary.distribution.belowAverage / data.summary.totalCandidates) * 100}%`,
-                    backgroundColor: '#F87171',
-                    minWidth: data.summary.distribution.belowAverage > 0 ? '30px' : 0,
-                  }}
-                >
-                  {data.summary.distribution.belowAverage}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-4 mt-3 text-xs">
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded" style={{ backgroundColor: COLORS.dark }} />
-            <span>Exceptional (85+)</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded" style={{ backgroundColor: COLORS.mediumDark }} />
-            <span>Strong (75-84)</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded" style={{ backgroundColor: COLORS.medium }} />
-            <span>Good (65-74)</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded" style={{ backgroundColor: COLORS.mediumLight }} />
-            <span>Average (55-64)</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded" style={{ backgroundColor: '#F87171' }} />
-            <span>Below (&lt;55)</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Normalization Controls */}
-      <div 
-        className="bg-white rounded-xl border mb-6 p-4"
-        style={{ borderColor: COLORS.light }}
-      >
-        <div className="flex items-start gap-3 mb-4">
-          <Info className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: COLORS.dark }} />
-          <div className="text-sm" style={{ color: COLORS.darker }}>
-            <strong>Score Normalization:</strong> Adjusts scores to account for differences in how interviewers rate. 
-            Some rate higher, others lower - normalization puts everyone on the same scale.
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-6">
-          {/* Normalized Toggle */}
-          <button
-            onClick={() => setShowNormalized(!showNormalized)}
-            className="flex items-center gap-2 text-sm"
-          >
-            {showNormalized ? (
-              <ToggleRight className="w-8 h-5" style={{ color: COLORS.dark }} />
-            ) : (
-              <ToggleLeft className="w-8 h-5 text-slate-400" />
+              <span className="text-sm">
+                {showNormalized ? 'Normalized Scores ON' : 'Show Normalized Scores'}
+              </span>
+            </button>
+            
+            {showNormalized && (
+              <button
+                onClick={() => setExcludeResidents(!excludeResidents)}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all"
+                style={{ 
+                  backgroundColor: excludeResidents ? COLORS.medium : 'white',
+                  color: excludeResidents ? 'white' : COLORS.darker,
+                  border: `1px solid ${excludeResidents ? COLORS.medium : COLORS.light}`,
+                }}
+              >
+                {excludeResidents ? (
+                  <ToggleRight className="w-5 h-5" />
+                ) : (
+                  <ToggleLeft className="w-5 h-5" />
+                )}
+                Exclude Resident Ratings
+              </button>
             )}
-            <span className={showNormalized ? 'font-medium' : 'text-slate-500'}>
-              Show Normalized Scores
-            </span>
-          </button>
+          </div>
           
-          {/* Exclude Residents Toggle */}
           <button
-            onClick={() => setExcludeResidents(!excludeResidents)}
-            className="flex items-center gap-2 text-sm"
-            disabled={!showNormalized}
-            style={{ opacity: showNormalized ? 1 : 0.5 }}
+            onClick={() => setShowNormalizationDetails(!showNormalizationDetails)}
+            className="flex items-center gap-1 text-xs font-medium hover:underline"
+            style={{ color: COLORS.dark }}
           >
-            {excludeResidents && showNormalized ? (
-              <ToggleRight className="w-8 h-5" style={{ color: COLORS.dark }} />
+            {showNormalizationDetails ? (
+              <>
+                <ChevronUp className="w-3 h-3" />
+                Hide Math
+              </>
             ) : (
-              <ToggleLeft className="w-8 h-5 text-slate-400" />
+              <>
+                <ChevronDown className="w-3 h-3" />
+                How it works
+              </>
             )}
-            <span className={excludeResidents && showNormalized ? 'font-medium' : 'text-slate-500'}>
-              Exclude Resident Ratings
-            </span>
           </button>
+        </div>
+        
+        {!showNormalized && (
+          <p className="mt-3 text-xs text-slate-500">
+            Normalization adjusts scores to account for differences in how interviewers rate. Some rate higher, others lower - normalization puts everyone on the same scale.
+          </p>
+        )}
+        
+        {showNormalized && (
+          <p className="mt-3 text-xs" style={{ color: COLORS.darker }}>
+            <strong>Active:</strong> Rankings and scores now reflect normalized values, accounting for interviewer rating tendencies.
+          </p>
+        )}
+        
+        {showNormalizationDetails && (
+          <div className="mt-4 pt-4 border-t" style={{ borderColor: showNormalized ? COLORS.medium : COLORS.light }}>
+            <div className="grid md:grid-cols-2 gap-4 text-xs">
+              <div>
+                <p className="font-semibold mb-2" style={{ color: COLORS.darker }}>Step 1: Calculate Z-Score</p>
+                <div className="bg-white rounded p-2 border font-mono text-xs mb-1" style={{ borderColor: COLORS.light }}>
+                  z = (x - μ<sub>int</sub>) / σ<sub>int</sub>
+                </div>
+                <p className="text-slate-500 text-[10px]">x = raw score, μ = interviewer mean, σ = std dev</p>
+              </div>
+              <div>
+                <p className="font-semibold mb-2" style={{ color: COLORS.darker }}>Step 2: Transform to Scale</p>
+                <div className="bg-white rounded p-2 border font-mono text-xs mb-1" style={{ borderColor: COLORS.light }}>
+                  normalized = 50 + (z × 15)
+                </div>
+                <p className="text-slate-500 text-[10px]">Centers around 50, ±15 per std deviation</p>
+              </div>
+            </div>
+            <div className="mt-3 p-2 rounded text-xs" style={{ backgroundColor: 'rgba(255,255,255,0.5)' }}>
+              <strong>Result:</strong> A harsh grader&apos;s 70 and a lenient grader&apos;s 85 might both normalize to ~65 if they represent similar relative performance.
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Score Distribution by Decile */}
+      <div 
+        className="bg-white rounded-xl border mb-6 p-4"
+        style={{ borderColor: COLORS.light }}
+      >
+        <h3 className="font-semibold text-slate-900 mb-1">Candidate Distribution by Decile</h3>
+        <p className="text-xs text-slate-500 mb-3">
+          Hover over each segment to see candidate names
+          {showNormalized && <span className="ml-1 font-medium" style={{ color: COLORS.dark }}>(Using Normalized Scores)</span>}
+        </p>
+        <div className="flex items-center gap-2">
+          <div className="flex-1 relative pb-4">
+            <div className="flex h-10 rounded-lg overflow-visible">
+              {(() => {
+                // Get score for sorting - use normalized if enabled, otherwise raw
+                const getScore = (candidate: Candidate): number => {
+                  if (showNormalized && normalizedData) {
+                    const normScore = normalizedData.scores.get(candidate.id);
+                    return normScore?.normalized_interview_total || 0;
+                  }
+                  return candidate.interview_total || 0;
+                };
+                
+                // Sort candidates by score - highest first
+                const sortedCandidates = [...data.candidates].sort((a, b) => 
+                  getScore(b) - getScore(a)
+                );
+                const total = sortedCandidates.length;
+                const decileSize = Math.ceil(total / 10);
+                
+                interface DecileData {
+                  label: string;
+                  candidates: { candidate: Candidate; score: number }[];
+                  color: string;
+                  textColor: string;
+                }
+                
+                const deciles: DecileData[] = [];
+                // Green → Yellow → Red gradient (top to bottom)
+                const decileColors = [
+                  { bg: '#15803D', text: 'white' },   // Top 10% - dark green
+                  { bg: '#22C55E', text: 'white' },   // 2nd - green
+                  { bg: '#4ADE80', text: '#14532D' }, // 3rd - lighter green
+                  { bg: '#86EFAC', text: '#14532D' }, // 4th - light green
+                  { bg: '#BBF7D0', text: '#14532D' }, // 5th - very light green (50th percentile)
+                  { bg: '#FEF08A', text: '#713F12' }, // 6th - light yellow
+                  { bg: '#FDE047', text: '#713F12' }, // 7th - yellow
+                  { bg: '#FACC15', text: '#713F12' }, // 8th - darker yellow
+                  { bg: '#FB923C', text: 'white' },   // 9th - orange
+                  { bg: '#EF4444', text: 'white' },   // Bottom 10% - red
+                ];
+                
+                for (let i = 0; i < 10; i++) {
+                  const start = i * decileSize;
+                  const end = Math.min(start + decileSize, total);
+                  const candidatesInDecile = sortedCandidates.slice(start, end).map(c => ({
+                    candidate: c,
+                    score: getScore(c),
+                  }));
+                  
+                  if (candidatesInDecile.length > 0) {
+                    deciles.push({
+                      label: i === 0 ? 'Top 10%' : i === 9 ? 'Bottom 10%' : `${i * 10 + 1}-${(i + 1) * 10}%`,
+                      candidates: candidatesInDecile,
+                      color: decileColors[i].bg,
+                      textColor: decileColors[i].text,
+                    });
+                  }
+                }
+                
+                return deciles.map((decile, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-center text-xs font-medium cursor-pointer transition-all hover:scale-y-110 relative group"
+                    style={{ 
+                      width: `${(decile.candidates.length / total) * 100}%`,
+                      backgroundColor: decile.color,
+                      color: decile.textColor,
+                      minWidth: '28px',
+                      borderRadius: idx === 0 ? '8px 0 0 8px' : idx === deciles.length - 1 ? '0 8px 8px 0' : '0',
+                    }}
+                  >
+                    {decile.candidates.length}
+                    {/* Tooltip - positioned below the bar */}
+                    <div 
+                      className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none"
+                      style={{ zIndex: 100 }}
+                    >
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-8 border-transparent border-b-slate-900" />
+                      <div className="bg-slate-900 text-white text-xs rounded-lg p-3 shadow-xl whitespace-nowrap">
+                        <div className="font-semibold mb-2 pb-1 border-b border-slate-700 flex justify-between gap-6">
+                          <span>{decile.label}</span>
+                          <span className="text-slate-400">{decile.candidates.length} candidates</span>
+                        </div>
+                        <div className="max-h-52 overflow-y-auto">
+                          {decile.candidates.map(({ candidate, score }) => (
+                            <div key={candidate.id} className="text-left py-0.5 text-slate-200">
+                              {candidate.candidate_name} <span className="text-slate-400">({score.toFixed(0)})</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center justify-between mt-3 text-xs text-slate-500">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 rounded" style={{ backgroundColor: '#15803D' }} />
+              <span>Top 10%</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-10 h-3 rounded" style={{ background: 'linear-gradient(to right, #22C55E, #FDE047)' }} />
+              <span>50th %ile</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 rounded" style={{ backgroundColor: '#EF4444' }} />
+              <span>Bottom 10%</span>
+            </div>
+          </div>
+          <span className="text-slate-400">
+            Ranked by {showNormalized ? 'normalized' : 'raw'} combined score (EQ+PQ+IQ)
+          </span>
         </div>
       </div>
 
@@ -792,12 +941,12 @@ export default function SeasonOverviewPage() {
                   >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        {getRankIcon(candidate.rank)}
+                        {getRankIcon(getDisplayRank(candidate))}
                         <span 
                           className="font-bold"
-                          style={{ color: candidate.rank <= 10 ? COLORS.darker : undefined }}
+                          style={{ color: getDisplayRank(candidate) <= 10 ? COLORS.darker : undefined }}
                         >
-                          {candidate.rank || '-'}
+                          {getDisplayRank(candidate) || '-'}
                         </span>
                       </div>
                     </td>

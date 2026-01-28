@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useTenant } from '@/context/TenantContext';
-import { supabaseClient as supabase } from '@/lib/supabase-client';
 import OverviewPane from '@/components/modules/understand/OverviewPane';
 
 interface Resident {
@@ -12,7 +11,6 @@ interface Resident {
   anon_code: string;
   pgy_level: number;
   graduation_year: number;
-  class_id: string;
 }
 
 export default function TenantResidentsPage() {
@@ -20,6 +18,7 @@ export default function TenantResidentsPage() {
   const { organization, department } = useTenant();
   const [residents, setResidents] = useState<Resident[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedResident, setSelectedResident] = useState<Resident | null>(null);
 
   useEffect(() => {
@@ -27,48 +26,30 @@ export default function TenantResidentsPage() {
       if (!user) return;
 
       try {
-        // Fetch residents with their user profile info
-        const { data, error } = await supabase
-          .from('residents')
-          .select(`
-            id,
-            anon_code,
-            class_id,
-            user_id,
-            user_profiles!residents_user_id_fkey (
-              full_name
-            ),
-            classes!residents_class_id_fkey (
-              graduation_year
-            )
-          `)
-          .order('id');
-
-        if (error) {
-          console.error('[ResidentsPage] Error fetching residents:', error);
-          return;
+        // Use V2 API with automatic tenant filtering from Referer
+        const response = await fetch('/api/v2/residents');
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to fetch residents');
         }
 
-        // Transform data
-        const currentYear = new Date().getFullYear();
-        const currentMonth = new Date().getMonth();
-        const academicYear = currentMonth >= 6 ? currentYear : currentYear - 1;
-
-        const transformedResidents = (data || []).map((r: Record<string, unknown>) => {
-          const userProfile = r.user_profiles as { full_name: string } | null;
-          const classInfo = r.classes as { graduation_year: number } | null;
-          const gradYear = classInfo?.graduation_year || currentYear + 3;
-          const pgyLevel = Math.max(1, Math.min(5, gradYear - academicYear));
-
-          return {
-            id: r.id as string,
-            full_name: userProfile?.full_name || 'Unknown',
-            anon_code: (r.anon_code as string) || `RES-${(r.id as string).slice(0, 4).toUpperCase()}`,
-            pgy_level: pgyLevel,
-            graduation_year: gradYear,
-            class_id: r.class_id as string,
-          };
-        });
+        const data = await response.json();
+        
+        // Transform V2 API response to component format
+        const transformedResidents: Resident[] = (data.residents || []).map((r: {
+          id: string;
+          fullName: string;
+          anonCode: string;
+          currentPgyLevel: number;
+          graduationYear: number;
+        }) => ({
+          id: r.id,
+          full_name: r.fullName,
+          anon_code: r.anonCode,
+          pgy_level: r.currentPgyLevel,
+          graduation_year: r.graduationYear,
+        }));
 
         setResidents(transformedResidents);
         
@@ -78,13 +59,15 @@ export default function TenantResidentsPage() {
         }
       } catch (err) {
         console.error('[ResidentsPage] Error:', err);
+        setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
         setLoading(false);
       }
     }
 
     fetchResidents();
-  }, [user, selectedResident]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]); // Only refetch when user changes, not when selection changes
 
   if (loading) {
     return (
@@ -149,7 +132,21 @@ export default function TenantResidentsPage() {
         />
       )}
 
-      {!selectedResident && residents.length === 0 && (
+      {error && (
+        <div 
+          className="text-center py-12 rounded-xl"
+          style={{
+            background: 'var(--theme-surface-solid)',
+            border: '1px solid var(--theme-border-solid)',
+          }}
+        >
+          <p style={{ color: 'var(--theme-error, #ef4444)' }}>
+            {error}
+          </p>
+        </div>
+      )}
+
+      {!selectedResident && !error && residents.length === 0 && (
         <div 
           className="text-center py-12 rounded-xl"
           style={{

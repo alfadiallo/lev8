@@ -3,7 +3,13 @@ import { checkApiPermission } from '@/lib/auth/checkApiPermission';
 import { getServiceSupabaseClient } from '@/lib/supabase/server';
 import { calculatePGYLevel } from '@/lib/utils/pgy-calculator';
 
+/**
+ * @deprecated Use /api/v2/residents instead - provides tenant filtering and role-based access
+ */
 export async function GET(request: NextRequest) {
+  // DEPRECATION WARNING: This endpoint is deprecated
+  console.warn('[DEPRECATED] /api/residents is deprecated. Use /api/v2/residents instead.');
+  
   const authResult = await checkApiPermission(request, { minimumRole: 'faculty' });
   if (!authResult.authorized) {
     return authResult.response!;
@@ -74,7 +80,15 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ residents: residents || [] });
+    const response = NextResponse.json({ 
+      residents: residents || [],
+      _deprecated: true,
+      _deprecationMessage: 'This endpoint is deprecated. Use /api/v2/residents for tenant-filtered access.',
+    });
+    response.headers.set('Deprecation', 'true');
+    response.headers.set('Sunset', '2026-04-01');
+    response.headers.set('Link', '</api/v2/residents>; rel="successor-version"');
+    return response;
   } catch (error) {
     console.error('[Residents API] Error:', error);
     return NextResponse.json(

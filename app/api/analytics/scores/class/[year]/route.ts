@@ -1,4 +1,7 @@
-// GET /api/analytics/scores/class/[year] - Get class average scores
+/**
+ * @deprecated Use /api/v2/analytics/scores?scope=class&class_year=[year] instead
+ * GET /api/analytics/scores/class/[year] - Get class average scores
+ */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
@@ -13,6 +16,9 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ year: string }> }
 ) {
+  // DEPRECATION WARNING
+  console.warn('[DEPRECATED] /api/analytics/scores/class/[year] is deprecated. Use /api/v2/analytics/scores?scope=class&class_year=[year] instead.');
+
   // Require faculty or above to view class scores
   const authResult = await requireFacultyOrAbove(request);
   if (!authResult.authorized) {
@@ -101,14 +107,20 @@ export async function GET(
       console.error('[Analytics API] ITE fetch error:', iteError);
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       periods: averages,
       ite_scores: iteData || [],
       class_stats: {
         n_residents: residentIds.length,
         class_year: classYear
-      }
+      },
+      _deprecated: true,
+      _deprecationMessage: 'Use /api/v2/analytics/scores?scope=class&class_year=[year] instead.',
     });
+    response.headers.set('Deprecation', 'true');
+    response.headers.set('Sunset', '2026-04-01');
+    response.headers.set('Link', '</api/v2/analytics/scores>; rel="successor-version"');
+    return response;
   } catch (error) {
     console.error('[Analytics API] Unexpected error:', error);
     return NextResponse.json(

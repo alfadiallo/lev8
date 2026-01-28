@@ -1,4 +1,7 @@
-// GET /api/analytics/scores/resident/[id] - Get resident scores data
+/**
+ * @deprecated Use /api/v2/analytics/scores?scope=resident&resident_id=[id] instead
+ * GET /api/analytics/scores/resident/[id] - Get resident scores data
+ */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabaseClient } from '@/lib/supabase/server';
@@ -8,6 +11,9 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // DEPRECATION WARNING
+  console.warn('[DEPRECATED] /api/analytics/scores/resident/[id] is deprecated. Use /api/v2/analytics/scores?scope=resident&resident_id=[id] instead.');
+
   // Require faculty or above to view resident scores
   const authResult = await requireFacultyOrAbove(request);
   if (!authResult.authorized) {
@@ -60,15 +66,21 @@ export async function GET(
       console.warn('[Analytics API] ROSH fetch error:', roshError.message);
     }
 
-    const response = {
+    const responseData = {
       periods: scoresData || [],
       ite_scores: iteData || [],
-      rosh_snapshots: roshData || []
+      rosh_snapshots: roshData || [],
+      _deprecated: true,
+      _deprecationMessage: 'Use /api/v2/analytics/scores?scope=resident&resident_id=[id] instead.',
     };
     
-    console.log('[Analytics Scores API] Returning response with', response.ite_scores.length, 'ITE scores');
+    console.log('[Analytics Scores API] Returning response with', responseData.ite_scores.length, 'ITE scores');
 
-    return NextResponse.json(response);
+    const response = NextResponse.json(responseData);
+    response.headers.set('Deprecation', 'true');
+    response.headers.set('Sunset', '2026-04-01');
+    response.headers.set('Link', '</api/v2/analytics/scores>; rel="successor-version"');
+    return response;
   } catch (error) {
     console.error('[Analytics API] Unexpected error:', error);
     return NextResponse.json(

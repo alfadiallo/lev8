@@ -11,12 +11,14 @@ import {
   Presentation,
   UserCircle,
   BookOpen,
-  User
+  User,
+  Pencil
 } from 'lucide-react';
 import { formatPGYLevel } from '@/lib/utils/pgy-calculator';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 import { FacultyOnly } from '@/components/auth/PermissionGate';
 import CreateSessionModal from './CreateSessionModal';
+import EditSessionModal from '@/components/modules/understand/EditSessionModal';
 
 interface CCCSession {
   id: string;
@@ -37,12 +39,25 @@ interface UnderstandClientProps {
 export default function UnderstandClient({ initialSessions }: UnderstandClientProps) {
   const router = useRouter();
   const permissions = usePermissions();
-  const [sessions, _setSessions] = useState<CCCSession[]>(initialSessions);
+  const [sessions, setSessions] = useState<CCCSession[]>(initialSessions);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingSession, setEditingSession] = useState<CCCSession | null>(null);
 
   const handleSessionCreated = (sessionId: string) => {
     setShowCreateModal(false);
     router.push(`/modules/understand/${sessionId}`);
+  };
+
+  const handleSessionUpdated = (updatedSession: CCCSession) => {
+    setSessions(prev => prev.map(s => 
+      s.id === updatedSession.id ? updatedSession : s
+    ));
+    setEditingSession(null);
+  };
+
+  const handleEditClick = (e: React.MouseEvent, session: CCCSession) => {
+    e.stopPropagation();
+    setEditingSession(session);
   };
 
   const formatDate = (dateStr: string) => {
@@ -239,12 +254,14 @@ export default function UnderstandClient({ initialSessions }: UnderstandClientPr
           ) : (
             <div className="divide-y divide-neutral-100">
               {sessions.map((session) => (
-                <button
+                <div
                   key={session.id}
-                  onClick={() => router.push(`/modules/understand/${session.id}`)}
-                  className="w-full p-6 flex items-center justify-between hover:bg-white/40 transition-colors text-left"
+                  className="w-full p-6 flex items-center justify-between hover:bg-white/40 transition-colors group"
                 >
-                  <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => router.push(`/modules/understand/${session.id}`)}
+                    className="flex items-center gap-4 flex-1 text-left"
+                  >
                     <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#0EA5E9]/20 to-[#4A90A8]/20 flex items-center justify-center">
                       <Calendar className="text-[#0EA5E9]" size={24} />
                     </div>
@@ -269,9 +286,23 @@ export default function UnderstandClient({ initialSessions }: UnderstandClientPr
                         </span>
                       </div>
                     </div>
+                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={(e) => handleEditClick(e, session)}
+                      className="p-2 hover:bg-neutral-100 rounded-lg transition-all"
+                      title="Edit session"
+                    >
+                      <Pencil size={16} className="text-neutral-400 hover:text-neutral-600" />
+                    </button>
+                    <button
+                      onClick={() => router.push(`/modules/understand/${session.id}`)}
+                      className="p-2 hover:bg-neutral-100 rounded-lg transition-colors"
+                    >
+                      <ChevronRight className="text-neutral-400" size={20} />
+                    </button>
                   </div>
-                  <ChevronRight className="text-neutral-400" size={20} />
-                </button>
+                </div>
               ))}
             </div>
           )}
@@ -283,6 +314,15 @@ export default function UnderstandClient({ initialSessions }: UnderstandClientPr
         <CreateSessionModal
           onClose={() => setShowCreateModal(false)}
           onCreated={handleSessionCreated}
+        />
+      )}
+
+      {/* Edit Session Modal */}
+      {editingSession && (
+        <EditSessionModal
+          session={editingSession}
+          onClose={() => setEditingSession(null)}
+          onUpdated={handleSessionUpdated}
         />
       )}
     </div>

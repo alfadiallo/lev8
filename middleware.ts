@@ -119,15 +119,53 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(interviewUrl);
   }
 
-  // Early return for non-protected routes to avoid unnecessary auth checks
+  // Early return for static files
   if (
-    pathname.startsWith('/api') ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon.ico') ||
-    pathname.startsWith('/interview') ||  // Interview tool is publicly accessible
-    pathname.startsWith('/pulsecheck') || // Pulse Check tool is publicly accessible
     pathname.match(/\.(ico|png|jpg|jpeg|svg|gif|webp|woff|woff2|ttf|eot)$/)
   ) {
+    return NextResponse.next();
+  }
+
+  // ============================================================================
+  // API ROUTES - Extract tenant context from Referer and pass via request headers
+  // This allows API routes to know which tenant the request is for
+  // ============================================================================
+  if (pathname.startsWith('/api')) {
+    // Clone the request headers to add tenant context
+    const requestHeaders = new Headers(request.headers);
+    
+    // Try to extract tenant from Referer header
+    const referer = request.headers.get('referer');
+    if (referer) {
+      try {
+        const refererUrl = new URL(referer);
+        const refererPath = refererUrl.pathname;
+        const tenantFromReferer = parseTenantFromPath(refererPath);
+        
+        if (tenantFromReferer) {
+          requestHeaders.set('x-lev8-org', tenantFromReferer.orgSlug);
+          requestHeaders.set('x-lev8-dept', tenantFromReferer.deptSlug);
+          requestHeaders.set('x-lev8-context', 'program');
+        } else if (refererPath.startsWith('/studio')) {
+          requestHeaders.set('x-lev8-context', 'studio');
+        }
+      } catch {
+        // Invalid referer URL, continue without tenant context
+      }
+    }
+    
+    // Return with modified request headers that API routes can read
+    return NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    });
+  }
+
+  // Interview and Pulse Check tools are publicly accessible
+  if (pathname.startsWith('/interview') || pathname.startsWith('/pulsecheck')) {
     return NextResponse.next();
   }
 

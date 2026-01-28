@@ -1,4 +1,7 @@
-// GET /api/analytics/swot/resident/[id] - Get resident SWOT data
+/**
+ * @deprecated Use /api/v2/analytics/swot?scope=resident&resident_id=[id] instead
+ * GET /api/analytics/swot/resident/[id] - Get resident SWOT data
+ */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireFacultyOrAbove } from '@/lib/auth/checkApiPermission';
@@ -8,6 +11,9 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // DEPRECATION WARNING
+  console.warn('[DEPRECATED] /api/analytics/swot/resident/[id] is deprecated. Use /api/v2/analytics/swot?scope=resident&resident_id=[id] instead.');
+
   // Require faculty or above to view resident SWOT data
   const authResult = await requireFacultyOrAbove(request);
   if (!authResult.authorized) {
@@ -36,9 +42,15 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({
-      periods: swotData || []
+    const response = NextResponse.json({
+      periods: swotData || [],
+      _deprecated: true,
+      _deprecationMessage: 'Use /api/v2/analytics/swot?scope=resident&resident_id=[id] instead.',
     });
+    response.headers.set('Deprecation', 'true');
+    response.headers.set('Sunset', '2026-04-01');
+    response.headers.set('Link', '</api/v2/analytics/swot>; rel="successor-version"');
+    return response;
   } catch (error) {
     console.error('[Analytics API] Unexpected error:', error);
     return NextResponse.json(

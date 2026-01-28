@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import UnderstandClient from '@/components/modules/understand/UnderstandClient';
 
 interface CCCSession {
@@ -14,7 +15,11 @@ interface CCCSession {
   pgy_level: number | null;
 }
 
-async function getServerData() {
+interface PageProps {
+  params: Promise<{ org: string; dept: string }>;
+}
+
+async function getServerData(orgSlug: string, deptSlug: string) {
   const cookieStore = await cookies();
   
   const supabase = createServerClient(
@@ -46,23 +51,50 @@ async function getServerData() {
     .eq('id', user.id)
     .single();
 
-  // Fetch CCC sessions if user has permission
+  // Use service role for tenant-filtered queries
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_KEY!,
+    { auth: { persistSession: false } }
+  );
+
+  // Resolve tenant from URL params
+  const { data: org } = await supabaseAdmin
+    .from('health_systems')
+    .select('id')
+    .eq('slug', orgSlug)
+    .eq('is_active', true)
+    .single();
+
+  const { data: program } = await supabaseAdmin
+    .from('programs')
+    .select('id')
+    .eq('health_system_id', org?.id)
+    .eq('slug', deptSlug)
+    .eq('is_active', true)
+    .single();
+
+  // Fetch CCC sessions if user has permission - filtered by program
   let sessions: CCCSession[] = [];
   
   if (profile?.role && ['faculty', 'program_director', 'assistant_program_director', 'clerkship_director', 'super_admin', 'admin'].includes(profile.role)) {
-    const { data: sessionsData } = await supabase
-      .from('ccc_sessions')
-      .select('*')
-      .order('session_date', { ascending: false });
-    
-    sessions = sessionsData || [];
+    if (program?.id) {
+      const { data: sessionsData } = await supabaseAdmin
+        .from('ccc_sessions')
+        .select('*')
+        .eq('program_id', program.id)
+        .order('session_date', { ascending: false });
+      
+      sessions = sessionsData || [];
+    }
   }
 
   return { sessions, userRole: profile?.role };
 }
 
-export default async function TenantUnderstandPage() {
-  const { sessions } = await getServerData();
+export default async function TenantUnderstandPage({ params }: PageProps) {
+  const { org, dept } = await params;
+  const { sessions } = await getServerData(org, dept);
 
   return <UnderstandClient initialSessions={sessions} />;
 }

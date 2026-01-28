@@ -239,20 +239,22 @@ export default function NewRunningBoardCasePage() {
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.back()}
-            className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/10"
+            className="p-2 rounded-lg transition-colors"
+            style={{ color: 'var(--theme-text-muted)' }}
           >
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-white">New Running Board Case</h1>
-            <p className="text-gray-400 text-sm">Create a multi-patient ED simulation scenario</p>
+            <h1 className="text-2xl font-bold" style={{ color: 'var(--theme-text)' }}>New Running Board Case</h1>
+            <p className="text-sm" style={{ color: 'var(--theme-text-muted)' }}>Create a multi-patient ED simulation scenario</p>
           </div>
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => handleSave('draft')}
             disabled={saving}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-gray-300 hover:text-white hover:bg-white/10 disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium disabled:opacity-50 transition-colors"
+            style={{ color: 'var(--theme-text-muted)' }}
           >
             <Save size={18} />
             Save Draft
@@ -260,7 +262,8 @@ export default function NewRunningBoardCasePage() {
           <button
             onClick={() => handleSave('review')}
             disabled={saving}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-white disabled:opacity-50"
+            style={{ background: 'var(--theme-success)' }}
           >
             <Eye size={18} />
             Submit for Review
@@ -269,7 +272,10 @@ export default function NewRunningBoardCasePage() {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex gap-1 mb-6 p-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)' }}>
+      <div 
+        className="flex gap-1 mb-6 p-1 rounded-xl"
+        style={{ background: 'var(--theme-surface-hover)', border: '1px solid var(--theme-border-solid)' }}
+      >
         {[
           { id: 'basics', label: 'Basics' },
           { id: 'patient', label: 'Patient Profile' },
@@ -279,11 +285,11 @@ export default function NewRunningBoardCasePage() {
           <button
             key={tab.id}
             onClick={() => setActiveSection(tab.id)}
-            className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-              activeSection === tab.id
-                ? 'bg-purple-500/20 text-purple-300'
-                : 'text-gray-400 hover:text-white'
-            }`}
+            className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-all"
+            style={{
+              background: activeSection === tab.id ? 'var(--theme-primary-soft)' : 'transparent',
+              color: activeSection === tab.id ? 'var(--theme-primary)' : 'var(--theme-text-muted)',
+            }}
           >
             {tab.label}
           </button>
@@ -294,32 +300,43 @@ export default function NewRunningBoardCasePage() {
       <div className="space-y-6">
         {/* Basics Section */}
         {activeSection === 'basics' && (
-          <div className="rounded-xl p-6" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <h2 className="text-lg font-semibold text-white mb-4">Basic Information</h2>
+          <div 
+            className="rounded-xl p-6"
+            style={{ background: 'var(--theme-surface-solid)', border: '1px solid var(--theme-border-solid)' }}
+          >
+            <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--theme-text)' }}>Basic Information</h2>
             
             <div className="space-y-4">
               {/* Title */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Case Title *</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--theme-text)' }}>Case Title *</label>
                 <input
                   type="text"
                   value={caseData.title}
                   onChange={(e) => setCaseData(prev => ({ ...prev, title: e.target.value }))}
                   placeholder="e.g., Chest Pain with STEMI"
-                  className="w-full px-4 py-2 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                  className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2"
+                  style={{ 
+                    background: 'var(--theme-surface-hover)', 
+                    border: '1px solid var(--theme-border-solid)',
+                    color: 'var(--theme-text)',
+                  }}
                 />
               </div>
 
               {/* Category & Acuity */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">Category</label>
+                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--theme-text)' }}>Category</label>
                   <select
                     value={caseData.category}
                     onChange={(e) => setCaseData(prev => ({ ...prev, category: e.target.value }))}
-                    className="w-full px-4 py-2 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                    className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2"
+                    style={{ 
+                      background: 'var(--theme-surface-hover)', 
+                      border: '1px solid var(--theme-border-solid)',
+                      color: 'var(--theme-text)',
+                    }}
                   >
                     {CATEGORIES.map(cat => (
                       <option key={cat} value={cat}>{cat}</option>
@@ -327,12 +344,16 @@ export default function NewRunningBoardCasePage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">Acuity Level</label>
+                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--theme-text)' }}>Acuity Level</label>
                   <select
                     value={caseData.acuity_level}
                     onChange={(e) => setCaseData(prev => ({ ...prev, acuity_level: parseInt(e.target.value) }))}
-                    className="w-full px-4 py-2 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                    className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2"
+                    style={{ 
+                      background: 'var(--theme-surface-hover)', 
+                      border: '1px solid var(--theme-border-solid)',
+                      color: 'var(--theme-text)',
+                    }}
                   >
                     {ACUITY_LEVELS.map(level => (
                       <option key={level.value} value={level.value}>{level.label}</option>
@@ -343,15 +364,16 @@ export default function NewRunningBoardCasePage() {
 
               {/* Tags */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Tags</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--theme-text)' }}>Tags</label>
                 <div className="flex gap-2 mb-2 flex-wrap">
                   {caseData.tags.map(tag => (
                     <span
                       key={tag}
-                      className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-purple-500/20 text-purple-300"
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs"
+                      style={{ background: 'var(--theme-primary-soft)', color: 'var(--theme-primary)' }}
                     >
                       {tag}
-                      <button onClick={() => removeTag(tag)} className="hover:text-red-400">×</button>
+                      <button onClick={() => removeTag(tag)} className="hover:text-red-500">×</button>
                     </span>
                   ))}
                 </div>
@@ -362,12 +384,17 @@ export default function NewRunningBoardCasePage() {
                     onChange={(e) => setTagInput(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
                     placeholder="Add tag..."
-                    className="flex-1 px-4 py-2 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                    className="flex-1 px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2"
+                    style={{ 
+                      background: 'var(--theme-surface-hover)', 
+                      border: '1px solid var(--theme-border-solid)',
+                      color: 'var(--theme-text)',
+                    }}
                   />
                   <button
                     onClick={addTag}
-                    className="px-4 py-2 rounded-lg bg-purple-500/20 text-purple-300 hover:bg-purple-500/30"
+                    className="px-4 py-2.5 rounded-lg font-medium"
+                    style={{ background: 'var(--theme-primary-soft)', color: 'var(--theme-primary)' }}
                   >
                     Add
                   </button>
@@ -379,12 +406,15 @@ export default function NewRunningBoardCasePage() {
 
         {/* Patient Profile Section */}
         {activeSection === 'patient' && (
-          <div className="rounded-xl p-6" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <h2 className="text-lg font-semibold text-white mb-4">Patient Profile</h2>
+          <div 
+            className="rounded-xl p-6"
+            style={{ background: 'var(--theme-surface-solid)', border: '1px solid var(--theme-border-solid)' }}
+          >
+            <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--theme-text)' }}>Patient Profile</h2>
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Demographics</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--theme-text)' }}>Demographics</label>
                 <input
                   type="text"
                   value={caseData.patient_profile.demographics}
@@ -393,13 +423,17 @@ export default function NewRunningBoardCasePage() {
                     patient_profile: { ...prev.patient_profile, demographics: e.target.value }
                   }))}
                   placeholder="e.g., 65-year-old male"
-                  className="w-full px-4 py-2 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                  className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2"
+                  style={{ 
+                    background: 'var(--theme-surface-hover)', 
+                    border: '1px solid var(--theme-border-solid)',
+                    color: 'var(--theme-text)',
+                  }}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Chief Complaint</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--theme-text)' }}>Chief Complaint</label>
                 <input
                   type="text"
                   value={caseData.patient_profile.chief_complaint}
@@ -408,13 +442,17 @@ export default function NewRunningBoardCasePage() {
                     patient_profile: { ...prev.patient_profile, chief_complaint: e.target.value }
                   }))}
                   placeholder="e.g., Crushing chest pain for 2 hours"
-                  className="w-full px-4 py-2 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                  className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2"
+                  style={{ 
+                    background: 'var(--theme-surface-hover)', 
+                    border: '1px solid var(--theme-border-solid)',
+                    color: 'var(--theme-text)',
+                  }}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">History</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--theme-text)' }}>History</label>
                 <textarea
                   value={caseData.patient_profile.history}
                   onChange={(e) => setCaseData(prev => ({
@@ -423,14 +461,18 @@ export default function NewRunningBoardCasePage() {
                   }))}
                   rows={3}
                   placeholder="Relevant medical history..."
-                  className="w-full px-4 py-2 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 resize-none"
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                  className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 resize-none"
+                  style={{ 
+                    background: 'var(--theme-surface-hover)', 
+                    border: '1px solid var(--theme-border-solid)',
+                    color: 'var(--theme-text)',
+                  }}
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">Medications</label>
+                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--theme-text)' }}>Medications</label>
                   <input
                     type="text"
                     value={caseData.patient_profile.medications}
@@ -439,12 +481,16 @@ export default function NewRunningBoardCasePage() {
                       patient_profile: { ...prev.patient_profile, medications: e.target.value }
                     }))}
                     placeholder="Current medications..."
-                    className="w-full px-4 py-2 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                    className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2"
+                    style={{ 
+                      background: 'var(--theme-surface-hover)', 
+                      border: '1px solid var(--theme-border-solid)',
+                      color: 'var(--theme-text)',
+                    }}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">Allergies</label>
+                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--theme-text)' }}>Allergies</label>
                   <input
                     type="text"
                     value={caseData.patient_profile.allergies}
@@ -453,8 +499,12 @@ export default function NewRunningBoardCasePage() {
                       patient_profile: { ...prev.patient_profile, allergies: e.target.value }
                     }))}
                     placeholder="Known allergies..."
-                    className="w-full px-4 py-2 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                    className="w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2"
+                    style={{ 
+                      background: 'var(--theme-surface-hover)', 
+                      border: '1px solid var(--theme-border-solid)',
+                      color: 'var(--theme-text)',
+                    }}
                   />
                 </div>
               </div>
@@ -469,29 +519,30 @@ export default function NewRunningBoardCasePage() {
               <div
                 key={phase.id}
                 className="rounded-xl overflow-hidden"
-                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}
+                style={{ background: 'var(--theme-surface-solid)', border: '1px solid var(--theme-border-solid)' }}
               >
                 {/* Phase Header */}
                 <div
-                  className="flex items-center justify-between p-4 cursor-pointer hover:bg-white/5"
+                  className="flex items-center justify-between p-4 cursor-pointer transition-colors"
+                  style={{ background: expandedPhases.includes(phase.id) ? 'var(--theme-surface-hover)' : 'transparent' }}
                   onClick={() => togglePhase(phase.id)}
                 >
                   <div className="flex items-center gap-3">
-                    <GripVertical size={16} className="text-gray-500" />
+                    <GripVertical size={16} style={{ color: 'var(--theme-text-muted)' }} />
                     {expandedPhases.includes(phase.id) ? (
-                      <ChevronDown size={18} className="text-gray-400" />
+                      <ChevronDown size={18} style={{ color: 'var(--theme-text-muted)' }} />
                     ) : (
-                      <ChevronRight size={18} className="text-gray-400" />
+                      <ChevronRight size={18} style={{ color: 'var(--theme-text-muted)' }} />
                     )}
-                    <span className="text-white font-medium">Phase {phase.phase_number}</span>
-                    <span className="text-gray-400 text-sm">• {phase.trigger || 'No trigger set'}</span>
+                    <span className="font-medium" style={{ color: 'var(--theme-text)' }}>Phase {phase.phase_number}</span>
+                    <span className="text-sm" style={{ color: 'var(--theme-text-muted)' }}>• {phase.trigger || 'No trigger set'}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500 flex items-center gap-1">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs flex items-center gap-1" style={{ color: 'var(--theme-text-muted)' }}>
                       <Clock size={12} />
                       {phase.duration_minutes} min
                     </span>
-                    <span className="text-xs text-gray-500 flex items-center gap-1">
+                    <span className="text-xs flex items-center gap-1" style={{ color: 'var(--theme-text-muted)' }}>
                       <CheckSquare size={12} />
                       {phase.checklist_items.length} items
                     </span>
@@ -501,7 +552,8 @@ export default function NewRunningBoardCasePage() {
                           e.stopPropagation();
                           removePhase(phase.id);
                         }}
-                        className="p-1 rounded text-gray-500 hover:text-red-400 hover:bg-red-500/10"
+                        className="p-1 rounded hover:bg-red-50 hover:text-red-500 transition-colors"
+                        style={{ color: 'var(--theme-text-muted)' }}
                       >
                         <Trash2 size={14} />
                       </button>
@@ -511,54 +563,69 @@ export default function NewRunningBoardCasePage() {
 
                 {/* Phase Content */}
                 {expandedPhases.includes(phase.id) && (
-                  <div className="p-4 pt-0 space-y-4" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div 
+                    className="p-4 pt-0 space-y-4"
+                    style={{ borderTop: '1px solid var(--theme-border-solid)' }}
+                  >
                     {/* Trigger & Duration */}
                     <div className="grid grid-cols-2 gap-4 pt-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-1">Trigger</label>
+                        <label className="block text-sm font-medium mb-1" style={{ color: 'var(--theme-text)' }}>Trigger</label>
                         <input
                           type="text"
                           value={phase.trigger}
                           onChange={(e) => updatePhase(phase.id, { trigger: e.target.value })}
                           placeholder="What starts this phase?"
-                          className="w-full px-3 py-2 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-                          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                          className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2"
+                          style={{ 
+                            background: 'var(--theme-surface-hover)', 
+                            border: '1px solid var(--theme-border-solid)',
+                            color: 'var(--theme-text)',
+                          }}
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-1">Duration (minutes)</label>
+                        <label className="block text-sm font-medium mb-1" style={{ color: 'var(--theme-text)' }}>Duration (minutes)</label>
                         <input
                           type="number"
                           value={phase.duration_minutes}
                           onChange={(e) => updatePhase(phase.id, { duration_minutes: parseInt(e.target.value) || 5 })}
                           min={1}
                           max={30}
-                          className="w-full px-3 py-2 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-                          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                          className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2"
+                          style={{ 
+                            background: 'var(--theme-surface-hover)', 
+                            border: '1px solid var(--theme-border-solid)',
+                            color: 'var(--theme-text)',
+                          }}
                         />
                       </div>
                     </div>
 
                     {/* Narrative */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-1">Narrative Script</label>
+                      <label className="block text-sm font-medium mb-1" style={{ color: 'var(--theme-text)' }}>Narrative Script</label>
                       <textarea
                         value={phase.narrative}
                         onChange={(e) => updatePhase(phase.id, { narrative: e.target.value })}
                         rows={3}
                         placeholder="What the facilitator reads to the learner..."
-                        className="w-full px-3 py-2 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 resize-none"
-                        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                        className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 resize-none"
+                        style={{ 
+                          background: 'var(--theme-surface-hover)', 
+                          border: '1px solid var(--theme-border-solid)',
+                          color: 'var(--theme-text)',
+                        }}
                       />
                     </div>
 
                     {/* Vitals */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-1">Vitals</label>
+                      <label className="block text-sm font-medium mb-1" style={{ color: 'var(--theme-text)' }}>Vitals</label>
                       <div className="grid grid-cols-5 gap-2">
                         {['HR', 'BP', 'RR', 'SpO2', 'Temp'].map((vital) => (
                           <div key={vital}>
-                            <span className="text-xs text-gray-500">{vital}</span>
+                            <span className="text-xs" style={{ color: 'var(--theme-text-muted)' }}>{vital}</span>
                             <input
                               type="text"
                               value={phase.vitals[vital.toLowerCase() as keyof typeof phase.vitals] || ''}
@@ -566,8 +633,12 @@ export default function NewRunningBoardCasePage() {
                                 vitals: { ...phase.vitals, [vital.toLowerCase()]: e.target.value }
                               })}
                               placeholder="-"
-                              className="w-full px-2 py-1 rounded text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 text-center"
-                              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                              className="w-full px-2 py-1.5 rounded text-sm focus:outline-none focus:ring-2 text-center"
+                              style={{ 
+                                background: 'var(--theme-surface-hover)', 
+                                border: '1px solid var(--theme-border-solid)',
+                                color: 'var(--theme-text)',
+                              }}
                             />
                           </div>
                         ))}
@@ -577,10 +648,11 @@ export default function NewRunningBoardCasePage() {
                     {/* Checklist Items */}
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <label className="text-sm font-medium text-gray-300">Checklist Items</label>
+                        <label className="text-sm font-medium" style={{ color: 'var(--theme-text)' }}>Checklist Items</label>
                         <button
                           onClick={() => addChecklistItem(phase.id)}
-                          className="text-xs text-purple-300 hover:text-purple-200 flex items-center gap-1"
+                          className="text-xs flex items-center gap-1 font-medium"
+                          style={{ color: 'var(--theme-primary)' }}
                         >
                           <Plus size={14} />
                           Add Item
@@ -591,11 +663,12 @@ export default function NewRunningBoardCasePage() {
                           <div
                             key={item.id}
                             className="flex items-center gap-2 p-2 rounded-lg"
-                            style={{ background: 'rgba(255,255,255,0.03)' }}
+                            style={{ background: 'var(--theme-surface-hover)' }}
                           >
                             <button
                               onClick={() => updateChecklistItem(phase.id, item.id, { is_critical: !item.is_critical })}
-                              className={`p-1 rounded ${item.is_critical ? 'bg-red-500/20 text-red-400' : 'bg-gray-500/20 text-gray-400'}`}
+                              className={`p-1 rounded ${item.is_critical ? 'bg-red-100 text-red-500' : ''}`}
+                              style={{ color: item.is_critical ? undefined : 'var(--theme-text-muted)' }}
                               title={item.is_critical ? 'Critical item' : 'Mark as critical'}
                             >
                               <AlertCircle size={14} />
@@ -603,8 +676,12 @@ export default function NewRunningBoardCasePage() {
                             <select
                               value={item.category}
                               onChange={(e) => updateChecklistItem(phase.id, item.id, { category: e.target.value as ChecklistItem['category'] })}
-                              className="px-2 py-1 rounded text-xs text-white focus:outline-none"
-                              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                              className="px-2 py-1 rounded text-xs focus:outline-none"
+                              style={{ 
+                                background: 'var(--theme-surface-solid)', 
+                                border: '1px solid var(--theme-border-solid)',
+                                color: 'var(--theme-text)',
+                              }}
                             >
                               {CHECKLIST_CATEGORIES.map(cat => (
                                 <option key={cat.value} value={cat.value}>{cat.label}</option>
@@ -615,19 +692,23 @@ export default function NewRunningBoardCasePage() {
                               value={item.text}
                               onChange={(e) => updateChecklistItem(phase.id, item.id, { text: e.target.value })}
                               placeholder="Checklist item text..."
-                              className="flex-1 px-2 py-1 rounded text-white text-sm placeholder-gray-500 focus:outline-none"
-                              style={{ background: 'transparent' }}
+                              className="flex-1 px-2 py-1 rounded text-sm focus:outline-none"
+                              style={{ 
+                                background: 'transparent',
+                                color: 'var(--theme-text)',
+                              }}
                             />
                             <button
                               onClick={() => removeChecklistItem(phase.id, item.id)}
-                              className="p-1 rounded text-gray-500 hover:text-red-400"
+                              className="p-1 rounded hover:bg-red-50 hover:text-red-500 transition-colors"
+                              style={{ color: 'var(--theme-text-muted)' }}
                             >
                               <Trash2 size={14} />
                             </button>
                           </div>
                         ))}
                         {phase.checklist_items.length === 0 && (
-                          <p className="text-sm text-gray-500 text-center py-2">
+                          <p className="text-sm text-center py-2" style={{ color: 'var(--theme-text-muted)' }}>
                             No checklist items yet. Add items the learner should complete.
                           </p>
                         )}
@@ -641,7 +722,11 @@ export default function NewRunningBoardCasePage() {
             {/* Add Phase Button */}
             <button
               onClick={addPhase}
-              className="w-full p-4 rounded-xl border-2 border-dashed border-gray-600 text-gray-400 hover:border-purple-500 hover:text-purple-300 transition-colors flex items-center justify-center gap-2"
+              className="w-full p-4 rounded-xl border-2 border-dashed transition-colors flex items-center justify-center gap-2"
+              style={{ 
+                borderColor: 'var(--theme-border-solid)', 
+                color: 'var(--theme-text-muted)',
+              }}
             >
               <Plus size={18} />
               Add Phase
@@ -651,16 +736,19 @@ export default function NewRunningBoardCasePage() {
 
         {/* Debrief Section */}
         {activeSection === 'debrief' && (
-          <div className="rounded-xl p-6" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <h2 className="text-lg font-semibold text-white mb-4">Debrief Discussion Points</h2>
-            <p className="text-gray-400 text-sm mb-4">
+          <div 
+            className="rounded-xl p-6"
+            style={{ background: 'var(--theme-surface-solid)', border: '1px solid var(--theme-border-solid)' }}
+          >
+            <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--theme-text)' }}>Debrief Discussion Points</h2>
+            <p className="text-sm mb-4" style={{ color: 'var(--theme-text-muted)' }}>
               Add key points to discuss during the debrief session after the simulation.
             </p>
             
             <div className="space-y-2">
               {caseData.debrief_points.map((point, index) => (
                 <div key={index} className="flex items-center gap-2">
-                  <span className="text-gray-500 text-sm">{index + 1}.</span>
+                  <span className="text-sm" style={{ color: 'var(--theme-text-muted)' }}>{index + 1}.</span>
                   <input
                     type="text"
                     value={point}
@@ -669,8 +757,12 @@ export default function NewRunningBoardCasePage() {
                       newPoints[index] = e.target.value;
                       setCaseData(prev => ({ ...prev, debrief_points: newPoints }));
                     }}
-                    className="flex-1 px-3 py-2 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                    className="flex-1 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2"
+                    style={{ 
+                      background: 'var(--theme-surface-hover)', 
+                      border: '1px solid var(--theme-border-solid)',
+                      color: 'var(--theme-text)',
+                    }}
                   />
                   <button
                     onClick={() => {
@@ -679,7 +771,8 @@ export default function NewRunningBoardCasePage() {
                         debrief_points: prev.debrief_points.filter((_, i) => i !== index)
                       }));
                     }}
-                    className="p-2 rounded text-gray-500 hover:text-red-400"
+                    className="p-2 rounded hover:bg-red-50 hover:text-red-500 transition-colors"
+                    style={{ color: 'var(--theme-text-muted)' }}
                   >
                     <Trash2 size={14} />
                   </button>
@@ -687,7 +780,8 @@ export default function NewRunningBoardCasePage() {
               ))}
               <button
                 onClick={() => setCaseData(prev => ({ ...prev, debrief_points: [...prev.debrief_points, ''] }))}
-                className="flex items-center gap-2 text-sm text-purple-300 hover:text-purple-200"
+                className="flex items-center gap-2 text-sm font-medium"
+                style={{ color: 'var(--theme-primary)' }}
               >
                 <Plus size={16} />
                 Add Discussion Point

@@ -2,7 +2,7 @@
 
 **Comprehensive guide to the Understand Module analytics system**
 
-**Last Updated:** December 21, 2025  
+**Last Updated:** January 14, 2026  
 **Status:** Production - Fully Operational
 
 ---
@@ -1429,6 +1429,59 @@ Get archetype classification for a specific resident.
 }
 ```
 
+#### `GET /api/archetypes/class/[year]`
+Get archetype classifications for all residents in a graduation year class.
+
+**Parameters:**
+- `year` - Graduation year (e.g., 2026)
+
+**Response:**
+```json
+{
+  "graduationYear": 2026,
+  "className": "Class of 2026",
+  "totalResidents": 10,
+  "residentsWithData": 10,
+  "residents": [
+    {
+      "id": "uuid",
+      "name": "Resident Name",
+      "pgy1": 72,
+      "pgy2": 85,
+      "pgy3": 88,
+      "delta": 13,
+      "archetype": "Steady Climber",
+      "archetypeId": "steady_climber",
+      "color": "#27AE60",
+      "confidence": 0.92,
+      "riskLevel": "Low",
+      "isProvisional": false
+    }
+  ],
+  "archetypeDistribution": [
+    {
+      "archetype": "Steady Climber",
+      "count": 3,
+      "percentage": 30,
+      "color": "#27AE60",
+      "riskLevel": "Low"
+    }
+  ],
+  "riskDistribution": {
+    "low": 6,
+    "moderate": 3,
+    "high": 1
+  }
+}
+```
+
+**Usage:**
+- Powers the Class Cohort scatter chart visualization
+- Provides class-wide archetype distribution statistics
+- Runs classification on-demand if not cached
+
+---
+
 #### `GET /api/methodology/current`
 Get the current active archetype methodology version.
 
@@ -1658,12 +1711,41 @@ Calculates and stores similar historical profiles for all residents.
    - **Program-Wide**: View program trends (coming soon)
 
 **Viewing Class-Level Analytics:**
-1. Select "Class Cohort"
+1. Select "Class Cohort" from the Understand module
 2. Choose class year (e.g., "Class of 2026")
-3. Navigate to "Aggregated SWOT" tab
-4. Use filters:
+   - Active classes show PGY level (e.g., "PGY-2")
+   - Graduated classes show "(Graduated)"
+3. View the **ITE Trajectory Scatter Plot** showing all residents clustered by archetype
+4. Use filters for aggregated SWOT analysis:
    - **Period**: Select specific PGY year (e.g., "PGY-3") or "All Periods"
    - **SWOT Element**: Select specific category (e.g., "Weaknesses") or "All"
+
+**ITE Archetype Scatter Visualization:**
+
+The Class Cohort page features an interactive scatter plot showing residents' ITE trajectories:
+
+- **X-axis**: PGY-1 percentile (starting score)
+- **Y-axis**: Delta (change from PGY-1 to PGY-2)
+- **Dot color**: Archetype classification
+- **Dot size**: Confidence level of classification
+
+**Quadrant interpretation:**
+- **Top-right**: High start, improving (Elite/Breakthrough performers)
+- **Top-left**: Low start, improving (Late bloomers, Steady climbers)
+- **Bottom-right**: High start, declining (Elite late struggle, Peak decline)
+- **Bottom-left**: Low start, declining (Continuous decline, At-risk)
+
+**Risk Level Summary Cards:**
+- **Low Risk**: On track for success, standard monitoring
+- **Moderate Risk**: Trajectory needs watching, proactive check-ins recommended
+- **High Risk**: At-risk pattern detected, intervention needed
+
+Hover over risk badges to see full explanations.
+
+**Archetype Distribution:**
+- Click any archetype row to expand and see individual residents
+- Each resident shows their PGY-1, PGY-2 scores and delta
+- Click a resident to navigate to their full analytics page
 
 **Using Historical Comparison:**
 

@@ -209,6 +209,7 @@ npm run audit:all        # Run all architecture audits
 - `docs/SETUP.md` - Complete setup instructions
 - `docs/CURRENT-STATE-SUMMARY.md` - System overview and statistics
 - `docs/ANALYTICS.md` - Analytics engine architecture
+- `docs/LEARN-MODULES.md` - Learn module (Clinical Cases, Difficult Conversations, EKG & ACLS, Running the Board)
 - `docs/EQ-PQ-IQ.md` - Evaluation framework definition
 - `docs/prd.md` - Product requirements document
 - `docs/claude.md` - Development guidelines

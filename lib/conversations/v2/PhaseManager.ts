@@ -7,6 +7,7 @@ import {
   BranchPath,
   VignetteV2,
   Difficulty,
+  getLearnerTaskText,
 } from '../../types/difficult-conversations';
 
 export interface PhaseTransition {
@@ -16,10 +17,19 @@ export interface PhaseTransition {
   timestamp: Date;
 }
 
+/** State that can be restored from a prior session. */
+export interface PriorPhaseState {
+  objectivesCompleted: string[];
+  messageCount: number;
+  branchHistory?: BranchPath[];
+}
+
 export interface PhaseManagerConfig {
   vignette: VignetteV2;
   difficulty: Difficulty;
   initialPhaseId?: string;
+  /** If provided, restores objectives/messageCount from a previous session turn. */
+  priorState?: PriorPhaseState;
 }
 
 export class PhaseManager {
@@ -42,15 +52,35 @@ export class PhaseManager {
 
     // Initialize phase state
     const initialPhaseId = config.initialPhaseId || this.getInitialPhaseId();
-    this.currentPhaseState = {
-      currentPhaseId: initialPhaseId,
-      phaseStartTime: new Date(),
-      objectivesCompleted: [],
-      objectivesPending: this.getPhaseObjectives(initialPhaseId),
-      timeInPhase: 0,
-    };
+    const allObjectives = this.getPhaseObjectives(initialPhaseId);
 
-    this.branchHistory = [];
+    if (config.priorState) {
+      // Restore from prior session — keep completed objectives, derive pending
+      const completed = config.priorState.objectivesCompleted;
+      this.currentPhaseState = {
+        currentPhaseId: initialPhaseId,
+        phaseStartTime: new Date(),
+        objectivesCompleted: [...completed],
+        objectivesPending: allObjectives.filter(o => !completed.includes(o)),
+        timeInPhase: 0,
+        messageCount: config.priorState.messageCount,
+      };
+      this.branchHistory = config.priorState.branchHistory
+        ? [...config.priorState.branchHistory]
+        : [];
+    } else {
+      // Fresh session
+      this.currentPhaseState = {
+        currentPhaseId: initialPhaseId,
+        phaseStartTime: new Date(),
+        objectivesCompleted: [],
+        objectivesPending: allObjectives,
+        timeInPhase: 0,
+        messageCount: 0,
+      };
+      this.branchHistory = [];
+    }
+
     this.transitionHistory = [];
   }
 
@@ -65,13 +95,13 @@ export class PhaseManager {
   }
 
   /**
-   * Get objectives for a phase
+   * Get objectives for a phase (always returns display text strings).
    */
   private getPhaseObjectives(phaseId: string): string[] {
     const phase = this.phases.get(phaseId);
-    if (!phase) return [];
+    if (!phase || !phase.learnerTasks) return [];
     
-    return phase.learnerTasks || [];
+    return phase.learnerTasks.map(getLearnerTaskText);
   }
 
   /**
@@ -103,7 +133,7 @@ export class PhaseManager {
    */
   completeObjective(objectiveIndex: number): void {
     const phase = this.getCurrentPhase();
-    const objectives = phase.learnerTasks || [];
+    const objectives = (phase.learnerTasks || []).map(getLearnerTaskText);
     
     if (objectiveIndex >= 0 && objectiveIndex < objectives.length) {
       const objective = objectives[objectiveIndex];
@@ -141,11 +171,14 @@ export class PhaseManager {
       messageCount?: number;
     } = {}
   ): PhaseTransition | null {
+    // Track messages per phase
+    this.currentPhaseState.messageCount += 1;
+
     const currentPhase = this.getCurrentPhase();
     
     // If no branch points, check for automatic progression
     if (!currentPhase.branchPoints || Object.keys(currentPhase.branchPoints).length === 0) {
-      // Check if we should progress to next phase based on objectives/time
+      // Check if we should progress to next phase based on objectives/time/messages
       return this.checkAutomaticProgression(context);
     }
 
@@ -173,7 +206,8 @@ export class PhaseManager {
       }
     }
 
-    return null;
+    // Even with branchPoints, force-advance if message limit exceeded
+    return this.checkAutomaticProgression(context);
   }
 
   /**
@@ -247,8 +281,14 @@ export class PhaseManager {
     return defensiveKeywords.some(keyword => message.includes(keyword.toLowerCase()));
   }
 
+  /** Default max messages per phase when not specified in vignette data. */
+  private static readonly DEFAULT_MAX_MESSAGES = 5;
+
   /**
-   * Check for automatic phase progression
+   * Check for automatic phase progression.
+   * Advances when ANY of these conditions is met:
+   *   1. All objectives completed (and minimum time elapsed)
+   *   2. User message count exceeds per-phase cap (force-advance)
    */
   private checkAutomaticProgression(
     context: Record<string, unknown>
@@ -263,26 +303,41 @@ export class PhaseManager {
       return null;
     }
 
-    // Check if objectives are complete
-    const objectives = currentPhase.learnerTasks || [];
+    const nextPhase = this.vignette.conversation.phases[phaseIndex + 1];
+
+    // ── Condition 1: objectives completed + time requirement ──
+    const objectives = (currentPhase.learnerTasks || []).map(getLearnerTaskText);
     const completedObjectives = this.currentPhaseState.objectivesCompleted.length;
     const allObjectivesComplete = completedObjectives >= objectives.length;
 
-    // Check minimum time in phase (if specified)
     const minDuration = this.parsePhaseDuration(currentPhase.duration);
     const timeElapsed = Number(context.phaseDuration) || this.currentPhaseState.timeInPhase;
     const timeRequirementMet = timeElapsed >= minDuration;
 
-    // Progress if objectives complete and time requirement met
     if (allObjectivesComplete && timeRequirementMet) {
-      const nextPhase = this.vignette.conversation.phases[phaseIndex + 1];
       const transition: PhaseTransition = {
         fromPhaseId: currentPhase.id,
         toPhaseId: nextPhase.id,
         reason: 'Objectives completed and minimum time elapsed',
         timestamp: new Date(),
       };
+      this.transitionToPhase(nextPhase.id, transition);
+      return transition;
+    }
 
+    // ── Condition 2: message cap exceeded (force-advance) ──
+    // Prefer difficulty-specific override, then phase base, then default
+    const override = currentPhase.difficultyOverrides?.[this.difficulty];
+    const maxMessages =
+      override?.maxMessages ?? currentPhase.maxMessages ?? PhaseManager.DEFAULT_MAX_MESSAGES;
+
+    if (this.currentPhaseState.messageCount >= maxMessages) {
+      const transition: PhaseTransition = {
+        fromPhaseId: currentPhase.id,
+        toPhaseId: nextPhase.id,
+        reason: `Maximum messages (${maxMessages}) reached — advancing to next phase`,
+        timestamp: new Date(),
+      };
       this.transitionToPhase(nextPhase.id, transition);
       return transition;
     }
@@ -315,13 +370,14 @@ export class PhaseManager {
     // Record transition
     this.transitionHistory.push(transition);
 
-    // Update phase state
+    // Update phase state — reset counters for the new phase
     this.currentPhaseState = {
       currentPhaseId: phaseId,
       phaseStartTime: new Date(),
       objectivesCompleted: [],
       objectivesPending: this.getPhaseObjectives(phaseId),
       timeInPhase: 0,
+      messageCount: 0,
     };
   }
 
@@ -401,6 +457,7 @@ export class PhaseManager {
       objectivesCompleted: [],
       objectivesPending: this.getPhaseObjectives(phaseId),
       timeInPhase: 0,
+      messageCount: 0,
     };
   }
 }

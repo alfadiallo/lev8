@@ -3,12 +3,15 @@
 
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Vignette, Message } from '@/lib/types/modules';
 import { isVignetteV2 } from '@/lib/types/modules';
 import { ConversationSessionState, VignetteV2 } from '@/lib/types/difficult-conversations';
-import { Send, Download, X } from 'lucide-react';
+import { Send, Download, X, Mic, MicOff } from 'lucide-react';
 import PhaseIndicator from './PhaseIndicator';
+import { isVoiceEnabled } from '@/lib/types/difficult-conversations';
+import { useVoiceRecorder } from '@/lib/voice/useVoiceRecorder';
+import { useAudioPlayback } from '@/lib/voice/useAudioPlayback';
 import EmotionalStateIndicator from './EmotionalStateIndicator';
 import BranchingHint from './BranchingHint';
 import AssessmentResults from './AssessmentResults';
@@ -28,12 +31,13 @@ export default function ConversationInterface({ vignette, difficulty, onEnd }: C
   const [sessionState, setSessionState] = useState<ConversationSessionState | null>(null);
   const [showHints, setShowHints] = useState(true);
   const [phaseTransition, setPhaseTransition] = useState<{ from: string; to: string; reason: string } | null>(null);
+  const [voiceModeOn, setVoiceModeOn] = useState(false);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   // Check if vignette is v2 - use useMemo to prevent recalculation
   const isV2 = isVignetteV2(vignette);
-  
+
   // Use useMemo to stabilize vignetteV2 reference
   const vignetteV2 = useMemo(() => {
     if (!isV2) return null;
@@ -43,6 +47,104 @@ export default function ConversationInterface({ vignette, difficulty, onEnd }: C
       return null;
     }
   }, [isV2, vignette.id]); // Only depend on vignette.id, not the whole object
+
+  const voiceEnabled = isV2 && vignetteV2 && isVoiceEnabled(vignette);
+  const { playBase64Audio, isPlaying } = useAudioPlayback();
+
+  const handleVoiceResponse = useCallback(
+    async (blob: Blob) => {
+      if (!vignetteV2 || !voiceEnabled) return;
+      const { supabaseClient } = await import('@/lib/supabase-client');
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session) {
+        setMessages((prev) => [
+          ...prev,
+          { id: `err-${Date.now()}`, text: 'Error: Not authenticated', sender: 'avatar', timestamp: new Date() },
+        ]);
+        return;
+      }
+      setIsLoading(true);
+      try {
+        const formData = new FormData();
+        formData.append('audio', blob, 'recording.webm');
+        formData.append('vignetteId', vignette.id);
+        formData.append('difficulty', difficulty);
+        if (sessionState) formData.append('sessionState', JSON.stringify(sessionState));
+
+        const response = await fetch('/api/conversations/v2/voice', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${session.access_token}` },
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          const msg = error.details ? `${error.error}: ${error.details}` : error.error || 'Voice request failed';
+          throw new Error(msg);
+        }
+
+        const data = await response.json();
+        const residentText = data.residentTranscript || '(speech)';
+        const avatarText = data.assistantTranscript || '';
+
+        setMessages((prev) => [
+          ...prev,
+          { id: `u-${Date.now()}`, text: residentText, sender: 'user', timestamp: new Date() },
+          {
+            id: `a-${Date.now()}`,
+            text: avatarText,
+            sender: 'avatar',
+            avatarId: Object.keys(vignetteV2.avatars.primaryAvatar)[0],
+            timestamp: new Date(),
+            phaseId: data.sessionState?.currentPhase?.currentPhaseId,
+          },
+        ]);
+        setSessionState(data.sessionState ?? null);
+
+        if (data.phaseTransition) {
+          setPhaseTransition(data.phaseTransition);
+          setTimeout(() => setPhaseTransition(null), 5000);
+        }
+
+        if (data.assistantAudio) await playBase64Audio(data.assistantAudio);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Voice request failed';
+        setMessages((prev) => [
+          ...prev,
+          { id: `err-${Date.now()}`, text: `Error: ${message}`, sender: 'avatar', timestamp: new Date() },
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [vignette.id, difficulty, sessionState, voiceEnabled, vignetteV2, playBase64Audio]
+  );
+
+  const { isRecording, hasPermission, requestPermission, startRecording, stopRecording } = useVoiceRecorder({
+    onRecordingComplete: handleVoiceResponse,
+  });
+
+  const playOpeningLine = useCallback(async () => {
+    if (!voiceEnabled || !vignette?.id) return;
+    const { supabaseClient } = await import('@/lib/supabase-client');
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (!session) return;
+    try {
+      const res = await fetch('/api/conversations/v2/voice/narrate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ vignetteId: vignette.id, type: 'opening_line' }),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.audio) await playBase64Audio(data.audio);
+    } catch {
+      // ignore
+    }
+  }, [voiceEnabled, vignette?.id, playBase64Audio]);
 
   // Initialize messages once on mount
   useEffect(() => {
@@ -82,7 +184,9 @@ export default function ConversationInterface({ vignette, difficulty, onEnd }: C
   }, [vignette.id]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = 0;
+    }
   }, [messages]);
 
   const handleSend = async () => {
@@ -127,7 +231,10 @@ export default function ConversationInterface({ vignette, difficulty, onEnd }: C
 
         if (!response.ok) {
           const error = await response.json();
-          throw new Error(error.error || 'Failed to get response');
+          const message = error.details
+            ? `${error.error || 'Failed to get response'}: ${error.details}`
+            : (error.error || 'Failed to get response');
+          throw new Error(message);
         }
 
         const data = await response.json();
@@ -352,7 +459,7 @@ export default function ConversationInterface({ vignette, difficulty, onEnd }: C
 
       {/* Phase Transition Notification */}
       {phaseTransition && (
-        <div className="bg-gradient-to-r from-[#7EC8E3]/80 to-[#FFB5A7]/80 backdrop-blur-sm rounded-xl border border-[#7EC8E3]/40 p-4 flex items-center justify-between">
+        <div className="bg-[#E0F2FE] backdrop-blur-sm rounded-xl border border-[#0EA5E9]/30 p-4 flex items-center justify-between">
           <div>
             <p className="font-semibold text-sm text-neutral-800">Phase Transition</p>
             <p className="text-xs text-neutral-700">{phaseTransition.reason}</p>
@@ -404,57 +511,49 @@ export default function ConversationInterface({ vignette, difficulty, onEnd }: C
           </div>
         )}
 
-        {/* Main Content - Messages */}
+        {/* Main Content - Input on top, messages below (newest first) */}
         <div className="flex-1 flex flex-col min-h-0">
-          {/* Branching Hints */}
-          {isV2 && showHints && getHints().length > 0 && (
-            <div className="mb-4">
-              <BranchingHint
-                hints={getHints()}
-                phaseName={sessionState?.currentPhase?.currentPhaseId}
-                onDismiss={() => setShowHints(false)}
-              />
-            </div>
-          )}
-
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto bg-white/60 backdrop-blur-sm rounded-2xl shadow-md border border-white/30 p-6 mb-4 space-y-4">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-[80%] p-4 rounded-2xl ${
-                    message.sender === 'user'
-                      ? 'bg-gradient-to-r from-[#FFB5A7] to-[#7EC8E3] text-white'
-                      : 'bg-white/80 border border-white/40 text-neutral-800'
+          {/* Input */}
+          <div className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-md border border-white/30 p-4 mb-4">
+            <div className="flex gap-3 items-center">
+              {voiceEnabled && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (hasPermission === false) {
+                      requestPermission();
+                      return;
+                    }
+                    const next = !voiceModeOn;
+                    setVoiceModeOn(next);
+                    if (next) playOpeningLine();
+                  }}
+                  title={voiceModeOn ? 'Turn off voice' : 'Turn on voice'}
+                  className={`p-2 rounded-xl border flex items-center gap-1.5 ${
+                    voiceModeOn
+                      ? 'bg-[#7EC8E3]/30 border-[#7EC8E3] text-[#0EA5E9]'
+                      : 'border-white/40 text-neutral-600 hover:bg-white/30'
                   }`}
                 >
-                  <p className="whitespace-pre-wrap">{message.text}</p>
-                  <p className="text-xs mt-2 opacity-70">
-                    {new Date(message.timestamp).toLocaleTimeString()}
-                  </p>
-                </div>
-              </div>
-            ))}
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="bg-white/80 border border-white/40 p-4 rounded-2xl">
-                  <div className="flex gap-1">
-                    <div className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                  </div>
-                </div>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* Input */}
-          <div className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-md border border-white/30 p-4">
-            <div className="flex gap-3">
+                  {voiceModeOn ? <Mic size={18} /> : <MicOff size={18} />}
+                  <span className="text-xs font-medium">{voiceModeOn ? 'Voice on' : 'Voice'}</span>
+                </button>
+              )}
+              {voiceEnabled && voiceModeOn && (
+                <button
+                  type="button"
+                  onClick={() => (isRecording ? stopRecording() : startRecording())}
+                  disabled={isLoading}
+                  title={isRecording ? 'Stop recording' : 'Start recording'}
+                  className={`p-2 rounded-xl flex items-center justify-center ${
+                    isRecording
+                      ? 'bg-[#F4A5A5] text-white animate-pulse'
+                      : 'bg-[#0EA5E9] text-white hover:bg-[#0284C7]'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  <Mic size={22} />
+                </button>
+              )}
               <input
                 type="text"
                 value={input}
@@ -467,12 +566,63 @@ export default function ConversationInterface({ vignette, difficulty, onEnd }: C
               <button
                 onClick={handleSend}
                 disabled={!input.trim() || isLoading}
-                className="bg-gradient-to-r from-[#FFB5A7] to-[#7EC8E3] text-white px-6 py-2 rounded-xl font-medium hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="bg-[#0EA5E9] text-white px-6 py-2 rounded-xl font-medium hover:bg-[#0284C7] hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 <Send size={18} />
                 Send
               </button>
             </div>
+          </div>
+
+          {/* Branching Hints */}
+          {isV2 && showHints && getHints().length > 0 && (
+            <div className="mb-4">
+              <BranchingHint
+                hints={getHints()}
+                phaseName={sessionState?.currentPhase?.currentPhaseId}
+                onDismiss={() => setShowHints(false)}
+              />
+            </div>
+          )}
+
+          {/* Messages (newest first) */}
+          <div ref={messagesContainerRef} className="flex-1 overflow-y-auto bg-white/60 backdrop-blur-sm rounded-2xl shadow-md border border-white/30 p-6 space-y-4">
+            {(isLoading || isRecording || isPlaying) && (
+              <div className="flex justify-start">
+                <div className="bg-white/80 border border-white/40 p-4 rounded-2xl">
+                  {isRecording ? (
+                    <p className="text-sm text-neutral-600">Recording... Click mic to stop.</p>
+                  ) : isPlaying ? (
+                    <p className="text-sm text-neutral-600">Playing response...</p>
+                  ) : (
+                    <div className="flex gap-1">
+                      <div className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                      <div className="w-2 h-2 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            {[...messages].reverse().map((message) => (
+              <div
+                key={message.id}
+                className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`max-w-[80%] p-4 rounded-2xl ${
+                    message.sender === 'user'
+                      ? 'bg-[#0EA5E9] text-white'
+                      : 'bg-white/80 border border-white/40 text-neutral-800'
+                  }`}
+                >
+                  <p className="whitespace-pre-wrap">{message.text}</p>
+                  <p className="text-xs mt-2 opacity-70">
+                    {new Date(message.timestamp).toLocaleTimeString()}
+                  </p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

@@ -55,7 +55,7 @@ export default function VignetteCard({ vignette }: VignetteCardProps) {
           e.stopPropagation();
           router.push(`/modules/learn/difficult-conversations/${vignette.id}`);
         }}
-        className="w-full mt-3 bg-gradient-to-r from-[#FFB5A7] to-[#7EC8E3] text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:shadow-lg transition-all duration-300"
+        className="w-full mt-3 bg-[#0EA5E9] text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-[#0284C7] hover:shadow-lg transition-all duration-300"
       >
         Start
       </button>

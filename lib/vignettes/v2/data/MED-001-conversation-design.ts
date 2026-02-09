@@ -37,10 +37,15 @@ export const conversationDesign: ConversationDesign = {
       name: "Initial Contact",
       duration: "0-3 minutes",
       objective: "Establish setting and prepare for disclosure",
+      maxMessages: 3,
+      difficultyOverrides: {
+        beginner: { maxMessages: 5 },
+        advanced: { maxMessages: 2 },
+      },
       learnerTasks: [
-        "Introduce self clearly",
-        "Acknowledge serious nature",
-        "Ensure privacy and comfort"
+        { text: "Introduce self clearly", keywords: ["name", "i'm dr", "i am dr", "my name", "doctor"] },
+        { text: "Acknowledge serious nature", keywords: ["serious", "important", "difficult", "bad news", "concerned", "need to talk", "need to tell"] },
+        { text: "Ensure privacy and comfort", keywords: ["private", "comfortable", "privacy", "sit", "alone", "quiet", "take your time"] },
       ],
       avatarState: {
         emotional: "anxious",
@@ -65,11 +70,16 @@ export const conversationDesign: ConversationDesign = {
       duration: "3-7 minutes",
       objective: "Deliver error information clearly and honestly",
       criticalPhase: true,
+      maxMessages: 5,
+      difficultyOverrides: {
+        beginner: { maxMessages: 7 },
+        advanced: { maxMessages: 4 },
+      },
       learnerTasks: [
-        "State clearly that an error occurred",
-        "Explain in plain language",
-        "Accept responsibility",
-        "Express appropriate regret"
+        { text: "State clearly that an error occurred", keywords: ["error", "mistake", "went wrong", "something happened", "problem occurred"] },
+        { text: "Explain in plain language", keywords: ["means", "simply", "basically", "in other words", "what happened is", "plain"] },
+        { text: "Accept responsibility", keywords: ["responsible", "our fault", "my fault", "we caused", "should not have", "accountability", "apologize"] },
+        { text: "Express appropriate regret", keywords: ["sorry", "regret", "apologize", "wish", "terrible", "deeply"] },
       ],
       avatarState: {
         emotional: "shocked transitioning to upset/angry",
@@ -109,11 +119,16 @@ export const conversationDesign: ConversationDesign = {
       name: "Managing Emotional Response",
       duration: "7-11 minutes",
       objective: "Support family through emotional reaction",
+      maxMessages: 6,
+      difficultyOverrides: {
+        beginner: { maxMessages: 8 },
+        advanced: { maxMessages: 4 },
+      },
       learnerTasks: [
-        "Acknowledge emotions",
-        "Remain calm and present",
-        "Continue answering questions",
-        "Don't become defensive"
+        { text: "Acknowledge emotions", keywords: ["understand", "feel", "imagine", "must be", "hear you", "see that", "feelings"] },
+        { text: "Remain calm and present", keywords: ["here for you", "i'm here", "not going anywhere", "take your time", "listen", "stay"] },
+        { text: "Continue answering questions", keywords: ["let me explain", "good question", "i'll tell you", "absolutely", "of course", "happy to"] },
+        { text: "Don't become defensive", keywords: [] },
       ],
       avatarState: {
         emotional: "Varies by difficulty level",
@@ -142,11 +157,16 @@ export const conversationDesign: ConversationDesign = {
       name: "Detailed Questions Phase",
       duration: "11-13 minutes",
       objective: "Address specific concerns and questions",
+      maxMessages: 5,
+      difficultyOverrides: {
+        beginner: { maxMessages: 7 },
+        advanced: { maxMessages: 4 },
+      },
       learnerTasks: [
-        "Explain current medical status",
-        "Discuss prognosis honestly",
-        "Outline treatment plan",
-        "Address prevention measures"
+        { text: "Explain current medical status", keywords: ["currently", "right now", "at this moment", "stable", "condition", "status", "intensive care"] },
+        { text: "Discuss prognosis honestly", keywords: ["recovery", "outlook", "expect", "prognosis", "future", "hopeful", "uncertain", "outcome"] },
+        { text: "Outline treatment plan", keywords: ["plan", "next steps", "treatment", "going to do", "monitor", "team"] },
+        { text: "Address prevention measures", keywords: ["prevent", "make sure", "steps", "protocols", "won't happen", "safeguards", "changes"] },
       ],
       commonQuestions: [
         "Will he have brain damage?",
@@ -169,11 +189,16 @@ export const conversationDesign: ConversationDesign = {
       name: "Planning and Closure",
       duration: "13-15 minutes",
       objective: "Establish path forward",
+      maxMessages: 4,
+      difficultyOverrides: {
+        beginner: { maxMessages: 6 },
+        advanced: { maxMessages: 3 },
+      },
       learnerTasks: [
-        "Provide contact information",
-        "Arrange follow-up meeting",
-        "Offer support resources",
-        "Ensure immediate needs met"
+        { text: "Provide contact information", keywords: ["call me", "reach me", "phone", "number", "contact", "available", "pager"] },
+        { text: "Arrange follow-up meeting", keywords: ["follow up", "meet again", "come back", "tomorrow", "check in", "morning"] },
+        { text: "Offer support resources", keywords: ["chaplain", "counselor", "support", "social worker", "someone to talk to", "resources", "patient advocate"] },
+        { text: "Ensure immediate needs met", keywords: ["need anything", "can i get", "water", "someone here", "family", "call someone", "daughter"] },
       ],
       avatarState: {
         emotional: "varies by outcome"

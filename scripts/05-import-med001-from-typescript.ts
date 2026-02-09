@@ -34,28 +34,44 @@ async function importMED001() {
     }
     console.log('   ✅ Vignette structure is valid\n');
 
-    // Vignettes are global (institution_id = null) - available to all institutions
-    console.log('📋 Setting up global vignette (available to all institutions)...');
-    const institutionId = null; // NULL = Global vignette
-    
+    // institution_id is NOT NULL in vignettes table — use env or first health_system
+    let institutionId: string | null =
+      (process.env.VIGNETTE_INSTITUTION_ID as string) || null;
+    if (!institutionId) {
+      console.log('📋 Resolving institution_id (no VIGNETTE_INSTITUTION_ID set)...');
+      const { data: firstHs, error: hsError } = await supabase
+        .from('health_systems')
+        .select('id')
+        .limit(1)
+        .maybeSingle();
+      if (hsError || !firstHs?.id) {
+        console.error(
+          '❌ No health_systems row found. Set VIGNETTE_INSTITUTION_ID in .env.local to a valid UUID, or seed health_systems first.'
+        );
+        process.exit(1);
+      }
+      institutionId = firstHs.id;
+      console.log(`   Using institution_id: ${institutionId}\n`);
+    } else {
+      console.log(`📋 Using institution_id from env: ${institutionId}\n`);
+    }
+
     // Convert to database format
     console.log('📋 Converting vignette to database format...');
     const dbVignette = convertVignetteV2ToDatabase(
       MED001AdenosineErrorVignette,
-      institutionId as any // Pass null for global vignettes
+      institutionId
     );
-    // Override institution_id to null
-    (dbVignette as any).institution_id = null;
-    console.log('   ✅ Converted successfully (global vignette)\n');
+    console.log('   ✅ Converted successfully\n');
 
-    // Check if vignette already exists (global vignettes have institution_id = null)
+    // Check if MED-001 already exists (by stable id in vignette_data so re-import updates in place)
+    const MED001_STABLE_ID = 'MED-001-adenosine-error-v1';
     console.log('📋 Checking for existing vignette...');
     const { data: existing, error: checkError } = await supabase
       .from('vignettes')
       .select('id, title')
-      .is('institution_id', null) // Global vignettes have null institution_id
-      .eq('title', dbVignette.title)
-      .eq('category', dbVignette.category)
+      .eq('institution_id', institutionId)
+      .eq('vignette_data->>id', MED001_STABLE_ID)
       .maybeSingle();
 
     if (checkError && checkError.code !== 'PGRST116') {

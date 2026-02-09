@@ -7,11 +7,12 @@ import { medicationErrorScenario } from './data/MED-001-clinical-scenario';
 import { avatarProfiles } from './data/MED-001-avatar-profiles';
 import { conversationDesign } from './data/MED-001-conversation-design';
 import { educatorGuide } from './data/MED-001-educator-guide';
+import { med001VoiceConfig } from './data/MED-001-voice-config';
 
 export const MED001AdenosineErrorVignette: VignetteV2 = {
-  // Identification
+  // Identification (category must match CONVERSATION_CATEGORIES on Difficult Conversations page for card to show)
   id: 'MED-001-adenosine-error-v1',
-  category: 'MED',
+  category: 'medical-error-disclosure',
   subcategory: 'medication-error',
   version: 1,
   
@@ -127,7 +128,10 @@ export const MED001AdenosineErrorVignette: VignetteV2 = {
     institutionPolicies: true,
     localProtocols: true,
     culturalAdaptation: true
-  }
+  },
+
+  // Voice mode (Difficult Conversations voice simulation)
+  voice_config: med001VoiceConfig,
 };
 
 export default MED001AdenosineErrorVignette;

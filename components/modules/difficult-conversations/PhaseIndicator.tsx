@@ -51,7 +51,7 @@ export default function PhaseIndicator({
       {/* Progress Bar */}
       <div className="w-full bg-white/40 rounded-full h-2 mb-4">
         <div
-          className="bg-gradient-to-r from-[#FFB5A7] to-[#7EC8E3] h-2 rounded-full transition-all duration-500"
+          className="bg-[#0EA5E9] h-2 rounded-full transition-all duration-500"
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -69,7 +69,7 @@ export default function PhaseIndicator({
                 key={phase.id}
                 className={`p-3 rounded-lg border transition-all ${
                   isCurrent
-                    ? 'bg-gradient-to-r from-[#FFB5A7]/20 to-[#7EC8E3]/20 border-[#7EC8E3]/50'
+                    ? 'bg-[#E0F2FE] border-[#0EA5E9]/40'
                     : isCompleted
                     ? 'bg-white/30 border-white/30'
                     : 'bg-white/10 border-white/20 opacity-60'
@@ -83,7 +83,7 @@ export default function PhaseIndicator({
                         <Check size={14} className="text-white" />
                       </div>
                     ) : isCurrent ? (
-                      <div className="w-6 h-6 rounded-full bg-gradient-to-r from-[#FFB5A7] to-[#7EC8E3] flex items-center justify-center">
+                      <div className="w-6 h-6 rounded-full bg-[#0EA5E9] flex items-center justify-center">
                         <Circle size={14} className="text-white fill-white" />
                       </div>
                     ) : (

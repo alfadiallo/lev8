@@ -8,6 +8,7 @@ import ModuleLayout from '@/components/modules/ModuleLayout';
 import ModuleGuard from '@/components/modules/ModuleGuard';
 import ConversationInterface from '@/components/modules/difficult-conversations/ConversationInterface';
 import { Vignette } from '@/lib/types/modules';
+import { supabaseClient as supabase } from '@/lib/supabase-client';
 
 export default function DifficultConversationDetailPage() {
   const router = useRouter();
@@ -28,8 +29,17 @@ export default function DifficultConversationDetailPage() {
 
   const loadVignette = async () => {
     try {
-      // API routes now read auth from cookies automatically
-      const response = await fetch(`/api/vignettes/${vignetteId}`);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        window.location.href = '/login';
+        return;
+      }
+
+      const response = await fetch(`/api/vignettes/${vignetteId}`, {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
 
       if (!response.ok) {
         if (response.status === 401) {
@@ -76,7 +86,7 @@ export default function DifficultConversationDetailPage() {
             <p className="text-neutral-600 mb-4">The vignette you&apos;re looking for doesn&apos;t exist.</p>
             <button
               onClick={() => router.push('/modules/learn/difficult-conversations')}
-              className="bg-gradient-to-r from-[#FFB5A7] to-[#7EC8E3] text-white px-6 py-2 rounded-xl font-medium hover:shadow-lg transition-all duration-300"
+              className="bg-[#0EA5E9] text-white px-6 py-2 rounded-xl font-medium hover:bg-[#0284C7] hover:shadow-lg transition-all duration-300"
             >
               Back to Vignettes
             </button>
@@ -186,7 +196,7 @@ export default function DifficultConversationDetailPage() {
                       onClick={() => setDifficulty(diff as 'beginner' | 'intermediate' | 'advanced')}
                       className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
                         difficulty === diff
-                          ? 'bg-gradient-to-r from-[#FFB5A7] to-[#7EC8E3] text-white'
+                          ? 'bg-[#0EA5E9] text-white'
                           : 'bg-white/30 border border-white/40 text-neutral-700 hover:bg-white/50'
                       }`}
                     >
@@ -200,7 +210,7 @@ export default function DifficultConversationDetailPage() {
             {/* Start Button */}
             <button
               onClick={handleStartConversation}
-              className="w-full bg-gradient-to-r from-[#FFB5A7] to-[#7EC8E3] text-white px-6 py-3 rounded-2xl font-medium hover:shadow-lg transition-all duration-300 hover:scale-105"
+              className="w-full bg-[#0EA5E9] text-white px-6 py-3 rounded-2xl font-medium hover:bg-[#0284C7] hover:shadow-lg transition-all duration-300 hover:scale-105"
             >
               Start Conversation
             </button>

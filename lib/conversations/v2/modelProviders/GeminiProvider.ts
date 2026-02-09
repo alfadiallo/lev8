@@ -163,12 +163,12 @@ Your response (as ${primaryAvatar.identity.name}):`;
    */
   private getGeminiModelName(model: AIModel): string {
     const modelMap: Record<AIModel, string> = {
-      'gemini-1.5-pro': 'gemini-1.5-pro',
-      'claude-3-5-sonnet-20241022': 'gemini-1.5-pro', // Fallback
-      'claude-3-5-haiku-20241022': 'gemini-1.5-pro', // Fallback
+      'gemini-1.5-pro': 'gemini-2.0-flash',
+      'claude-3-5-sonnet-20241022': 'gemini-2.0-flash', // Fallback
+      'claude-3-5-haiku-20241022': 'gemini-2.0-flash', // Fallback
     };
 
-    return modelMap[model] || 'gemini-1.5-pro';
+    return modelMap[model] || 'gemini-2.0-flash';
   }
 
   /**

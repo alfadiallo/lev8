@@ -3,12 +3,17 @@
 import { ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import ModuleGuard from '@/components/modules/ModuleGuard';
+
+// Residents have access only to Learn; Reflect is faculty+
+const REFLECT_ALLOWED_ROLES = ['faculty', 'program_director', 'assistant_program_director', 'clerkship_director', 'super_admin', 'admin'] as const;
 
 export default function ReflectLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  
+
   return (
-    <div className="space-y-6">
+    <ModuleGuard availableToRoles={[...REFLECT_ALLOWED_ROLES]}>
+      <div className="space-y-6">
       {/* Breadcrumb Navigation */}
       <nav className="flex items-center gap-2 text-sm">
         <Link href="/" className="text-[#7EC8E3] hover:text-[#5BA8C4] transition-colors">
@@ -80,6 +85,7 @@ export default function ReflectLayout({ children }: { children: ReactNode }) {
       {/* Main Content */}
       <div>{children}</div>
     </div>
+    </ModuleGuard>
   );
 }
 

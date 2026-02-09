@@ -300,6 +300,28 @@ export interface ResolutionPaths {
   [pathName: string]: ResolutionPath;
 }
 
+/** A learner task can be a plain string or an object with detection keywords. */
+export type LearnerTask = string | { text: string; keywords: string[] };
+
+/** Extract the display text from a LearnerTask (works for both formats). */
+export function getLearnerTaskText(task: LearnerTask): string {
+  return typeof task === 'string' ? task : task.text;
+}
+
+/** Extract detection keywords from a LearnerTask (empty array for plain strings). */
+export function getLearnerTaskKeywords(task: LearnerTask): string[] {
+  return typeof task === 'string' ? [] : task.keywords;
+}
+
+/** Per-difficulty overrides for a phase (message cap, keyword additions/removals). */
+export interface PhaseDifficultyOverride {
+  maxMessages?: number;
+  /** Additional keywords that only apply at this difficulty (merged with base), keyed by task text. */
+  additionalKeywords?: Record<string, string[]>;
+  /** Keywords to remove at this difficulty (e.g. make advanced harder by removing easy matches), keyed by task text. */
+  removedKeywords?: Record<string, string[]>;
+}
+
 export interface ConversationPhase {
   id: string;
   name: string;
@@ -307,7 +329,15 @@ export interface ConversationPhase {
   objective: string;
   criticalPhase?: boolean;
   systemGuidance?: SystemGuidance;
-  learnerTasks?: string[];
+  learnerTasks?: LearnerTask[];
+  /** Max user messages before force-advancing to next phase. Default: 5. Lower = harder. Base value; use difficultyOverrides for per-level. */
+  maxMessages?: number;
+  /** Per-difficulty overrides for maxMessages and keyword detection. */
+  difficultyOverrides?: {
+    beginner?: PhaseDifficultyOverride;
+    intermediate?: PhaseDifficultyOverride;
+    advanced?: PhaseDifficultyOverride;
+  };
   avatarState: AvatarState;
   geminiContext: GeminiContext;
   branchPoints?: PhaseBranchPoints;
@@ -590,6 +620,59 @@ export interface Customizable {
   culturalAdaptation: boolean;
 }
 
+// ============================================================================
+// VOICE (Difficult Conversations)
+// ============================================================================
+
+/** TTS voice configuration for a voice-enabled vignette avatar. */
+export interface VoiceProfile {
+  /** ElevenLabs voice_id (primary TTS provider) */
+  elevenlabs_voice_id: string;
+  /** OpenAI TTS voice name (fallback provider) */
+  openai_voice: 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer';
+  /** Descriptive label for display, e.g. "Margaret — Spouse" */
+  display_label: string;
+  /** Baseline emotional tone, e.g. "anxious", "grieving" */
+  emotional_baseline: string;
+  /** Default TTS stability (0.0–1.0). Lower = more expressive. */
+  default_stability: number;
+  /** Default TTS similarity boost (0.0–1.0) */
+  default_similarity_boost: number;
+}
+
+/** Phase-level voice directive for TTS and system prompt. */
+export interface PhaseVoiceDirective {
+  /** Prompt addition for the LLM describing how the avatar should speak in this phase */
+  voice_behavior: string;
+  /** Max duration for this phase in seconds (optional) */
+  max_phase_duration_seconds?: number;
+  /** TTS stability override for this phase (optional) */
+  stability_override?: number;
+  /** TTS style override for this phase (optional) */
+  style_override?: number;
+}
+
+/** Voice configuration for a difficult conversations vignette. Present when the vignette supports voice mode. */
+export interface VoiceConfig {
+  enabled: boolean;
+  /** Narrated clinical context read/displayed before conversation starts */
+  context_brief: string;
+  /** Avatar's opening line (spoken via TTS to start the conversation) */
+  opening_line: string;
+  /** Avatar's closing line when session ends (timer or natural conclusion) */
+  closing_line: string;
+  /** Maximum session duration in seconds (e.g. 300–600 for 5–10 min) */
+  max_duration_seconds: number;
+  /** Seconds of resident silence before avatar delivers a silence prompt */
+  silence_timeout_seconds: number;
+  /** Lines the avatar speaks if the resident goes silent, cycled in order */
+  silence_prompts: string[];
+  /** TTS voice configuration for the avatar */
+  voice_profile: VoiceProfile;
+  /** Phase-level voice directives (keyed by phase id from conversation.phases) */
+  phase_voice_directives: Record<string, PhaseVoiceDirective>;
+}
+
 export interface VignetteV2 {
   // Identification
   id: string;
@@ -643,6 +726,18 @@ export interface VignetteV2 {
 
   // Institutional customization flags
   customizable: Customizable;
+
+  /** Voice mode configuration. If present and enabled, voice UI is available. */
+  voice_config?: VoiceConfig;
+}
+
+/** Returns true if the vignette has voice mode enabled. Works with DB Vignette (vignette_data) or in-memory VignetteV2. */
+export function isVoiceEnabled(
+  vignette: { vignette_data?: { voice_config?: { enabled?: boolean } }; voice_config?: { enabled?: boolean } }
+): boolean {
+  const data = vignette.vignette_data ?? vignette;
+  const voiceConfig = data && typeof data === 'object' && 'voice_config' in data ? (data as { voice_config?: { enabled?: boolean } }).voice_config : undefined;
+  return voiceConfig?.enabled === true;
 }
 
 // ============================================================================
@@ -666,6 +761,7 @@ export interface PhaseState {
   objectivesCompleted: string[];
   objectivesPending: string[];
   timeInPhase: number; // seconds
+  messageCount: number; // number of user messages in this phase
 }
 
 export interface BranchPath {

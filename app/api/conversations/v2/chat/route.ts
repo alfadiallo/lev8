@@ -93,28 +93,30 @@ export async function POST(request: NextRequest) {
       temperature: 0.7,
     });
 
-    // Create conversation engine configuration
+    // Build prior phase state for restoration (if we have an existing session)
+    const priorPhaseState = sessionState?.currentPhase
+      ? {
+          objectivesCompleted: sessionState.currentPhase.objectivesCompleted ?? [],
+          messageCount: sessionState.currentPhase.messageCount ?? 0,
+          branchHistory: sessionState.branchPath ?? [],
+        }
+      : undefined;
+
+    // Create conversation engine with full phase state restoration
     const engineConfig: ConversationEngineConfig = {
       vignette: vignetteV2,
       difficulty,
       userId: user.id,
       modelProvider: provider,
       initialPhaseId: sessionState?.currentPhase?.currentPhaseId,
+      priorPhaseState,
     };
 
-    // Create or restore conversation engine
-    // For now, we'll create a new engine for each request
-    // In production, we'd restore from session storage
     const engine = new ConversationEngine(engineConfig);
 
-    // If session state provided, restore it (basic restoration)
+    // Restore conversation history (for assessment scoring and prompt context)
     if (sessionState) {
-      // Restore conversation history
       engine.updateConversationHistory(sessionState.messages || []);
-      
-      // Note: Full session restoration would require restoring phase manager state,
-      // emotional state tracker history, etc. For MVP, we restore message history
-      // and let the engine re-initialize phase/emotional state based on current state.
     }
 
     // Process user message

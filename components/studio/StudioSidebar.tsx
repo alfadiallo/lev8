@@ -81,7 +81,7 @@ export default function StudioSidebar({ creatorProfile, specialty = 'Emergency M
   };
 
   const isExpanded = (module: string) => expandedModules.includes(module.toLowerCase());
-  const isActive = (href: string) => pathname === href;
+  const isActive = (href: string) => pathname === href || pathname?.startsWith(href + '/');
   const isChildActive = (item: NavItem) => {
     if (!item.children) return false;
     return item.children.some(child => pathname === child.href || pathname?.startsWith(child.href + '/'));
@@ -159,8 +159,7 @@ export default function StudioSidebar({ creatorProfile, specialty = 'Emergency M
                   href={item.href}
                   className="flex items-center px-3 py-2.5 rounded-xl transition-all duration-200"
                   style={{
-                    background: active ? 'var(--theme-primary-soft)' : 'transparent',
-                    color: active ? 'var(--theme-primary)' : 'var(--theme-text)',
+                    color: 'var(--theme-text)',
                   }}
                 >
                   <span className="text-sm font-medium">{item.name}</span>
@@ -171,8 +170,7 @@ export default function StudioSidebar({ creatorProfile, specialty = 'Emergency M
                   onClick={() => toggleModule(item.name.toLowerCase())}
                   className="flex items-center justify-between w-full text-left px-3 py-2.5 rounded-xl transition-all duration-200"
                   style={{
-                    background: active ? 'var(--theme-primary-soft)' : 'transparent',
-                    color: active ? 'var(--theme-primary)' : 'var(--theme-text)',
+                    color: 'var(--theme-text)',
                   }}
                 >
                   <span className="text-sm font-medium">{item.name}</span>
@@ -193,7 +191,7 @@ export default function StudioSidebar({ creatorProfile, specialty = 'Emergency M
                       <Link
                         key={child.href}
                         href={child.href}
-                        className="block text-sm px-3 py-1.5 transition-colors duration-200"
+                        className="block text-sm px-3 py-1.5 transition-all duration-200"
                         style={{
                           color: childActive ? 'var(--theme-primary)' : 'var(--theme-text-muted)',
                           fontWeight: childActive ? 600 : 400,

@@ -17,49 +17,49 @@ const CONVERSATION_CATEGORIES = [
     id: 'medical-error-disclosure',
     name: 'Medical Error Disclosure',
     description: 'Learn how to appropriately disclose medical errors to patients and families',
-    color: 'from-red-400 to-red-600',
+    color: 'bg-[#0EA5E9]',
   },
   {
     id: 'serious-diagnosis-delivery',
     name: 'Serious Diagnosis Delivery',
     description: 'Practice delivering serious diagnoses with empathy and clarity',
-    color: 'from-blue-400 to-blue-600',
+    color: 'bg-[#0EA5E9]',
   },
   {
     id: 'treatment-refusal-withdrawal',
     name: 'Treatment Refusal/Withdrawal',
     description: 'Navigate conversations about treatment refusal or withdrawal of care',
-    color: 'from-orange-400 to-orange-600',
+    color: 'bg-[#0EA5E9]',
   },
   {
     id: 'end-of-life-care',
     name: 'End-of-Life Planning',
     description: 'Discuss end-of-life care options and advance directives',
-    color: 'from-purple-400 to-purple-600',
+    color: 'bg-[#0EA5E9]',
   },
   {
     id: 'informed-consent-capacity',
     name: 'Capacity/Competency Assessment',
     description: 'Learn to assess and discuss patient capacity for medical decisions',
-    color: 'from-green-400 to-green-600',
+    color: 'bg-[#0EA5E9]',
   },
   {
     id: 'inter-collegial-issues',
     name: 'Colleague Performance Issue',
     description: 'Address performance issues with colleagues professionally',
-    color: 'from-indigo-400 to-indigo-600',
+    color: 'bg-[#0EA5E9]',
   },
   {
     id: 'quality-of-care-concerns',
     name: 'Resource Allocation & Utilization Conflict',
     description: 'Navigate conflicts over limited medical resources',
-    color: 'from-pink-400 to-pink-600',
+    color: 'bg-[#0EA5E9]',
   },
   {
     id: 'unexpected-outcome-discussion',
     name: 'Unexpected Outcome Discussion',
     description: 'Discuss unexpected medical outcomes with patients and families',
-    color: 'from-yellow-400 to-yellow-600',
+    color: 'bg-[#0EA5E9]',
   },
 ];
 
@@ -193,7 +193,7 @@ export default function DifficultConversationsPage() {
                   className="bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-md border border-white/30"
                 >
                   <div className="flex items-center gap-3 mb-3">
-                    <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${category.color} flex items-center justify-center`}>
+                    <div className={`w-10 h-10 rounded-lg ${category.color} flex items-center justify-center`}>
                       <MessageSquare className="h-5 w-5 text-white" />
                     </div>
                     <h3 className="text-lg font-semibold text-neutral-800">{category.name}</h3>

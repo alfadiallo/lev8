@@ -9,8 +9,11 @@ import {
   VignetteV2,
   Difficulty,
   AssessmentResult,
+  ConversationPhase,
+  getLearnerTaskText,
+  getLearnerTaskKeywords,
 } from '../../types/difficult-conversations';
-import { PhaseManager, PhaseManagerConfig } from './PhaseManager';
+import { PhaseManager, PhaseManagerConfig, PriorPhaseState } from './PhaseManager';
 import { EmotionalStateTracker, EmotionalStateTrackerConfig } from './EmotionalStateTracker';
 import { PromptBuilder, PromptBuilderConfig } from './PromptBuilder';
 import { ConversationProvider } from './modelProviders/ConversationProvider';
@@ -22,6 +25,8 @@ export interface ConversationEngineConfig {
   userId: string;
   modelProvider: ConversationProvider;
   initialPhaseId?: string;
+  /** Restore phase state from a prior session turn. */
+  priorPhaseState?: PriorPhaseState;
 }
 
 export class ConversationEngine {
@@ -44,11 +49,12 @@ export class ConversationEngine {
     this.userId = config.userId;
     this.modelProvider = config.modelProvider;
 
-    // Initialize components
+    // Initialize components (restore phase state from prior session if available)
     const phaseManagerConfig: PhaseManagerConfig = {
       vignette: this.vignette,
       difficulty: this.difficulty,
       initialPhaseId: config.initialPhaseId,
+      priorState: config.priorPhaseState,
     };
     this.phaseManager = new PhaseManager(phaseManagerConfig);
 
@@ -120,6 +126,9 @@ export class ConversationEngine {
     
     // Update revealed information
     this.updateRevealedInformation(userMessage);
+
+    // Detect objective completion from user message
+    this.detectObjectiveCompletion(userMessage);
 
     // Check for phase transition
     const phaseState = this.phaseManager.getPhaseState();
@@ -258,6 +267,68 @@ export class ConversationEngine {
   }
 
   /**
+   * Get effective keywords for a task at the current difficulty (base + difficulty overrides).
+   */
+  private getKeywordsForTask(
+    taskText: string,
+    baseKeywords: string[],
+    currentPhase: ConversationPhase
+  ): string[] {
+    let keywords = [...baseKeywords];
+    const override = currentPhase.difficultyOverrides?.[this.difficulty];
+    if (override) {
+      if (override.additionalKeywords?.[taskText]?.length) {
+        keywords = [...keywords, ...override.additionalKeywords[taskText]];
+      }
+      if (override.removedKeywords?.[taskText]?.length) {
+        const toRemove = new Set(override.removedKeywords[taskText].map((k) => k.toLowerCase()));
+        keywords = keywords.filter((k) => !toRemove.has(k.toLowerCase()));
+      }
+    }
+    return keywords;
+  }
+
+  /**
+   * Detect which learner objectives the user message satisfies and mark them complete.
+   *
+   * Resolution order for keywords:
+   *   1. Vignette-defined keywords (LearnerTask.keywords), with difficulty overrides applied
+   *   2. Fallback: generic word-overlap heuristic (2+ significant words match)
+   *
+   * Once an objective is completed it stays completed across turns (state is
+   * restored via priorPhaseState on the engine config).
+   */
+  private detectObjectiveCompletion(userMessage: string): void {
+    const currentPhase = this.phaseManager.getCurrentPhase();
+    const tasks = currentPhase.learnerTasks ?? [];
+    if (tasks.length === 0) return;
+
+    const msg = userMessage.toLowerCase();
+
+    for (const task of tasks) {
+      const taskText = getLearnerTaskText(task);
+      const baseKeywords = getLearnerTaskKeywords(task);
+      const vignetteKeywords = this.getKeywordsForTask(taskText, baseKeywords, currentPhase);
+
+      if (vignetteKeywords.length > 0) {
+        // ── Primary: use vignette-defined keywords (with difficulty overrides) ──
+        if (vignetteKeywords.some((kw) => msg.includes(kw.toLowerCase()))) {
+          this.phaseManager.completeObjectiveByText(taskText);
+        }
+      } else {
+        // ── Fallback: generic word-overlap heuristic ──
+        // Split the task description into significant words (>3 chars) and check
+        // if at least 2 appear in the user's message.
+        const taskWords = taskText.toLowerCase().split(/\s+/).filter((w) => w.length > 3);
+        const matchCount = taskWords.filter((w) => msg.includes(w)).length;
+        if (matchCount >= 2) {
+          this.phaseManager.completeObjectiveByText(taskText);
+        }
+      }
+    }
+  }
+
+  /**
    * Generate unique message ID
    */
   private generateMessageId(): string {
@@ -305,7 +376,7 @@ export class ConversationEngine {
   isComplete(): boolean {
     return this.phaseManager.isFinalPhase() && 
            this.phaseManager.getPhaseState().objectivesCompleted.length >=
-           (this.getCurrentPhase().learnerTasks?.length || 0);
+           (this.getCurrentPhase().learnerTasks?.map(getLearnerTaskText).length || 0);
   }
 
   /**
@@ -324,7 +395,7 @@ export class ConversationEngine {
    */
   private getObjectivesProgress(): number {
     const currentPhase = this.phaseManager.getCurrentPhase();
-    const objectives = currentPhase.learnerTasks || [];
+    const objectives = (currentPhase.learnerTasks || []).map(getLearnerTaskText);
     const phaseState = this.phaseManager.getPhaseState();
     
     if (objectives.length === 0) return 1;

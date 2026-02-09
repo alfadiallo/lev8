@@ -3,6 +3,7 @@
 
 import { PhaseManager, PhaseManagerConfig } from '../PhaseManager';
 import { MED001AdenosineErrorVignette } from '../../../vignettes/v2/MED-001-adenosine-error';
+import { getLearnerTaskText } from '../../../types/difficult-conversations';
 
 describe('PhaseManager', () => {
   let phaseManager: PhaseManager;
@@ -71,7 +72,7 @@ describe('PhaseManager', () => {
   describe('Objective Tracking', () => {
     it('should complete objectives', () => {
       const phase = phaseManager.getCurrentPhase();
-      const objectives = phase.learnerTasks || [];
+      const objectives = (phase.learnerTasks || []).map(getLearnerTaskText);
       
       if (objectives.length > 0) {
         phaseManager.completeObjective(0);
@@ -83,7 +84,7 @@ describe('PhaseManager', () => {
 
     it('should complete objectives by text', () => {
       const phase = phaseManager.getCurrentPhase();
-      const objectives = phase.learnerTasks || [];
+      const objectives = (phase.learnerTasks || []).map(getLearnerTaskText);
       
       if (objectives.length > 0) {
         phaseManager.completeObjectiveByText(objectives[0]);

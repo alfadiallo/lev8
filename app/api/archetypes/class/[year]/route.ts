@@ -75,7 +75,7 @@ export async function GET(
 
     // Filter to only residents in this graduation year (null classes filtered out)
     const classResidents = (residents || []).filter(r => {
-      const classInfo = r.classes as { graduation_year: number } | null;
+      const classInfo = r.classes as unknown as { graduation_year: number } | null;
       return classInfo?.graduation_year === graduationYear;
     });
 

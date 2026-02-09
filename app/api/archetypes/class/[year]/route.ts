@@ -95,7 +95,7 @@ export async function GET(
     const residentData: ClassArchetypeResponse['residents'] = [];
     
     for (const resident of classResidents) {
-      const profile = resident.user_profiles as { full_name: string } | null;
+      const profile = resident.user_profiles as unknown as { full_name: string } | null;
       const name = profile?.full_name || 'Unknown';
 
       // Try to get existing classification
@@ -204,7 +204,7 @@ export async function GET(
     };
 
     // 5. Get class name
-    const classInfo = classResidents[0]?.classes as { name: string } | null;
+    const classInfo = classResidents[0]?.classes as unknown as { name: string } | null;
     const className = classInfo?.name || `Class of ${graduationYear}`;
 
     // 6. Count residents with actual ITE data

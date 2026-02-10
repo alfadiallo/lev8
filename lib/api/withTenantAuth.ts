@@ -30,6 +30,10 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY!;
 
+// Service client type (any DB schema avoids 'never' on query results when no generated types)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SupabaseServiceClient = ReturnType<typeof createClient<any>>;
+
 // Role hierarchy for permission checks
 export const ROLE_HIERARCHY: Record<string, number> = {
   'super_admin': 100,
@@ -92,7 +96,7 @@ export interface TenantAuthContext {
   canPublishStudioContent: boolean;
   
   // Supabase client (service role - use for queries)
-  supabase: ReturnType<typeof createClient>;
+  supabase: SupabaseServiceClient;
 }
 
 // Handler type
@@ -147,7 +151,7 @@ async function extractTenantFromRequest(request: NextRequest): Promise<{ orgSlug
  * Resolve org/dept slugs to UUIDs
  */
 async function resolveTenantIds(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseServiceClient,
   orgSlug: string | null,
   deptSlug: string | null
 ): Promise<{ healthSystemId: string | null; programId: string | null; specialty: string | null }> {
@@ -191,7 +195,7 @@ async function resolveTenantIds(
  * Get user's membership for the tenant
  */
 async function getUserMembership(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseServiceClient,
   userId: string,
   healthSystemId: string | null,
   programId: string | null
@@ -223,7 +227,7 @@ async function getUserMembership(
  * Get user's studio creator profile
  */
 async function getStudioCreator(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseServiceClient,
   userId: string
 ): Promise<{ studioCreatorId: string | null; isApproved: boolean }> {
   const { data: creator } = await supabase

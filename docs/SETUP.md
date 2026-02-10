@@ -70,10 +70,10 @@ cp .env.example .env.local
 Edit `.env.local` with your credentials:
 
 ```env
-# Supabase Configuration
+# Supabase Configuration (required for build and runtime)
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+SUPABASE_SERVICE_KEY=your-service-role-key
 
 # AI Services
 OPENAI_API_KEY=sk-...
@@ -88,6 +88,8 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 2. Select your project
 3. Go to Settings → API
 4. Copy `URL`, `anon/public key`, and `service_role key`
+
+**Build and Vercel:** `npm run build` and Vercel deployments require these Supabase env vars at build time (some API routes are evaluated during "Collecting page data"). Use `SUPABASE_SERVICE_KEY` in code (not `SUPABASE_SERVICE_ROLE_KEY`). For Vercel, add the same variables in Project Settings → Environment Variables.
 
 ---
 

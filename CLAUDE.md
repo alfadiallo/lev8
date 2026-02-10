@@ -142,11 +142,21 @@ lev8/
 ## Recent Changes
 
 From git history:
-1. **ESLint Technical Debt Cleanup (January 2026)**
+1. **Warning Noise Cleanup Pass (February 2026)**
+   - Targeted cleanup of top-noise files so future errors are easier to spot.
+   - **lib/types/modules.ts:** `any` → `unknown` / typed helpers; `SessionMetrics` index signature tightened.
+   - **lib/archetypes/evolution-manager.ts:** Typed relation helpers and DB row types; no `as any`.
+   - **ConversationInterface.tsx:** V1 vignette type, hook deps fixed, explicit-any removed.
+   - **ModuleGuard.tsx:** useMemo deps corrected.
+   - **truths/scores/page.tsx:** API row types and typed update payloads.
+   - **Compatibility:** difficult-conversations detail page and CaseInterface updated for stricter module types.
+   - Build/Vercel: Supabase env vars must be set for `npm run build` and Vercel deploys (see SETUP.md / CHANGELOG).
+
+2. **ESLint Technical Debt Cleanup (January 2026)**
    - Comprehensive cleanup of ~300 ESLint warnings across 64 files
    - See detailed report below in "Technical Debt Cleanup Report" section
 
-2. **Pulse Check Frequency & Trends Enhancement**
+3. **Pulse Check Frequency & Trends Enhancement**
    - Add Settings tab to Admin panel for frequency config (quarterly/biannually/annually)
    - Create Sparkline component with smooth bezier curves for trend visualization
    - Add accordion details in Medical Director providers view with EQ/PQ/IQ breakdown
@@ -155,15 +165,15 @@ From git history:
    - Add historical seed data (Q2-Q4 2025) for Metro General providers
    - Add Provider Profile Modal with history tab
    - Database migrations for frequency fields and operational metrics
-2. Update README with EQ·PQ·IQ product documentation
-3. Remove lev8.ai references from Pulse Check
-4. Fix Interview module - favicon, title, footer, API env var
-5. Update Supabase service key env var naming
-6. Add demo role tiles to Interview landing page with visitor tracking
-7. Allow /pulsecheck routes on eqpqiq.com domain
-8. Fix invalid focusRing CSS property
-9. Add eqpqiq.com email support, apply rating colors
-10. Enhance interview tool: navigation, stats, normalization
+4. Update README with EQ·PQ·IQ product documentation
+5. Remove lev8.ai references from Pulse Check
+6. Fix Interview module - favicon, title, footer, API env var
+7. Update Supabase service key env var naming
+8. Add demo role tiles to Interview landing page with visitor tracking
+9. Allow /pulsecheck routes on eqpqiq.com domain
+10. Fix invalid focusRing CSS property
+11. Add eqpqiq.com email support, apply rating colors
+12. Enhance interview tool: navigation, stats, normalization
 
 ## Development Commands
 
@@ -401,3 +411,19 @@ const stats = await require('fs').promises.stat(file);
 - Some unused variables in Pulse Check reports page (future features)
 
 These are acceptable technical debt with documented reasons.
+
+### Warning Noise Cleanup Pass (February 2026)
+
+A follow-up pass targeted the **top-noise files** so build/lint output is easier to read and real errors stand out:
+
+| File | Changes |
+|------|--------|
+| `lib/types/modules.ts` | `Record<string, any>` → `Record<string, unknown>`, `any[]` → `unknown[]`, `SessionMetrics` index `[key: string]: unknown` |
+| `lib/archetypes/evolution-manager.ts` | Typed helpers for Supabase join results (`getResidentFullName`, `getGraduationYear`, `getClassificationArchetypeId`), `VariableCaseRow` / `MethodologyVersionRow`, removed `as any` |
+| `components/modules/difficult-conversations/ConversationInterface.tsx` | `V1VignetteData` type, `as unknown as VignetteV2`, effect/useMemo deps, `_user` for unused |
+| `components/modules/ModuleGuard.tsx` | useMemo deps `[hasModuleAccess, availableToRoles, userRole]`, eslint-disable only where needed |
+| `app/(dashboard)/truths/scores/page.tsx` | `ApiResidentRow`, `ApiIteRow`, `ApiExamRow`, typed `getEditValue` and ITE `updateData` |
+| `app/(dashboard)/modules/learn/difficult-conversations/[id]/page.tsx` | Typed `vignette_data` access for v1/v2 and avatar/clinical data |
+| `components/modules/clinical-cases/CaseInterface.tsx` | Typed `case_data` shape for `steps` / `questions` |
+
+**Build requirement:** Supabase env vars (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_KEY`) must be set for `npm run build` and Vercel; see SETUP.md and CHANGELOG.

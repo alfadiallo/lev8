@@ -8,6 +8,20 @@ All notable deployments and changes to this project.
 
 <!-- Cursor: Always add new entries directly below this line -->
 
+## 2026-02-09
+
+### Changed
+- **Warning noise cleanup pass:** Reduced ESLint/TypeScript noise in high-traffic files for easier spotting of real issues.
+  - **lib/types/modules.ts** – Replaced `Record<string, any>` and `any[]` with `Record<string, unknown>` and `unknown[]`; `SessionMetrics` index signature now `[key: string]: unknown`.
+  - **lib/archetypes/evolution-manager.ts** – Added typed helpers (`getResidentFullName`, `getGraduationYear`, `getClassificationArchetypeId`) and types (`VariableCaseRow`, `MethodologyVersionRow`, etc.); removed all `as any` casts.
+  - **ConversationInterface.tsx** – Added `V1VignetteData` for v1 fallbacks; `vignette_data as unknown as VignetteV2`; fixed effect/useMemo deps; prefixed unused `user` as `_user`.
+  - **ModuleGuard.tsx** – useMemo deps set to `[hasModuleAccess, availableToRoles, userRole]`; removed unnecessary eslint-disable.
+  - **app/(dashboard)/truths/scores/page.tsx** – Typed API rows (`ApiResidentRow`, `ApiIteRow`, `ApiExamRow`); typed `getEditValue` and ITE `updateData`.
+  - **Compatibility:** `difficult-conversations/[id]/page.tsx` and `CaseInterface.tsx` updated for `Record<string, unknown>` on `vignette_data` / `case_data`.
+
+### Fixed
+- Build requires Supabase env at build time: set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_KEY` in `.env.local` (local) and in Vercel project Environment Variables for successful deploy.
+
 ---
 
 ## 2025-02-08

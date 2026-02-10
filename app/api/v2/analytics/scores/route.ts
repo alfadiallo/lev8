@@ -134,6 +134,13 @@ async function handleClassScope(
   classYear: string | null,
   includeTrends: boolean
 ): Promise<NextResponse> {
+  if (!ctx.programId) {
+    return NextResponse.json(
+      { error: 'Program context required' },
+      { status: 400 }
+    );
+  }
+
   if (!classYear) {
     return NextResponse.json(
       { error: 'class_year required for scope=class' },
@@ -272,6 +279,13 @@ async function handleProgramScope(
   ctx: TenantAuthContext,
   includeTrends: boolean
 ): Promise<NextResponse> {
+  if (!ctx.programId) {
+    return NextResponse.json(
+      { error: 'Program context required' },
+      { status: 400 }
+    );
+  }
+
   // Get all current residents (not graduated)
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth();

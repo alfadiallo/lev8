@@ -76,7 +76,7 @@ async function handleGet(
       .eq('id', contentId);
   }
 
-  const creator = content.studio_creators as { display_name: string; affiliation: string; specialty: string } | null;
+  const creator = content.studio_creators as unknown as { display_name: string; affiliation: string; specialty: string } | null;
 
   return NextResponse.json({
     content: {

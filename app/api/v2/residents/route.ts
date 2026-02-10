@@ -102,8 +102,8 @@ async function handler(
   const currentMonth = new Date().getMonth();
   
   let residents: ResidentWithPGY[] = (residentsData || []).map((r: Record<string, unknown>) => {
-    const userProfile = r.user_profiles as { full_name: string; email: string } | null;
-    const classInfo = r.classes as { graduation_year: number; name: string; is_active: boolean } | null;
+    const userProfile = r.user_profiles as unknown as { full_name: string; email: string } | null;
+    const classInfo = r.classes as unknown as { graduation_year: number; name: string; is_active: boolean } | null;
     const gradYear = classInfo?.graduation_year || currentYear + 3;
     
     return {

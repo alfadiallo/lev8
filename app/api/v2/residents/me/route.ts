@@ -58,10 +58,10 @@ async function handler(
     );
   }
 
-  // Transform data
-  const userProfile = resident.user_profiles as { full_name: string; email: string } | null;
-  const classInfo = resident.classes as { graduation_year: number; name: string } | null;
-  const programInfo = resident.programs as { name: string; specialty: string } | null;
+  // Transform data (Supabase join results can be array; cast via unknown)
+  const userProfile = resident.user_profiles as unknown as { full_name: string; email: string } | null;
+  const classInfo = resident.classes as unknown as { graduation_year: number; name: string } | null;
+  const programInfo = resident.programs as unknown as { name: string; specialty: string } | null;
 
   const graduationYear = classInfo?.graduation_year || new Date().getFullYear() + 3;
 

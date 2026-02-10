@@ -179,7 +179,7 @@ async function handleClassSWOT(
 
   // Filter to matching class
   const classResidents = (residents || []).filter((r: Record<string, unknown>) => {
-    const classInfo = r.classes as { graduation_year: number } | null;
+    const classInfo = r.classes as unknown as { graduation_year: number } | null;
     return classInfo?.graduation_year === year;
   });
 

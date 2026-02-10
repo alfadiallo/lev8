@@ -40,7 +40,7 @@ async function handler(
   }
 
   const residentId = resident.id;
-  const classInfo = resident.classes as { graduation_year: number } | null;
+  const classInfo = resident.classes as unknown as { graduation_year: number } | null;
   const graduationYear = classInfo?.graduation_year;
 
   // Fetch period scores
@@ -79,7 +79,7 @@ async function handler(
 
     // Filter to same graduation year
     const sameClassResidents = (classmates || []).filter((r: Record<string, unknown>) => {
-      const rClass = r.classes as { graduation_year: number } | null;
+      const rClass = r.classes as unknown as { graduation_year: number } | null;
       return rClass?.graduation_year === graduationYear;
     });
 

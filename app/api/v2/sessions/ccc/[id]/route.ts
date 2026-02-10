@@ -96,8 +96,8 @@ async function handleGet(
       .in('id', residentIds);
 
     for (const r of (residents || [])) {
-      const profile = r.user_profiles as { full_name: string } | null;
-      const classInfo = r.classes as { graduation_year: number } | null;
+      const profile = r.user_profiles as unknown as { full_name: string } | null;
+      const classInfo = r.classes as unknown as { graduation_year: number } | null;
       const gradYear = classInfo?.graduation_year || new Date().getFullYear() + 3;
       const currentYear = new Date().getFullYear();
       const currentMonth = new Date().getMonth();

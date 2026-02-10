@@ -113,7 +113,7 @@ async function handleGet(
 
   // Transform response
   const transformedContent = filteredContent.map((item: Record<string, unknown>) => {
-    const creator = item.studio_creators as { display_name: string; affiliation: string } | null;
+    const creator = item.studio_creators as unknown as { display_name: string; affiliation: string } | null;
     return {
       id: item.id,
       type: item.content_type,

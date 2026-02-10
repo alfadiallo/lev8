@@ -235,7 +235,10 @@ const D3ArchetypeScatterChart: React.FC<D3ArchetypeScatterChartProps> = ({
     // Y Axis
     const yAxis = d3.axisLeft(yScale)
       .ticks(5)
-      .tickFormat(d => `${d > 0 ? '+' : ''}${d}`);
+      .tickFormat(d => {
+        const n = Number(d);
+        return `${n > 0 ? '+' : ''}${n}`;
+      });
 
     g.append('g')
       .call(yAxis)

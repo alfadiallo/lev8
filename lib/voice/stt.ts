@@ -19,7 +19,9 @@ export async function transcribeAudio(
 ): Promise<STTResult> {
   const ext = mimeType.includes('webm') ? 'webm' : 'wav';
   const formData = new FormData();
-  formData.append('file', new Blob([audioBuffer], { type: mimeType }), `audio.${ext}`);
+  // Convert Node Buffer to Uint8Array for BlobPart compatibility in strict TS/DOM typings.
+  const bytes = new Uint8Array(audioBuffer);
+  formData.append('file', new Blob([bytes], { type: mimeType }), `audio.${ext}`);
   formData.append('model', 'whisper-1');
   formData.append('language', 'en');
 

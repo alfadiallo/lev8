@@ -21,6 +21,36 @@ import { calculatePGYLevel } from '@/lib/utils/pgy-calculator';
 
 type Scope = 'resident' | 'class' | 'program';
 
+/** Row from period_scores (full or partial) for type-safe Supabase results */
+interface PeriodScoreRow {
+  period_label?: string;
+  eq_score?: number | null;
+  pq_score?: number | null;
+  iq_score?: number | null;
+  composite_score?: number | null;
+  eq_sample_size?: number | null;
+  pq_sample_size?: number | null;
+  iq_sample_size?: number | null;
+  calculated_at?: string | null;
+}
+
+/** Resident row with class relation (Supabase join; relation may be object or array) */
+interface ResidentWithClass {
+  id: string;
+  anon_code: string | null;
+  user_id?: string | null;
+  classes: { graduation_year: number } | { graduation_year: number }[] | null;
+}
+
+/** Row from class_scores / program_scores for trends (cast: Supabase has no DB types) */
+interface AggregateTrendRow {
+  period_label?: string | null;
+  avg_eq_score?: number | null;
+  avg_pq_score?: number | null;
+  avg_iq_score?: number | null;
+  avg_composite_score?: number | null;
+}
+
 async function handler(
   request: NextRequest,
   ctx: TenantAuthContext
@@ -90,8 +120,9 @@ async function handleResidentScope(
     );
   }
 
-  // Transform scores
-  const scores = ((periodScores || []) as Record<string, unknown>[]).map(score => ({
+  // Transform scores (cast needed: Supabase client has no generated DB types)
+  const rows = (periodScores || []) as PeriodScoreRow[];
+  const scores = rows.map(score => ({
     periodLabel: score.period_label,
     eqScore: score.eq_score,
     pqScore: score.pq_score,
@@ -175,11 +206,11 @@ async function handleClassScope(
     );
   }
 
-  // Filter to matching class year
-  const classResidents = (residents || []).filter((r: Record<string, unknown>) => {
-    const classInfo = r.classes as { graduation_year: number } | null;
-    return classInfo?.graduation_year === year;
-  });
+  // Filter to matching class year (cast: Supabase client has no generated DB types)
+  const residentsList = (residents || []) as ResidentWithClass[];
+  const getGraduationYear = (r: ResidentWithClass): number | undefined =>
+    Array.isArray(r.classes) ? r.classes[0]?.graduation_year : r.classes?.graduation_year;
+  const classResidents = residentsList.filter(r => getGraduationYear(r) === year);
 
   if (classResidents.length === 0) {
     return NextResponse.json({
@@ -192,21 +223,22 @@ async function handleClassScope(
     });
   }
 
-  // Get latest scores for each resident
+  // Get latest scores for each resident (cast latestScore: Supabase has no DB types)
   const residentScores: ResidentScore[] = await Promise.all(
-    classResidents.map(async (r: Record<string, unknown>) => {
-      const { data: latestScore } = await ctx.supabase
+    classResidents.map(async (r): Promise<ResidentScore> => {
+      const { data } = await ctx.supabase
         .from('period_scores')
         .select('eq_score, pq_score, iq_score, composite_score')
-        .eq('resident_id', r.id as string)
+        .eq('resident_id', r.id)
         .order('period_label', { ascending: false })
         .limit(1)
         .single();
+      const latestScore = data as PeriodScoreRow | null;
 
       return {
-        residentId: r.id as string,
+        residentId: r.id,
         residentName: '', // Will be filled by data shaping if needed
-        anonCode: r.anon_code as string,
+        anonCode: r.anon_code ?? '',
         pgyLevel: calculatePGYLevel(year),
         eqScore: latestScore?.eq_score,
         pqScore: latestScore?.pq_score,
@@ -229,29 +261,31 @@ async function handleClassScope(
 
   // Calculate class summary
   const validScores = residentScores.filter(s => s.compositeScore !== undefined);
+  const toNumbers = (vals: (number | null | undefined)[]): number[] =>
+    vals.filter((v): v is number => typeof v === 'number');
   const summary = validScores.length > 0 ? {
     totalResidents: classResidents.length,
     withScores: validScores.length,
     averages: {
-      eq: average(validScores.map(s => s.eqScore).filter(Boolean) as number[]),
-      pq: average(validScores.map(s => s.pqScore).filter(Boolean) as number[]),
-      iq: average(validScores.map(s => s.iqScore).filter(Boolean) as number[]),
-      composite: average(validScores.map(s => s.compositeScore).filter(Boolean) as number[]),
+      eq: average(toNumbers(validScores.map(s => s.eqScore))),
+      pq: average(toNumbers(validScores.map(s => s.pqScore))),
+      iq: average(toNumbers(validScores.map(s => s.iqScore))),
+      composite: average(toNumbers(validScores.map(s => s.compositeScore))),
     },
   } : null;
 
-  // Get trends if requested
+  // Get trends if requested (cast: Supabase client has no generated DB types)
   let trends = null;
   if (includeTrends) {
-    // Get class-level aggregated scores over time
-    const { data: classTrends } = await ctx.supabase
+    const { data: classTrendsData } = await ctx.supabase
       .from('class_scores')
       .select('*')
       .eq('class_year', year)
       .eq('program_id', ctx.programId)
       .order('period_label', { ascending: true });
+    const classTrends = (classTrendsData || []) as AggregateTrendRow[];
 
-    if (classTrends && classTrends.length > 0) {
+    if (classTrends.length > 0) {
       trends = {
         eq: classTrends.map(t => ({ period: t.period_label, value: t.avg_eq_score })),
         pq: classTrends.map(t => ({ period: t.period_label, value: t.avg_pq_score })),
@@ -308,47 +342,51 @@ async function handleProgramScope(
     );
   }
 
-  // Filter to current (not graduated)
-  const currentResidents = (residents || []).filter((r: Record<string, unknown>) => {
-    const classInfo = r.classes as { graduation_year: number } | null;
-    return classInfo && classInfo.graduation_year > academicYear;
+  // Filter to current (not graduated) (cast: Supabase client has no generated DB types)
+  const residentsList = (residents || []) as ResidentWithClass[];
+  const getGraduationYear = (r: ResidentWithClass): number | undefined =>
+    Array.isArray(r.classes) ? r.classes[0]?.graduation_year : r.classes?.graduation_year;
+  const currentResidents = residentsList.filter(r => {
+    const gy = getGraduationYear(r);
+    return gy != null && gy > academicYear;
   });
 
   // Group by PGY level
-  const byPGY: Record<number, typeof currentResidents> = {};
+  const byPGY: Record<number, ResidentWithClass[]> = {};
   for (const r of currentResidents) {
-    const classInfo = (r as Record<string, unknown>).classes as { graduation_year: number };
-    const pgy = calculatePGYLevel(classInfo.graduation_year);
+    const gy = getGraduationYear(r);
+    if (gy == null) continue;
+    const pgy = calculatePGYLevel(gy);
     if (!byPGY[pgy]) byPGY[pgy] = [];
     byPGY[pgy].push(r);
   }
 
-  // Get average scores per PGY level
+  // Get average scores per PGY level (cast score rows: Supabase has no DB types)
   const pgyStats = await Promise.all(
     Object.entries(byPGY).map(async ([pgy, pgyResidents]) => {
-      const scores = await Promise.all(
-        pgyResidents.map(async (r: Record<string, unknown>) => {
-          const { data: latestScore } = await ctx.supabase
+      const scoreRows = await Promise.all(
+        pgyResidents.map(async (r): Promise<PeriodScoreRow | null> => {
+          const { data } = await ctx.supabase
             .from('period_scores')
             .select('eq_score, pq_score, iq_score, composite_score')
-            .eq('resident_id', r.id as string)
+            .eq('resident_id', r.id)
             .order('period_label', { ascending: false })
             .limit(1)
             .single();
-          return latestScore;
+          return data as PeriodScoreRow | null;
         })
       );
 
-      const validScores = scores.filter(Boolean);
+      const validScores = scoreRows.filter((s): s is PeriodScoreRow => s != null);
       return {
-        pgyLevel: parseInt(pgy),
+        pgyLevel: parseInt(pgy, 10),
         residentCount: pgyResidents.length,
         withScores: validScores.length,
         averages: validScores.length > 0 ? {
-          eq: average(validScores.map(s => s?.eq_score).filter(Boolean) as number[]),
-          pq: average(validScores.map(s => s?.pq_score).filter(Boolean) as number[]),
-          iq: average(validScores.map(s => s?.iq_score).filter(Boolean) as number[]),
-          composite: average(validScores.map(s => s?.composite_score).filter(Boolean) as number[]),
+          eq: average(validScores.map(s => s.eq_score).filter((v): v is number => v != null)),
+          pq: average(validScores.map(s => s.pq_score).filter((v): v is number => v != null)),
+          iq: average(validScores.map(s => s.iq_score).filter((v): v is number => v != null)),
+          composite: average(validScores.map(s => s.composite_score).filter((v): v is number => v != null)),
         } : null,
       };
     })
@@ -363,16 +401,17 @@ async function handleProgramScope(
     composite: average(allScores.map(s => s.composite)),
   } : null;
 
-  // Get trends if requested
+  // Get trends if requested (cast: Supabase client has no generated DB types)
   let trends = null;
   if (includeTrends) {
-    const { data: programTrends } = await ctx.supabase
+    const { data: programTrendsData } = await ctx.supabase
       .from('program_scores')
       .select('*')
       .eq('program_id', ctx.programId)
       .order('period_label', { ascending: true });
+    const programTrends = (programTrendsData || []) as AggregateTrendRow[];
 
-    if (programTrends && programTrends.length > 0) {
+    if (programTrends.length > 0) {
       trends = {
         eq: programTrends.map(t => ({ period: t.period_label, value: t.avg_eq_score })),
         pq: programTrends.map(t => ({ period: t.period_label, value: t.avg_pq_score })),

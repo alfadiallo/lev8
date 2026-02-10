@@ -240,10 +240,10 @@ async function handleClassScope(
         residentName: '', // Will be filled by data shaping if needed
         anonCode: r.anon_code ?? '',
         pgyLevel: calculatePGYLevel(year),
-        eqScore: latestScore?.eq_score,
-        pqScore: latestScore?.pq_score,
-        iqScore: latestScore?.iq_score,
-        compositeScore: latestScore?.composite_score,
+        eqScore: latestScore?.eq_score ?? undefined,
+        pqScore: latestScore?.pq_score ?? undefined,
+        iqScore: latestScore?.iq_score ?? undefined,
+        compositeScore: latestScore?.composite_score ?? undefined,
       };
     })
   );

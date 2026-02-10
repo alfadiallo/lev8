@@ -345,7 +345,8 @@ export function withTenantAuth(
       }
 
       // Create service client for queries
-      const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- no generated DB types; any avoids 'never' on query results
+      const supabase = createClient<any>(supabaseUrl, supabaseServiceKey, {
         auth: { persistSession: false }
       });
 

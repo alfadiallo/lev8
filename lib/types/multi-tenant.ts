@@ -40,7 +40,8 @@ export interface Department {
   updatedAt: string;
 }
 
-export type MembershipRole = 
+export type MembershipRole =
+  | 'super_admin'
   | 'admin'
   | 'program_director'
   | 'assistant_program_director'
@@ -152,6 +153,7 @@ export function parseTenantRoute(pathname: string): TenantRoute | null {
 // Check if a role has certain permissions
 export function hasPermission(role: MembershipRole, permission: 'view' | 'edit' | 'admin'): boolean {
   const rolePermissions: Record<MembershipRole, string[]> = {
+    'super_admin': ['view', 'edit', 'admin'],
     'admin': ['view', 'edit', 'admin'],
     'program_director': ['view', 'edit', 'admin'],
     'assistant_program_director': ['view', 'edit'],

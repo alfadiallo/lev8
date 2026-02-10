@@ -198,7 +198,7 @@ async function handleClassScope(
       const { data: latestScore } = await ctx.supabase
         .from('period_scores')
         .select('eq_score, pq_score, iq_score, composite_score')
-        .eq('resident_id', r.id)
+        .eq('resident_id', r.id as string)
         .order('period_label', { ascending: false })
         .limit(1)
         .single();
@@ -331,7 +331,7 @@ async function handleProgramScope(
           const { data: latestScore } = await ctx.supabase
             .from('period_scores')
             .select('eq_score, pq_score, iq_score, composite_score')
-            .eq('resident_id', r.id)
+            .eq('resident_id', r.id as string)
             .order('period_label', { ascending: false })
             .limit(1)
             .single();

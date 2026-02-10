@@ -91,7 +91,7 @@ async function handleResidentScope(
   }
 
   // Transform scores
-  const scores = (periodScores || []).map(score => ({
+  const scores = ((periodScores || []) as Record<string, unknown>[]).map(score => ({
     periodLabel: score.period_label,
     eqScore: score.eq_score,
     pqScore: score.pq_score,

@@ -30,10 +30,10 @@ export default function CaseInterface({ case_, attempt, onSaveProgress }: CaseIn
   const [answers, setAnswers] = useState<Record<string, unknown>>(attempt?.progress_data || {});
   const [completed, setCompleted] = useState(attempt?.completed || false);
 
-  // Extract case content from case_data
-  const caseData = case_.case_data || {};
-  const steps = caseData.steps || [];
-  const questions = caseData.questions || [];
+  // Extract case content from case_data (Record<string, unknown>)
+  const caseData = (case_.case_data || {}) as { steps?: CaseStep[]; questions?: (CaseQuestion & { text?: string; type?: string })[] };
+  const steps = caseData.steps ?? [];
+  const questions = caseData.questions ?? [];
 
   const handleAnswer = async (questionId: string, answer: unknown) => {
     const newAnswers = { ...answers, [questionId]: answer };

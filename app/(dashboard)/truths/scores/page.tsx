@@ -49,6 +49,33 @@ interface ResidentScore {
   };
 }
 
+/** Resident row from /api/truths/scores */
+interface ApiResidentRow {
+  id: string;
+  graduation_year?: number;
+  full_name?: string;
+  anon_code?: string;
+}
+
+/** ITE score row from API (for filter callback) */
+interface ApiIteRow {
+  resident_id: string;
+  pgy_level?: string | number;
+  raw_score?: number;
+  percentile?: number;
+  id?: string;
+}
+
+/** Exam score row from API (for filter callback) */
+interface ApiExamRow {
+  resident_id: string;
+  exam_type: string;
+  score?: number;
+  percentile?: number;
+  year_taken?: number;
+  id?: string;
+}
+
 interface ClassGroup {
   graduationYear: number;
   pgyLevel: number | null;
@@ -162,11 +189,11 @@ export default function ScoresPage() {
       // Process data into class groups
       const processedGroups: Record<number, ClassGroup> = {};
 
-      residents?.forEach((res: any) => {
-        const classYear = res.graduation_year || 2027;
-        const name = res.full_name || 'Unknown Resident';
-        const anonCode = res.anon_code || 'R000';
-        
+      residents?.forEach((res: ApiResidentRow) => {
+        const classYear = res.graduation_year ?? 2027;
+        const name = res.full_name ?? 'Unknown Resident';
+        const anonCode = res.anon_code ?? 'R000';
+
         if (!processedGroups[classYear]) {
           const pgyLevel = getPGYForClass(classYear);
           processedGroups[classYear] = {
@@ -186,14 +213,13 @@ export default function ScoresPage() {
           };
         }
 
-        const resIte = iteScores?.filter((s: { resident_id: string }) => s.resident_id === res.id) || [];
-        const resOther = otherScores?.filter((s: { resident_id: string }) => s.resident_id === res.id) || [];
+        const resIte = (iteScores?.filter((s: ApiIteRow) => s.resident_id === res.id) || []) as ApiIteRow[];
+        const resOther = (otherScores?.filter((s: ApiExamRow) => s.resident_id === res.id) || []) as ApiExamRow[];
 
-        const getIte = (pgy: number) => {
-          return resIte.find((x: { pgy_level: string | number; raw_score?: number; percentile?: number; id?: string }) => x.pgy_level == pgy || x.pgy_level == `PGY-${pgy}` || x.pgy_level === pgy);
-        };
+        const getIte = (pgy: number) =>
+          resIte.find((x) => x.pgy_level == pgy || x.pgy_level === `PGY-${pgy}`);
 
-        const getExam = (type: string) => resOther.find((x: { exam_type: string; score?: number; percentile?: number; year_taken?: number; id?: string }) => x.exam_type === type);
+        const getExam = (type: string) => resOther.find((x) => x.exam_type === type);
 
         const usmle1 = getExam('USMLE Step 1');
         const usmle2 = getExam('USMLE Step 2');
@@ -283,7 +309,7 @@ export default function ScoresPage() {
     }));
   };
 
-  const getEditValue = (resId: string, type: string, field: 'score' | 'percentile' | 'year', original: any) => {
+  const getEditValue = (resId: string, type: string, field: 'score' | 'percentile' | 'year', original: number | null) => {
     const key = `${resId}-${type}-${field}`;
     if (key in editValues) return editValues[key];
     return original != null ? original.toString() : '';
@@ -326,11 +352,11 @@ export default function ScoresPage() {
             .or(`pgy_level.eq.PGY-${pgy},pgy_level.eq.${pgy}`)
             .maybeSingle();
             
-          if (existing) {
-            const updateData: any = { updated_at: new Date().toISOString() };
+            if (existing) {
+            const updateData: { updated_at: string; raw_score?: number | null; percentile?: number | null } = { updated_at: new Date().toISOString() };
             if (data.score !== undefined) updateData.raw_score = data.score;
             if (data.percentile !== undefined) updateData.percentile = data.percentile;
-            
+
             await supabaseClient.from('ite_scores').update(updateData).eq('id', existing.id);
           } else if (data.score !== null || data.percentile !== null) {
             const resident = classGroups.flatMap(g => g.residents).find(r => r.id === resId);

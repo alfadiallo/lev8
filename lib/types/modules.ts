@@ -34,7 +34,7 @@ export interface ClinicalCase {
   difficulty: Difficulty;
   specialty: string;
   estimated_duration_minutes: number;
-  case_data: Record<string, any>;
+  case_data: Record<string, unknown>;
   created_by_user_id?: string;
   is_public: boolean;
   is_active: boolean;
@@ -46,7 +46,7 @@ export interface CaseAttempt {
   id: string;
   case_id: string;
   user_id: string;
-  progress_data: Record<string, any>;
+  progress_data: Record<string, unknown>;
   score?: number;
   completed: boolean;
   started_at: string;
@@ -64,7 +64,7 @@ export interface Vignette {
   subcategory?: string;
   difficulty: Difficulty[];
   estimated_duration_minutes: number;
-  vignette_data: Record<string, any>; // v1 structure or v2 structure (check for version field)
+  vignette_data: Record<string, unknown>; // v1 structure or v2 structure (check for version field)
   created_by_user_id?: string;
   is_public: boolean;
   is_active: boolean;
@@ -88,7 +88,7 @@ export interface TrainingSession {
   end_time?: string;
   messages: Message[];
   metrics: SessionMetrics;
-  session_data: Record<string, any>;
+  session_data: Record<string, unknown>;
   completed: boolean;
   ai_provider?: string;
   session_duration_seconds?: number;
@@ -111,7 +111,7 @@ export interface SessionMetrics {
   empathyScore?: number;
   clarityScore?: number;
   deEscalationScore?: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface ACLSScenario {
@@ -119,7 +119,7 @@ export interface ACLSScenario {
   institution_id: string;
   title: string;
   description: string;
-  scenario_data: Record<string, any>;
+  scenario_data: Record<string, unknown>;
   created_by_user_id?: string;
   is_public: boolean;
   is_active: boolean;
@@ -131,10 +131,10 @@ export interface ACLSSession {
   id: string;
   user_id: string;
   scenario_id: string;
-  current_state: Record<string, any>;
-  context_data: Record<string, any>;
-  choices_made: any[];
-  performance_metrics: Record<string, any>;
+  current_state: Record<string, unknown>;
+  context_data: Record<string, unknown>;
+  choices_made: unknown[];
+  performance_metrics: Record<string, unknown>;
   completed: boolean;
   started_at: string;
   completed_at?: string;
@@ -149,7 +149,7 @@ export interface RunningBoardConfig {
   description: string;
   patient_count: number;
   difficulty: Difficulty;
-  config_data: Record<string, any>;
+  config_data: Record<string, unknown>;
   created_by_user_id?: string;
   is_public: boolean;
   is_active: boolean;
@@ -161,9 +161,9 @@ export interface RunningBoardSession {
   id: string;
   user_id: string;
   config_id: string;
-  patient_states: any[];
-  actions_taken: any[];
-  performance_metrics: Record<string, any>;
+  patient_states: unknown[];
+  actions_taken: unknown[];
+  performance_metrics: Record<string, unknown>;
   completed: boolean;
   started_at: string;
   completed_at?: string;

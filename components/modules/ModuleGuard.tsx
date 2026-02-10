@@ -29,15 +29,15 @@ export default function ModuleGuard({ children, availableToRoles, fallback }: Mo
     availableToRoles,
   });
   
-  // Memoize the access check to prevent unnecessary re-renders
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Memoize the access check; recompute when role or allowed list changes
   const hasAccess = useMemo(
     () => {
       const access = hasModuleAccess(availableToRoles);
       console.log('[ModuleGuard] Access check result:', access);
       return access;
     },
-    [hasModuleAccess, availableToRoles.join(','), userRole]
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hasModuleAccess result depends on userRole
+    [hasModuleAccess, availableToRoles, userRole]
   );
 
   // Wait for auth to finish loading before checking access

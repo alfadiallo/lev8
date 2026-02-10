@@ -11,13 +11,76 @@ import {
 import type { 
   MethodologyVersion, 
   ArchetypeDefinitionV,
-  ResidentClassification,
   EvolutionTrigger,
   PatternCluster
 } from '@/lib/types/archetypes';
 
 // ============================================================
-// TYPES
+// TYPES & RELATION HELPERS (Supabase joins can be object or array)
+// ============================================================
+
+interface ResidentWithProfile {
+  user_profiles?: { full_name?: string } | null;
+}
+interface ResidentWithClass {
+  classes?: { graduation_year?: number } | null;
+}
+interface ClassificationWithArchetype {
+  current_archetype_id?: string | null;
+}
+
+function getResidentFullName(residents: unknown): string {
+  const r = residents as ResidentWithProfile | ResidentWithProfile[] | null | undefined;
+  if (!r) return 'Unknown';
+  const single = Array.isArray(r) ? r[0] : r;
+  const name = single?.user_profiles?.full_name;
+  return typeof name === 'string' ? name : 'Unknown';
+}
+
+function getGraduationYear(residents: unknown): number | undefined {
+  const r = residents as ResidentWithClass | ResidentWithClass[] | null | undefined;
+  if (!r) return undefined;
+  const single = Array.isArray(r) ? r[0] : r;
+  return single?.classes?.graduation_year;
+}
+
+function getClassificationArchetypeId(rc: unknown): string | undefined {
+  const r = rc as ClassificationWithArchetype | ClassificationWithArchetype[] | null | undefined;
+  if (!r) return undefined;
+  const single = Array.isArray(r) ? r[0] : r;
+  const id = single?.current_archetype_id;
+  return typeof id === 'string' ? id : undefined;
+}
+
+/** Row shape from resident_classifications select for pattern detection */
+interface VariableCaseRow {
+  resident_id: string;
+  pgy1_percentile: number | null;
+  pgy2_percentile: number | null;
+  pgy3_percentile: number | null;
+  delta_12?: number | null;
+  delta_23?: number | null;
+}
+
+/** Row shape from archetype_methodology_versions */
+interface MethodologyVersionRow {
+  id: string;
+  version: string;
+  name: string;
+  effective_date: string;
+  retired_date: string | null;
+  is_current: boolean;
+  changelog: string[] | null;
+  based_on_residents: number;
+  based_on_classes: number[] | null;
+  accuracy_rate?: number | null;
+  inter_rater_agreement?: number | null;
+  created_at?: string | null;
+  archetypes?: ArchetypeDefinitionV[] | null;
+}
+
+// ============================================================
+// TYPES (exported)
 // ============================================================
 
 export interface VersionComparisonResult {
@@ -193,7 +256,7 @@ export class ArchetypeEvolutionManager {
       driftPercentage: total > 0 ? (drifted / total) * 100 : 0,
       driftDetails: (data || []).map(d => ({
         residentId: d.resident_id,
-        residentName: (d.residents as any)?.user_profiles?.full_name || 'Unknown',
+        residentName: getResidentFullName(d.residents),
         originalArchetype: d.original_archetype_name,
         currentArchetype: d.current_archetype_name,
         driftReason: d.drift_reason || 'unknown'
@@ -227,8 +290,8 @@ export class ArchetypeEvolutionManager {
 
     // Trigger 1: Annual review after each class graduates
     const graduationYears = classifications
-      .map(c => (c.residents as any)?.classes?.graduation_year)
-      .filter(Boolean);
+      .map(c => getGraduationYear(c.residents))
+      .filter((y): y is number => y != null);
     
     const latestGradClass = Math.max(...graduationYears);
     if (latestGradClass >= currentYear) {
@@ -346,11 +409,11 @@ export class ArchetypeEvolutionManager {
   /**
    * Detect clusters in Variable cases that might warrant new archetypes
    */
-  private detectPatternClusters(variableCases: any[]): PatternCluster[] {
+  private detectPatternClusters(variableCases: VariableCaseRow[]): PatternCluster[] {
     const clusters: PatternCluster[] = [];
 
     // Group by delta12 and delta23 buckets (±10 points)
-    const buckets: Record<string, any[]> = {};
+    const buckets: Record<string, VariableCaseRow[]> = {};
     
     for (const c of variableCases) {
       if (c.pgy1_percentile === null || c.pgy2_percentile === null || c.pgy3_percentile === null) continue;
@@ -376,10 +439,10 @@ export class ArchetypeEvolutionManager {
         else if (d12Bucket < 0 && d23Bucket < 0) suggestedName = 'Gradual Decline';
         else if (Math.abs(d12Bucket) <= 10 && d23Bucket < -10) suggestedName = 'Late Fade';
 
-        // Calculate centroid
-        const avgPgy1 = cases.reduce((sum, c) => sum + c.pgy1_percentile, 0) / cases.length;
-        const avgPgy2 = cases.reduce((sum, c) => sum + c.pgy2_percentile, 0) / cases.length;
-        const avgPgy3 = cases.reduce((sum, c) => sum + c.pgy3_percentile, 0) / cases.length;
+        // Calculate centroid (cases in this bucket have non-null percentiles by construction)
+        const avgPgy1 = cases.reduce((sum, c) => sum + (c.pgy1_percentile ?? 0), 0) / cases.length;
+        const avgPgy2 = cases.reduce((sum, c) => sum + (c.pgy2_percentile ?? 0), 0) / cases.length;
+        const avgPgy3 = cases.reduce((sum, c) => sum + (c.pgy3_percentile ?? 0), 0) / cases.length;
 
         clusters.push({
           id: crypto.randomUUID(),
@@ -429,7 +492,7 @@ export class ArchetypeEvolutionManager {
     const byArchetype: Record<string, { passed: number; failed: number }> = {};
     
     for (const outcome of data) {
-      const archId = (outcome.resident_classifications as any)?.current_archetype_id;
+      const archId = getClassificationArchetypeId(outcome.resident_classifications);
       if (!archId) continue;
       
       if (!byArchetype[archId]) {
@@ -621,7 +684,7 @@ export class ArchetypeEvolutionManager {
   // HELPER METHODS
   // ============================================================
 
-  private mapVersionFromDb(data: any): MethodologyVersion {
+  private mapVersionFromDb(data: MethodologyVersionRow): MethodologyVersion {
     return {
       id: data.id,
       version: data.version,
@@ -629,13 +692,13 @@ export class ArchetypeEvolutionManager {
       effectiveDate: data.effective_date,
       retiredDate: data.retired_date,
       isCurrent: data.is_current,
-      changelog: data.changelog || [],
-      archetypes: data.archetypes || [],
+      changelog: data.changelog ?? [],
+      archetypes: data.archetypes ?? [],
       basedOnResidents: data.based_on_residents,
-      basedOnClasses: data.based_on_classes || [],
-      accuracyRate: data.accuracy_rate,
-      interRaterAgreement: data.inter_rater_agreement,
-      createdAt: data.created_at
+      basedOnClasses: data.based_on_classes ?? [],
+      accuracyRate: data.accuracy_rate ?? undefined,
+      interRaterAgreement: data.inter_rater_agreement ?? undefined,
+      createdAt: data.created_at ?? new Date().toISOString()
     };
   }
 }

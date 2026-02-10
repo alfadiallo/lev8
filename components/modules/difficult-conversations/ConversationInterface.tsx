@@ -17,6 +17,15 @@ import BranchingHint from './BranchingHint';
 import AssessmentResults from './AssessmentResults';
 import { useAuth } from '@/context/AuthContext';
 
+/** V1 vignette_data shape for fallback branches */
+interface V1VignetteData {
+  initialPrompt?: string;
+  primaryAvatar?: { id?: string; name?: string; role?: string; color?: string };
+  context?: string;
+  facts?: unknown[];
+  escalationTriggers?: unknown[];
+}
+
 interface ConversationInterfaceProps {
   vignette: Vignette;
   difficulty: 'beginner' | 'intermediate' | 'advanced';
@@ -24,7 +33,7 @@ interface ConversationInterfaceProps {
 }
 
 export default function ConversationInterface({ vignette, difficulty, onEnd }: ConversationInterfaceProps) {
-  const { user } = useAuth();
+  const { user: _user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -42,11 +51,11 @@ export default function ConversationInterface({ vignette, difficulty, onEnd }: C
   const vignetteV2 = useMemo(() => {
     if (!isV2) return null;
     try {
-      return vignette.vignette_data as any as VignetteV2;
+      return vignette.vignette_data as unknown as VignetteV2;
     } catch {
       return null;
     }
-  }, [isV2, vignette.id]); // Only depend on vignette.id, not the whole object
+  }, [isV2, vignette.vignette_data]);
 
   const voiceEnabled = isV2 && vignetteV2 && isVoiceEnabled(vignette);
   const { playBase64Audio, isPlaying } = useAudioPlayback();
@@ -166,9 +175,9 @@ export default function ConversationInterface({ vignette, difficulty, onEnd }: C
       setMessages([initialMessage]);
     } else {
       // Fallback for v1 vignettes
-      const vignetteData = vignette.vignette_data || {};
+      const vignetteData = (vignette.vignette_data || {}) as V1VignetteData;
       const initialPrompt = vignetteData.initialPrompt || vignette.description || 'Hello, how can I help you?';
-      
+
       const initialMessage: Message = {
         id: 'initial',
         avatarId: vignetteData.primaryAvatar?.id,
@@ -179,9 +188,7 @@ export default function ConversationInterface({ vignette, difficulty, onEnd }: C
 
       setMessages([initialMessage]);
     }
-    // Only re-run if vignette.id changes, not the whole vignette object
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vignette.id]);
+  }, [vignette.id, vignette.description, vignette.vignette_data, isV2, vignetteV2]);
 
   useEffect(() => {
     if (messagesContainerRef.current) {
@@ -265,7 +272,7 @@ export default function ConversationInterface({ vignette, difficulty, onEnd }: C
         }
       } else {
         // Fallback to v1 API
-        const vignetteData = vignette.vignette_data || {};
+        const vignetteData = (vignette.vignette_data || {}) as V1VignetteData;
         const v1Response = await fetch('/api/conversations/chat', {
           method: 'POST',
           headers: {
@@ -351,7 +358,7 @@ export default function ConversationInterface({ vignette, difficulty, onEnd }: C
         color: '#7EC8E3',
       };
     } else {
-      const vignetteData = vignette.vignette_data || {};
+      const vignetteData = (vignette.vignette_data || {}) as V1VignetteData;
       const primaryAvatar = vignetteData.primaryAvatar;
       return {
         name: primaryAvatar?.name || 'Patient/Family',

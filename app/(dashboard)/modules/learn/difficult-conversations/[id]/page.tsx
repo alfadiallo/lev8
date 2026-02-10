@@ -113,22 +113,30 @@ export default function DifficultConversationDetailPage() {
     );
   }
 
-  // Handle both v1 and v2 vignettes
-  const isV2 = vignette.vignette_data?.version === '2.0' || vignette.vignette_data?.version === 2;
-  const vignetteData = vignette.vignette_data || {};
-  
-  // Get primary avatar based on version
-  let primaryAvatar: { name: string; role: string; color: string } | null = null;
-  if (isV2 && vignetteData.avatars?.primaryAvatar) {
-    const avatarKey = Object.keys(vignetteData.avatars.primaryAvatar)[0];
-    const avatar = vignetteData.avatars.primaryAvatar[avatarKey];
-    primaryAvatar = {
-      name: avatar.identity.name,
-      role: avatar.identity.relationship || avatar.identity.occupation || 'Family Member',
-      color: '#7EC8E3',
-    };
+  // Handle both v1 and v2 vignettes (vignette_data is Record<string, unknown>)
+  const vd = vignette.vignette_data as Record<string, unknown> | undefined;
+  const isV2 = vd?.version === '2.0' || vd?.version === 2;
+  const vignetteData = vd ?? {};
+
+  type PrimaryAvatar = { name: string; role: string; color: string };
+  let primaryAvatar: PrimaryAvatar | null = null;
+  if (isV2) {
+    const avatars = vignetteData.avatars as Record<string, Record<string, { identity?: { name?: string; relationship?: string; occupation?: string } }>> | undefined;
+    const primary = avatars?.primaryAvatar;
+    if (primary && typeof primary === 'object') {
+      const avatarKey = Object.keys(primary)[0];
+      const avatar = primary[avatarKey];
+      if (avatar?.identity) {
+        primaryAvatar = {
+          name: avatar.identity.name ?? 'Patient/Family',
+          role: avatar.identity.relationship ?? avatar.identity.occupation ?? 'Family Member',
+          color: '#7EC8E3',
+        };
+      }
+    }
   } else {
-    primaryAvatar = vignetteData.primaryAvatar;
+    const v1Avatar = vignetteData.primaryAvatar as PrimaryAvatar | undefined;
+    if (v1Avatar && typeof v1Avatar === 'object' && 'name' in v1Avatar) primaryAvatar = v1Avatar;
   }
   
   const difficulties = Array.isArray(vignette.difficulty) ? vignette.difficulty : [vignette.difficulty];
@@ -217,28 +225,30 @@ export default function DifficultConversationDetailPage() {
           </div>
 
           {/* Context Info */}
-          {isV2 && vignetteData.clinicalData ? (
+          {isV2 && (vignetteData.clinicalData as Record<string, unknown> | undefined) ? (
             <div className="bg-[#D4F1F4]/80 backdrop-blur-sm border border-[#7EC8E3]/30 p-6 rounded-2xl space-y-4">
               <h3 className="font-semibold mb-2 text-neutral-800">Clinical Scenario</h3>
               <div>
                 <p className="text-sm font-medium text-neutral-700 mb-1">Patient Presentation:</p>
-                <p className="text-sm text-neutral-600">{vignetteData.clinicalData.patient?.presentation?.chiefComplaint || 'N/A'}</p>
+                <p className="text-sm text-neutral-600">
+                  {(vignetteData.clinicalData as { patient?: { presentation?: { chiefComplaint?: string } } })?.patient?.presentation?.chiefComplaint ?? 'N/A'}
+                </p>
               </div>
-              {vignetteData.learningObjectives && vignetteData.learningObjectives.length > 0 && (
+              {(vignetteData.learningObjectives as { objective: string }[] | undefined)?.length ? (
                 <div>
                   <p className="text-sm font-medium text-neutral-700 mb-1">Learning Objectives:</p>
                   <ul className="text-sm text-neutral-600 space-y-1">
-                    {vignetteData.learningObjectives.map((obj: { objective: string }, idx: number) => (
+                    {(vignetteData.learningObjectives as { objective: string }[]).map((obj, idx) => (
                       <li key={idx}>• {obj.objective}</li>
                     ))}
                   </ul>
                 </div>
-              )}
+              ) : null}
             </div>
-          ) : vignetteData.context ? (
+          ) : (vignetteData.context as string | undefined) ? (
             <div className="bg-[#D4F1F4]/80 backdrop-blur-sm border border-[#7EC8E3]/30 p-6 rounded-2xl">
               <h3 className="font-semibold mb-2 text-neutral-800">Scenario Context</h3>
-              <p className="text-sm text-neutral-700 whitespace-pre-wrap">{vignetteData.context}</p>
+              <p className="text-sm text-neutral-700 whitespace-pre-wrap">{String(vignetteData.context)}</p>
             </div>
           ) : null}
         </div>

@@ -7,7 +7,7 @@ export async function POST(_request: NextRequest) {
     // Create admin client with service role key
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      process.env.SUPABASE_SERVICE_KEY!,
       {
         auth: {
           autoRefreshToken: false,

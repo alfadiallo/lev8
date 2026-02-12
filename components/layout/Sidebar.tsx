@@ -19,6 +19,7 @@ interface NavChild {
   external?: boolean;  // Opens in new tab
   highlight?: boolean; // Special styling
   icon?: React.ComponentType<{ size?: number; className?: string }>;
+  moduleSlug?: string; // When set, only shown if user has access to this module slug
 }
 
 interface NavItem {
@@ -28,6 +29,7 @@ interface NavItem {
   adminOnly?: boolean;
   leadershipOnly?: boolean;  // Program Director, Asst PD, Clerkship Director, Admin, Super Admin
   facultyOnly?: boolean;     // Hidden from residents
+  moduleSlug?: string;       // Module slug for allowed_modules filtering
 }
 
 const BASE_NAVIGATION: NavItem[] = [
@@ -37,16 +39,18 @@ const BASE_NAVIGATION: NavItem[] = [
   },
   { 
     name: 'Learn',
+    moduleSlug: 'learn',
     children: [
       { name: 'Clinical Cases', href: '/modules/learn/clinical-cases' },
       { name: 'Difficult Conversations', href: '/modules/learn/difficult-conversations' },
       { name: 'EKG & ACLS', href: '/modules/learn/ekg-acls' },
       { name: 'Running the Board', href: '/modules/learn/running-board' },
-      { name: 'Studio', href: '/studio', external: true, highlight: true, icon: Sparkles },
+      { name: 'Studio', href: '/studio', external: true, highlight: true, icon: Sparkles, moduleSlug: 'studio' },
     ]
   },
   { 
     name: 'Reflect',
+    moduleSlug: 'reflect',
     facultyOnly: true,  // Hidden from residents
     children: [
       { name: 'Voice Journaling', href: '/modules/reflect/voice-journal' },
@@ -54,6 +58,7 @@ const BASE_NAVIGATION: NavItem[] = [
   },
   { 
     name: 'Understand',
+    moduleSlug: 'understand',
     facultyOnly: true,  // Hidden from residents
     children: [
       { name: 'Residents', href: '/modules/understand/residents' },
@@ -64,6 +69,7 @@ const BASE_NAVIGATION: NavItem[] = [
   },
   { 
     name: 'Truths',
+    moduleSlug: 'truths',
     facultyOnly: true,  // Hidden from residents
     children: [
       { name: 'Uploads', href: '/truths/uploads' },
@@ -72,6 +78,7 @@ const BASE_NAVIGATION: NavItem[] = [
   },
   { 
     name: 'Expectations',
+    moduleSlug: 'expectations',
     leadershipOnly: true,
     children: [
       { name: 'Dashboard', href: '/expectations' },
@@ -103,16 +110,42 @@ export function Sidebar() {
   
   // Check if user is a resident (residents have restricted access)
   const isResident = role === 'resident';
-  
-  // Faculty and above can see facultyOnly modules
-  const isFacultyOrAbove = !isResident;
+  // studio_creator has Learn + Studio only (no Reflect, Understand, Truths)
+  const isStudioCreatorOnly = role === 'studio_creator';
 
-  // Filter navigation based on permissions
+  // Faculty and above can see facultyOnly modules (not residents, not studio_creator)
+  const isFacultyOrAbove = !isResident && !isStudioCreatorOnly;
+
+  // Per-user module override list (from user_profiles.allowed_modules)
+  const userAllowedModules = user?.allowed_modules;
+  const hasModuleOverride = Array.isArray(userAllowedModules) && userAllowedModules.length > 0;
+  // Admin/super_admin bypass the override
+  const isAdminRole = role === 'super_admin' || role === 'admin';
+
+  // Filter navigation based on permissions + allowed_modules
   const navigation = BASE_NAVIGATION.filter(item => {
     if (item.adminOnly) return canAccessAdminPortal;
+
+    // If per-user override is active (and not admin), use it
+    if (hasModuleOverride && !isAdminRole && item.moduleSlug) {
+      return userAllowedModules.includes(item.moduleSlug);
+    }
+
+    // Else fall through to role-based visibility
     if (item.leadershipOnly) return canAccessExpectations;
-    if (item.facultyOnly) return isFacultyOrAbove; // Hide from residents
+    if (item.facultyOnly) return isFacultyOrAbove;
     return true;
+  }).map(item => {
+    // Also filter child items by allowed_modules (e.g. Studio inside Learn)
+    if (hasModuleOverride && !isAdminRole && item.children) {
+      return {
+        ...item,
+        children: item.children.filter(child =>
+          !child.moduleSlug || userAllowedModules.includes(child.moduleSlug)
+        ),
+      };
+    }
+    return item;
   });
 
   // Ensure modules are expanded based on current pathname

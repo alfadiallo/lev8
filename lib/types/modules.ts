@@ -6,6 +6,7 @@ export type UserRole =
   | 'program_director' 
   | 'assistant_program_director'
   | 'clerkship_director'
+  | 'studio_creator'  // Learn + Studio only (no Reflect, Understand, Truths)
   | 'super_admin' 
   | 'admin';
 

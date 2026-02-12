@@ -67,7 +67,8 @@ async function getStudioUser() {
     .eq('user_id', user.id)
     .single();
 
-  const hasStudioAccess = !!membership || (creator?.status === 'approved');
+  // Studio access: org membership, approved studio_creators row, or studio_creator role (Learn + Studio only)
+  const hasStudioAccess = !!membership || (creator?.status === 'approved') || profile?.role === 'studio_creator';
 
   return {
     user: {

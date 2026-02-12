@@ -28,15 +28,16 @@ interface QuickStat {
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const { canAccessAdminPortal, isProgramLeadership, isSuperAdmin, isResident } = usePermissions();
+  const { canAccessAdminPortal, isProgramLeadership, isSuperAdmin, isResident, role } = usePermissions();
   const [greeting, setGreeting] = useState('Welcome');
   const [dateString, setDateString] = useState('');
   
   // Expectations is only visible to Program Leadership, Admin, Super Admin
   const canAccessExpectations = isProgramLeadership || isSuperAdmin;
   
-  // Faculty and above can see all modules, residents only see Learn
-  const isFacultyOrAbove = !isResident;
+  // Faculty and above can see all modules; residents only see Learn; studio_creator sees Learn + Studio only
+  const isStudioCreatorOnly = role === 'studio_creator';
+  const isFacultyOrAbove = !isResident && !isStudioCreatorOnly;
 
   useEffect(() => {
     // Set greeting based on time of day (client-side only to avoid hydration mismatch)
@@ -53,9 +54,15 @@ export default function DashboardPage() {
     }));
   }, []);
 
+  // Per-user module override list
+  const userAllowedModules = user?.allowed_modules;
+  const hasModuleOverride = Array.isArray(userAllowedModules) && userAllowedModules.length > 0;
+  const isAdminRole = role === 'super_admin' || role === 'admin';
+
   const baseModules = [
     {
       name: 'Learn',
+      moduleSlug: 'learn',
       description: 'Clinical cases, conversations, simulations',
       icon: BookOpen,
       href: '/modules/learn',
@@ -69,6 +76,7 @@ export default function DashboardPage() {
     },
     {
       name: 'Reflect',
+      moduleSlug: 'reflect',
       description: 'Voice journaling and self-reflection',
       icon: MessageSquare,
       href: '/modules/reflect',
@@ -80,6 +88,7 @@ export default function DashboardPage() {
     },
     {
       name: 'Understand',
+      moduleSlug: 'understand',
       description: 'Analytics and resident insights',
       icon: TrendingUp,
       href: '/modules/understand',
@@ -92,6 +101,7 @@ export default function DashboardPage() {
     },
     {
       name: 'Truths',
+      moduleSlug: 'truths',
       description: 'Program documents and resources',
       icon: FileText,
       href: '/truths',
@@ -104,16 +114,23 @@ export default function DashboardPage() {
   // Add conditional modules based on user permissions
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const modules = useMemo(() => {
-    // Filter base modules based on role
+    // Filter base modules based on allowed_modules override (if active) or role
     const result = baseModules.filter(module => {
+      if (hasModuleOverride && !isAdminRole && module.moduleSlug) {
+        return userAllowedModules!.includes(module.moduleSlug);
+      }
       if (module.facultyOnly) return isFacultyOrAbove;
       return true;
     });
     
-    // Add Expectations for Program Leadership, Admin, Super Admin
-    if (canAccessExpectations) {
+    // Add Expectations for Program Leadership, Admin, Super Admin (or allowed_modules override)
+    const showExpectations = hasModuleOverride && !isAdminRole
+      ? userAllowedModules!.includes('expectations')
+      : canAccessExpectations;
+    if (showExpectations) {
       result.push({
         name: 'Expectations',
+        moduleSlug: 'expectations',
         description: 'ACGME requirements and compliance',
         icon: ClipboardCheck,
         href: '/expectations',
@@ -123,10 +140,11 @@ export default function DashboardPage() {
       });
     }
     
-    // Add Admin Portal for admins
+    // Add Admin Portal for admins (never filtered by allowed_modules)
     if (canAccessAdminPortal) {
       result.push({
         name: 'Admin Portal',
+        moduleSlug: undefined as unknown as string,
         description: 'User management and access control',
         icon: Shield,
         href: '/admin/dashboard',
@@ -141,7 +159,7 @@ export default function DashboardPage() {
     }
     
     return result;
-  }, [canAccessExpectations, canAccessAdminPortal, isFacultyOrAbove]);
+  }, [canAccessExpectations, canAccessAdminPortal, isFacultyOrAbove, hasModuleOverride, isAdminRole, userAllowedModules]);
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto">

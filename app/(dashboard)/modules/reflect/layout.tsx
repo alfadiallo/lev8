@@ -12,7 +12,7 @@ export default function ReflectLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <ModuleGuard availableToRoles={[...REFLECT_ALLOWED_ROLES]}>
+    <ModuleGuard availableToRoles={[...REFLECT_ALLOWED_ROLES]} moduleSlug="reflect">
       <div className="space-y-6">
       {/* Breadcrumb Navigation */}
       <nav className="flex items-center gap-2 text-sm">

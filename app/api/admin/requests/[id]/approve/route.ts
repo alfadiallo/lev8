@@ -17,7 +17,7 @@ export async function POST(
   try {
     const { id } = await params;
     const body = await req.json().catch(() => ({}));
-    const { admin_notes } = body;
+    const { admin_notes, role: overrideRole, allowed_modules } = body;
 
     // Authenticate admin
     const authHeader = req.headers.get('authorization');
@@ -80,13 +80,16 @@ export async function POST(
     // Create auth user with temporary password
     const tempPassword = generateTempPassword();
     
+    // Use admin-selected role if provided, otherwise use the applicant's requested role
+    const approvedRole = overrideRole || request.requested_role;
+
     const { data: authData, error: createAuthError } = await supabase.auth.admin.createUser({
       email: request.personal_email,
       password: tempPassword,
       email_confirm: true,
       user_metadata: {
         full_name: request.full_name,
-        role: request.requested_role,
+        role: approvedRole,
       },
     });
 
@@ -111,7 +114,8 @@ export async function POST(
         full_name: request.full_name,
         display_name: request.full_name.split(' ')[0],
         phone: request.phone,
-        role: request.requested_role,
+        role: approvedRole,
+        allowed_modules: Array.isArray(allowed_modules) && allowed_modules.length > 0 ? allowed_modules : null,
         institution_id: institution.id,
         account_status: 'active',
         is_active: true,
@@ -130,7 +134,7 @@ export async function POST(
     }
 
     // Create role-specific record (resident or faculty)
-    if (request.requested_role === 'resident') {
+    if (approvedRole === 'resident') {
       // Find or create a class for the resident
       const { data: classes } = await supabase
         .from('classes')
@@ -154,7 +158,7 @@ export async function POST(
           specialty: request.specialty,
         });
       }
-    } else if (['faculty', 'program_director'].includes(request.requested_role)) {
+    } else if (['faculty', 'program_director', 'assistant_program_director', 'clerkship_director'].includes(approvedRole)) {
       const { data: programs } = await supabase
         .from('programs')
         .select('id')
@@ -192,21 +196,34 @@ export async function POST(
       target_request_id: id,
       details: {
         email: request.personal_email,
-        role: request.requested_role,
+        role: approvedRole,
+        allowed_modules: allowed_modules || null,
       },
     });
 
-    // Generate password reset link
-    const { data: linkData } = await supabase.auth.admin.generateLink({
+    // Generate password reset link with app redirect so user lands on /update-password (avoids token/link issues)
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://lev8.ai';
+    const redirectTo = `${appUrl}/update-password`;
+    const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
       type: 'recovery',
       email: request.personal_email,
+      options: { redirectTo },
     });
 
-    // Send welcome email with password setup link
+    if (linkError) {
+      console.error('[ApproveRequest] generateLink error:', linkError);
+    }
+
+    const resetLink = linkData?.properties?.action_link;
+    if (!resetLink) {
+      console.error('[ApproveRequest] No action_link in generateLink response; user should use Forgot Password on login page.');
+    }
+
+    // Send welcome email with password setup link (or fallback to login if link missing)
     notifyUserApproved({
       full_name: request.full_name,
       email: request.personal_email,
-      reset_link: linkData?.properties?.action_link,
+      reset_link: resetLink || undefined,
     }).catch((err) => {
       console.error('[ApproveRequest] Email notification error:', err);
     });

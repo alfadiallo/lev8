@@ -9,6 +9,7 @@ export type UserRole =
   | 'program_director'
   | 'assistant_program_director'
   | 'clerkship_director'
+  | 'studio_creator'
   | 'super_admin'
   | 'admin';
 
@@ -132,6 +133,7 @@ export function checkPermission(
 // Role hierarchy for easy checking
 export const ROLE_HIERARCHY: Record<UserRole, number> = {
   resident: 1,
+  studio_creator: 1,
   faculty: 2,
   clerkship_director: 3,
   assistant_program_director: 4,

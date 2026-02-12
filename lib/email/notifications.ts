@@ -264,8 +264,9 @@ export async function notifyUserApproved(user: {
             </a>
             ` : `
             <a href="${APP_URL}/login" class="button">
-              Log In
+              Go to Login
             </a>
+            <p style="color: #6b7280; font-size: 14px; margin-top: 15px;">On the login page, use &quot;Forgot password?&quot; and enter this email to receive a new password-set link.</p>
             `}
             <p style="color: #9ca3af; font-size: 14px; margin-top: 30px;">
               If you didn't request this account, please ignore this email.

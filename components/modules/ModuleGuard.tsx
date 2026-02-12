@@ -7,14 +7,17 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useModuleAccess } from '@/hooks/useModuleAccess';
 import { UserRole } from '@/lib/types/modules';
+import { canAccessModule, ModuleSlug } from '@/lib/permissions/checkAccess';
 
 interface ModuleGuardProps {
   children: ReactNode;
   availableToRoles: UserRole[];
+  /** When set, canAccessModule is used (respects per-user allowed_modules) */
+  moduleSlug?: ModuleSlug;
   fallback?: ReactNode;
 }
 
-export default function ModuleGuard({ children, availableToRoles, fallback }: ModuleGuardProps) {
+export default function ModuleGuard({ children, availableToRoles, moduleSlug, fallback }: ModuleGuardProps) {
   const { loading, user } = useAuth();
   const { hasModuleAccess, userRole } = useModuleAccess();
   const router = useRouter();
@@ -26,29 +29,38 @@ export default function ModuleGuard({ children, availableToRoles, fallback }: Mo
     userEmail: user?.email,
     userRoleFromAuth: user?.role,
     userRoleFromHook: userRole,
+    moduleSlug,
+    allowedModules: user?.allowed_modules,
     availableToRoles,
   });
   
-  // Memoize the access check; recompute when role or allowed list changes
+  // Memoize the access check; recompute when role / allowed_modules / slug changes
   const hasAccess = useMemo(
     () => {
-      const access = hasModuleAccess(availableToRoles);
+      let access: boolean;
+
+      if (moduleSlug && user) {
+        // Use the unified canAccessModule helper (respects allowed_modules override)
+        access = canAccessModule(
+          { role: userRole, allowed_modules: user.allowed_modules },
+          moduleSlug,
+          availableToRoles,
+        );
+      } else {
+        // Legacy path: role-only check
+        access = hasModuleAccess(availableToRoles);
+      }
+
       console.log('[ModuleGuard] Access check result:', access);
       return access;
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps -- hasModuleAccess result depends on userRole
-    [hasModuleAccess, availableToRoles, userRole]
+    [hasModuleAccess, availableToRoles, userRole, moduleSlug, user?.allowed_modules]
   );
 
   // Wait for auth to finish loading before checking access
   // Don't redirect until we're absolutely sure auth is loaded AND user has no access
   useEffect(() => {
-    // Only redirect if:
-    // 1. Auth is NOT loading (we've finished checking)
-    // 2. User exists (we have auth state)
-    // 3. User has a role (we've loaded their profile)
-    // 4. User does NOT have access
-    // 5. No fallback is provided
     if (!loading && user && userRole && !hasAccess && !fallback) {
       router.push('/dashboard');
     }
@@ -64,7 +76,6 @@ export default function ModuleGuard({ children, availableToRoles, fallback }: Mo
   }
 
   // If no user, don't redirect - let middleware handle it
-  // This prevents flashing/redirect loops
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -74,8 +85,6 @@ export default function ModuleGuard({ children, availableToRoles, fallback }: Mo
   }
 
   // If no user role yet, show spinner and wait
-  // Don't redirect or show children until we know the role
-  // This prevents false negatives that cause redirects
   if (!userRole) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -101,4 +110,3 @@ export default function ModuleGuard({ children, availableToRoles, fallback }: Mo
 
   return <>{children}</>;
 }
-

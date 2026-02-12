@@ -17,7 +17,7 @@ export default function TruthsLayout({ children }: { children: ReactNode }) {
 
   if (isScoresPage) {
     return (
-      <ModuleGuard availableToRoles={[...TRUTHS_ALLOWED_ROLES]}>
+      <ModuleGuard availableToRoles={[...TRUTHS_ALLOWED_ROLES]} moduleSlug="truths">
         {children}
       </ModuleGuard>
     );
@@ -39,7 +39,7 @@ export default function TruthsLayout({ children }: { children: ReactNode }) {
   ];
 
   return (
-    <ModuleGuard availableToRoles={[...TRUTHS_ALLOWED_ROLES]}>
+    <ModuleGuard availableToRoles={[...TRUTHS_ALLOWED_ROLES]} moduleSlug="truths">
       <div className="min-h-screen bg-neutral-50 p-8">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">

@@ -15,6 +15,7 @@ export function getUserRole(user: { role?: string } | null | undefined): UserRol
     'program_director', 
     'assistant_program_director',
     'clerkship_director',
+    'studio_creator',
     'super_admin',
     'admin'
   ];
@@ -35,6 +36,7 @@ export function isValidRole(role: string): role is UserRole {
     'program_director', 
     'assistant_program_director',
     'clerkship_director',
+    'studio_creator',
     'super_admin',
     'admin'
   ];

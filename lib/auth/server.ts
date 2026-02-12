@@ -79,7 +79,7 @@ export const getServerUserWithProfile = cache(async () => {
   // Fetch profile
   const { data: profile, error: profileError } = await supabase
     .from('user_profiles')
-    .select('role, full_name, email, phone')
+    .select('role, full_name, email, phone, allowed_modules')
     .eq('id', user.id)
     .single();
   
@@ -92,6 +92,7 @@ export const getServerUserWithProfile = cache(async () => {
       role: undefined,
       firstName: undefined,
       lastName: undefined,
+      allowed_modules: null,
     };
   }
   
@@ -101,6 +102,7 @@ export const getServerUserWithProfile = cache(async () => {
     role: profile?.role || undefined,
     firstName: profile?.full_name?.split(' ')[0],
     lastName: profile?.full_name?.split(' ').slice(1).join(' '),
+    allowed_modules: profile?.allowed_modules || null,
   };
 });
 

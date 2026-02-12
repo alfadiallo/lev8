@@ -8,7 +8,7 @@ const UNDERSTAND_ALLOWED_ROLES = ['faculty', 'program_director', 'assistant_prog
 
 export default function UnderstandLayout({ children }: { children: ReactNode }) {
   return (
-    <ModuleGuard availableToRoles={[...UNDERSTAND_ALLOWED_ROLES]}>
+    <ModuleGuard availableToRoles={[...UNDERSTAND_ALLOWED_ROLES]} moduleSlug="understand">
       {children}
     </ModuleGuard>
   );

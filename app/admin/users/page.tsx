@@ -12,10 +12,13 @@ import {
   UserPlus,
   CheckCircle,
   XCircle,
-  X
+  X,
+  Pencil,
+  Send,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { ALL_MODULE_SLUGS, ROLE_DEFAULT_MODULES, type ModuleSlug } from '@/lib/permissions/checkAccess';
 
 interface UserProfile {
   id: string;
@@ -30,6 +33,7 @@ interface UserProfile {
   specialty: string | null;
   account_status: string;
   is_active: boolean;
+  allowed_modules: string[] | null;
   created_at: string;
   institution: { id: string; name: string } | null;
 }
@@ -44,8 +48,40 @@ interface CreateUserForm {
   send_invite: boolean;
 }
 
+interface EditUserForm {
+  full_name: string;
+  display_name: string;
+  personal_email: string;
+  institutional_email: string;
+  phone: string;
+  role: string;
+  specialty: string;
+  account_status: string;
+  allowed_modules: ModuleSlug[];
+}
+
 type RoleFilter = 'all' | 'resident' | 'core_faculty' | 'teaching_faculty' | 'program_director' | 'assistant_program_director' | 'clerkship_director' | 'super_admin';
 type StatusFilter = 'all' | 'active' | 'suspended' | 'pending';
+
+const ROLE_OPTIONS = [
+  { value: 'resident', label: 'Resident' },
+  { value: 'faculty', label: 'Faculty' },
+  { value: 'program_director', label: 'Program Director' },
+  { value: 'assistant_program_director', label: 'Assistant Program Director' },
+  { value: 'clerkship_director', label: 'Clerkship Director' },
+  { value: 'studio_creator', label: 'Studio Creator' },
+  { value: 'admin', label: 'Admin' },
+  { value: 'super_admin', label: 'Super Admin' },
+];
+
+const MODULE_LABELS: Record<ModuleSlug, string> = {
+  learn: 'Learn',
+  reflect: 'Reflect',
+  understand: 'Understand',
+  studio: 'Studio',
+  truths: 'Truths',
+  expectations: 'Expectations',
+};
 
 export default function AdminUsersPage() {
   const searchParams = useSearchParams();
@@ -67,11 +103,18 @@ export default function AdminUsersPage() {
   const [creating, setCreating] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
 
+  // Edit modal state
+  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+  const [editForm, setEditForm] = useState<EditUserForm | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  // Resend invite state
+  const [resendingId, setResendingId] = useState<string | null>(null);
+
   // Check for action=create in URL (one-time on mount)
   useEffect(() => {
     if (searchParams.get('action') === 'create') {
       setShowCreateModal(true);
-      // Clear the URL param after opening
       window.history.replaceState({}, '', '/admin/users');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -89,7 +132,6 @@ export default function AdminUsersPage() {
         .order('created_at', { ascending: false });
 
       if (roleFilter !== 'all') {
-        // Handle faculty type filtering
         if (roleFilter === 'core_faculty') {
           query = query.eq('role', 'faculty').eq('faculty_type', 'core');
         } else if (roleFilter === 'teaching_faculty') {
@@ -126,6 +168,7 @@ export default function AdminUsersPage() {
     fetchUsers();
   }, [fetchUsers]);
 
+  // --- Create User ---
   async function handleCreateUser(e: React.FormEvent) {
     e.preventDefault();
     setCreating(true);
@@ -168,6 +211,7 @@ export default function AdminUsersPage() {
     }
   }
 
+  // --- Suspend / Reactivate ---
   async function handleSuspendUser(user: UserProfile) {
     const action = user.account_status === 'suspended' ? 'reactivate' : 'suspend';
     if (!confirm(`Are you sure you want to ${action} ${user.full_name}?`)) return;
@@ -198,6 +242,115 @@ export default function AdminUsersPage() {
     }
   }
 
+  // --- Edit User ---
+  function openEditModal(user: UserProfile) {
+    setEditingUser(user);
+    const currentModules = (user.allowed_modules || []) as ModuleSlug[];
+    setEditForm({
+      full_name: user.full_name || '',
+      display_name: user.display_name || '',
+      personal_email: user.personal_email || user.email || '',
+      institutional_email: user.institutional_email || '',
+      phone: user.phone || '',
+      role: user.role || 'resident',
+      specialty: user.specialty || '',
+      account_status: user.account_status || 'active',
+      allowed_modules: currentModules.length > 0 ? currentModules : [],
+    });
+  }
+
+  function handleEditRoleChange(newRole: string) {
+    if (!editForm) return;
+    const defaults = (ROLE_DEFAULT_MODULES[newRole] || []) as ModuleSlug[];
+    setEditForm({ ...editForm, role: newRole, allowed_modules: [...defaults] });
+  }
+
+  function toggleEditModule(slug: ModuleSlug) {
+    if (!editForm) return;
+    const current = editForm.allowed_modules;
+    if (current.includes(slug)) {
+      setEditForm({ ...editForm, allowed_modules: current.filter(s => s !== slug) });
+    } else {
+      setEditForm({ ...editForm, allowed_modules: [...current, slug] });
+    }
+  }
+
+  async function handleSaveEdit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingUser || !editForm) return;
+    setSaving(true);
+
+    try {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const res = await fetch(`/api/admin/users/${editingUser.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          full_name: editForm.full_name,
+          display_name: editForm.display_name || null,
+          personal_email: editForm.personal_email,
+          institutional_email: editForm.institutional_email || null,
+          phone: editForm.phone || null,
+          role: editForm.role,
+          specialty: editForm.specialty || null,
+          account_status: editForm.account_status,
+          allowed_modules: editForm.allowed_modules.length > 0 ? editForm.allowed_modules : null,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to update user');
+      }
+
+      alert(`Profile updated for ${editForm.full_name}.`);
+      setEditingUser(null);
+      setEditForm(null);
+      fetchUsers();
+    } catch (error) {
+      console.error('[Users] Edit error:', error);
+      alert(error instanceof Error ? error.message : 'Failed to update user');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // --- Resend Invite / Password Reset ---
+  async function handleResendInvite(user: UserProfile) {
+    if (!confirm(`Send password reset email to ${user.personal_email || user.email}?`)) return;
+
+    setResendingId(user.id);
+    try {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const res = await fetch(`/api/admin/users/${user.id}/resend-invite`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to send password reset email');
+      }
+
+      alert(`Password reset email sent to ${user.personal_email || user.email}.`);
+    } catch (error) {
+      console.error('[Users] Resend invite error:', error);
+      alert(error instanceof Error ? error.message : 'Failed to send email');
+    } finally {
+      setResendingId(null);
+    }
+  }
+
+  // --- UI Helpers ---
   function getRoleBadge(role: string, facultyType?: 'core' | 'teaching' | null) {
     const colors: Record<string, { bg: string; text: string }> = {
       resident: { bg: 'bg-blue-100', text: 'text-blue-800' },
@@ -207,7 +360,9 @@ export default function AdminUsersPage() {
       program_director: { bg: 'bg-purple-500', text: 'text-white' },
       assistant_program_director: { bg: 'bg-violet-100', text: 'text-violet-800' },
       clerkship_director: { bg: 'bg-indigo-100', text: 'text-indigo-800' },
+      studio_creator: { bg: 'bg-cyan-100', text: 'text-cyan-800' },
       super_admin: { bg: 'bg-red-100', text: 'text-red-800' },
+      admin: { bg: 'bg-orange-100', text: 'text-orange-800' },
     };
     
     const roleLabels: Record<string, string> = {
@@ -218,14 +373,14 @@ export default function AdminUsersPage() {
       program_director: 'Program Director',
       assistant_program_director: 'Asst. Program Director',
       clerkship_director: 'Clerkship Director',
+      studio_creator: 'Studio Creator',
       super_admin: 'Super Admin',
+      admin: 'Admin',
     };
     
-    // Determine display role
     let displayRole = roleLabels[role] || role.replace(/_/g, ' ');
     let colorKey = role;
     
-    // Handle faculty types
     if (role === 'faculty') {
       if (facultyType === 'core') {
         displayRole = 'Core Faculty';
@@ -315,7 +470,6 @@ export default function AdminUsersPage() {
           borderColor: 'var(--theme-border-solid)',
         }}
       >
-        {/* Search */}
         <div className="relative flex-1 min-w-[200px]">
           <Search 
             className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" 
@@ -335,7 +489,6 @@ export default function AdminUsersPage() {
           />
         </div>
 
-        {/* Role Filter */}
         <div className="flex items-center gap-2">
           <Filter className="w-4 h-4" style={{ color: 'var(--theme-text-muted)' }} />
           <select
@@ -359,7 +512,6 @@ export default function AdminUsersPage() {
           </select>
         </div>
 
-        {/* Status Filter */}
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
@@ -417,24 +569,12 @@ export default function AdminUsersPage() {
                   className="border-b"
                   style={{ borderColor: 'var(--theme-border-solid)' }}
                 >
-                  <th className="text-left p-4 font-medium" style={{ color: 'var(--theme-text-muted)' }}>
-                    User
-                  </th>
-                  <th className="text-left p-4 font-medium" style={{ color: 'var(--theme-text-muted)' }}>
-                    Email
-                  </th>
-                  <th className="text-left p-4 font-medium" style={{ color: 'var(--theme-text-muted)' }}>
-                    Specialty
-                  </th>
-                  <th className="text-left p-4 font-medium" style={{ color: 'var(--theme-text-muted)' }}>
-                    Role
-                  </th>
-                  <th className="text-left p-4 font-medium" style={{ color: 'var(--theme-text-muted)' }}>
-                    Status
-                  </th>
-                  <th className="text-right p-4 font-medium" style={{ color: 'var(--theme-text-muted)' }}>
-                    Actions
-                  </th>
+                  <th className="text-left p-4 font-medium" style={{ color: 'var(--theme-text-muted)' }}>User</th>
+                  <th className="text-left p-4 font-medium" style={{ color: 'var(--theme-text-muted)' }}>Email</th>
+                  <th className="text-left p-4 font-medium" style={{ color: 'var(--theme-text-muted)' }}>Role</th>
+                  <th className="text-left p-4 font-medium" style={{ color: 'var(--theme-text-muted)' }}>Modules</th>
+                  <th className="text-left p-4 font-medium" style={{ color: 'var(--theme-text-muted)' }}>Status</th>
+                  <th className="text-right p-4 font-medium" style={{ color: 'var(--theme-text-muted)' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -456,17 +596,11 @@ export default function AdminUsersPage() {
                           {user.full_name?.charAt(0) || user.email.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <p 
-                            className="font-medium"
-                            style={{ color: 'var(--theme-text)' }}
-                          >
+                          <p className="font-medium" style={{ color: 'var(--theme-text)' }}>
                             {user.full_name || 'Unnamed'}
                           </p>
                           {user.institution && (
-                            <p 
-                              className="text-xs"
-                              style={{ color: 'var(--theme-text-muted)' }}
-                            >
+                            <p className="text-xs" style={{ color: 'var(--theme-text-muted)' }}>
                               {user.institution.name}
                             </p>
                           )}
@@ -477,28 +611,57 @@ export default function AdminUsersPage() {
                       <p style={{ color: 'var(--theme-text)' }}>
                         {user.personal_email || user.email}
                       </p>
-                      {user.institutional_email && (
-                        <p 
-                          className="text-xs"
-                          style={{ color: 'var(--theme-text-muted)' }}
-                        >
-                          {user.institutional_email}
-                        </p>
-                      )}
-                    </td>
-                    <td className="p-4">
-                      <p style={{ color: 'var(--theme-text)' }}>
-                        {user.specialty || '—'}
-                      </p>
                     </td>
                     <td className="p-4">
                       {getRoleBadge(user.role, user.faculty_type)}
                     </td>
                     <td className="p-4">
+                      {user.allowed_modules && user.allowed_modules.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {user.allowed_modules.map(slug => (
+                            <span
+                              key={slug}
+                              className="text-xs px-1.5 py-0.5 rounded bg-sky-50 text-sky-700"
+                            >
+                              {MODULE_LABELS[slug as ModuleSlug] || slug}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-xs" style={{ color: 'var(--theme-text-muted)' }}>
+                          Role default
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-4">
                       {getStatusBadge(user.account_status || 'active')}
                     </td>
                     <td className="p-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1">
+                        {/* Edit */}
+                        <button
+                          title="Edit user"
+                          onClick={() => openEditModal(user)}
+                          className="p-2 rounded-lg transition-colors hover:bg-gray-100"
+                        >
+                          <Pencil className="w-4 h-4" style={{ color: 'var(--theme-primary)' }} />
+                        </button>
+
+                        {/* Resend invite / password reset */}
+                        <button
+                          title="Send password reset email"
+                          onClick={() => handleResendInvite(user)}
+                          disabled={resendingId === user.id}
+                          className="p-2 rounded-lg transition-colors hover:bg-gray-100 disabled:opacity-50"
+                        >
+                          {resendingId === user.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--theme-text-muted)' }} />
+                          ) : (
+                            <Send className="w-4 h-4" style={{ color: 'var(--theme-text-muted)' }} />
+                          )}
+                        </button>
+
+                        {/* Suspend / Reactivate */}
                         <Button
                           variant="ghost"
                           size="sm"
@@ -523,7 +686,7 @@ export default function AdminUsersPage() {
         </div>
       )}
 
-      {/* Create User Modal */}
+      {/* ==================== Create User Modal ==================== */}
       {showCreateModal && (
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
@@ -535,16 +698,10 @@ export default function AdminUsersPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-6">
-              <h2 
-                className="text-xl font-bold"
-                style={{ color: 'var(--theme-text)' }}
-              >
+              <h2 className="text-xl font-bold" style={{ color: 'var(--theme-text)' }}>
                 Create New User
               </h2>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="p-2 rounded-lg transition-colors hover:bg-gray-100"
-              >
+              <button onClick={() => setShowCreateModal(false)} className="p-2 rounded-lg transition-colors hover:bg-gray-100">
                 <X className="w-5 h-5" style={{ color: 'var(--theme-text-muted)' }} />
               </button>
             </div>
@@ -558,7 +715,6 @@ export default function AdminUsersPage() {
                 placeholder="Dr. Jane Smith"
                 required
               />
-
               <Input
                 label="Personal Email *"
                 type="email"
@@ -567,7 +723,6 @@ export default function AdminUsersPage() {
                 placeholder="jane.smith@gmail.com"
                 required
               />
-
               <Input
                 label="Institutional Email"
                 type="email"
@@ -575,7 +730,6 @@ export default function AdminUsersPage() {
                 onChange={(e) => setCreateForm({ ...createForm, institutional_email: e.target.value })}
                 placeholder="jsmith@hospital.org"
               />
-
               <Input
                 label="Phone"
                 type="tel"
@@ -585,10 +739,7 @@ export default function AdminUsersPage() {
               />
 
               <div className="w-full">
-                <label 
-                  className="block text-sm font-medium mb-1.5"
-                  style={{ color: 'var(--theme-text)' }}
-                >
+                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--theme-text)' }}>
                   Role *
                 </label>
                 <select
@@ -607,16 +758,14 @@ export default function AdminUsersPage() {
                   <option value="program_director">Program Director</option>
                   <option value="assistant_program_director">Assistant Program Director</option>
                   <option value="clerkship_director">Clerkship Director</option>
+                  <option value="studio_creator">Studio Creator</option>
                   <option value="super_admin">Super Admin</option>
                 </select>
               </div>
 
               {createForm.role === 'faculty' && (
                 <div className="w-full">
-                  <label 
-                    className="block text-sm font-medium mb-1.5"
-                    style={{ color: 'var(--theme-text)' }}
-                  >
+                  <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--theme-text)' }}>
                     Faculty Type *
                   </label>
                   <select
@@ -649,19 +798,170 @@ export default function AdminUsersPage() {
               </label>
 
               <div className="flex justify-end gap-3 pt-4">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => setShowCreateModal(false)}
-                >
+                <Button type="button" variant="secondary" onClick={() => setShowCreateModal(false)}>
                   Cancel
                 </Button>
-                <Button
-                  type="submit"
-                  variant="primary"
-                  isLoading={creating}
-                >
+                <Button type="submit" variant="primary" isLoading={creating}>
                   {creating ? 'Creating...' : 'Create User'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== Edit User Modal ==================== */}
+      {editingUser && editForm && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => { setEditingUser(null); setEditForm(null); }}
+        >
+          <div 
+            className="w-full max-w-lg mx-4 rounded-2xl p-6 shadow-xl max-h-[90vh] overflow-y-auto"
+            style={{ background: 'var(--theme-surface-solid)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold" style={{ color: 'var(--theme-text)' }}>
+                Edit User
+              </h2>
+              <button onClick={() => { setEditingUser(null); setEditForm(null); }} className="p-2 rounded-lg transition-colors hover:bg-gray-100">
+                <X className="w-5 h-5" style={{ color: 'var(--theme-text-muted)' }} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-4">
+              <Input
+                label="Full Name"
+                type="text"
+                value={editForm.full_name}
+                onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+                required
+              />
+              <Input
+                label="Display Name"
+                type="text"
+                value={editForm.display_name}
+                onChange={(e) => setEditForm({ ...editForm, display_name: e.target.value })}
+                placeholder="Nickname or first name"
+              />
+              <Input
+                label="Personal Email"
+                type="email"
+                value={editForm.personal_email}
+                onChange={(e) => setEditForm({ ...editForm, personal_email: e.target.value })}
+                required
+              />
+              <Input
+                label="Institutional Email"
+                type="email"
+                value={editForm.institutional_email}
+                onChange={(e) => setEditForm({ ...editForm, institutional_email: e.target.value })}
+              />
+              <Input
+                label="Phone"
+                type="tel"
+                value={editForm.phone}
+                onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+              />
+              <Input
+                label="Specialty"
+                type="text"
+                value={editForm.specialty}
+                onChange={(e) => setEditForm({ ...editForm, specialty: e.target.value })}
+                placeholder="e.g. Emergency Medicine"
+              />
+
+              {/* Role */}
+              <div>
+                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--theme-text)' }}>
+                  Role
+                </label>
+                <select
+                  value={editForm.role}
+                  onChange={(e) => handleEditRoleChange(e.target.value)}
+                  className="w-full rounded-xl border px-4 py-2.5"
+                  style={{
+                    borderColor: 'var(--theme-border-solid)',
+                    background: 'var(--theme-surface-solid)',
+                    color: 'var(--theme-text)',
+                  }}
+                >
+                  {ROLE_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Module access checkboxes */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--theme-text)' }}>
+                  Module Access
+                </label>
+                <div className="flex flex-wrap gap-3">
+                  {ALL_MODULE_SLUGS.map(slug => {
+                    const checked = editForm.allowed_modules.includes(slug);
+                    return (
+                      <label
+                        key={slug}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm cursor-pointer border transition-colors"
+                        style={{
+                          background: checked ? 'var(--theme-primary-soft)' : 'var(--theme-surface-solid)',
+                          borderColor: checked ? 'var(--theme-primary)' : 'var(--theme-border-solid)',
+                          color: checked ? 'var(--theme-primary)' : 'var(--theme-text-muted)',
+                          fontWeight: checked ? 600 : 400,
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleEditModule(slug)}
+                          className="accent-[#0EA5E9] rounded"
+                        />
+                        {MODULE_LABELS[slug]}
+                      </label>
+                    );
+                  })}
+                </div>
+                <p className="text-xs mt-1.5" style={{ color: 'var(--theme-text-muted)' }}>
+                  Leave all unchecked to use default role-based access.
+                </p>
+              </div>
+
+              {/* Account status */}
+              <div>
+                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--theme-text)' }}>
+                  Account Status
+                </label>
+                <select
+                  value={editForm.account_status}
+                  onChange={(e) => setEditForm({ ...editForm, account_status: e.target.value })}
+                  className="w-full rounded-xl border px-4 py-2.5"
+                  style={{
+                    borderColor: 'var(--theme-border-solid)',
+                    background: 'var(--theme-surface-solid)',
+                    color: 'var(--theme-text)',
+                  }}
+                >
+                  <option value="active">Active</option>
+                  <option value="suspended">Suspended</option>
+                  <option value="pending">Pending</option>
+                </select>
+              </div>
+
+              {/* Read-only info */}
+              <div className="pt-2 space-y-1 text-xs" style={{ color: 'var(--theme-text-muted)' }}>
+                <p>User ID: {editingUser.id}</p>
+                <p>Auth email: {editingUser.email}</p>
+                <p>Created: {new Date(editingUser.created_at).toLocaleDateString()}</p>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4">
+                <Button type="button" variant="secondary" onClick={() => { setEditingUser(null); setEditForm(null); }}>
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" isLoading={saving}>
+                  {saving ? 'Saving...' : 'Save Changes'}
                 </Button>
               </div>
             </form>
@@ -671,4 +971,3 @@ export default function AdminUsersPage() {
     </div>
   );
 }
-

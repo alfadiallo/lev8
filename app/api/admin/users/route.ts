@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkApiPermission } from '@/lib/auth/checkApiPermission';
 import { getServiceSupabaseClient } from '@/lib/supabase/server';
+import { notifyUserApproved } from '@/lib/email/notifications';
 
 /**
  * POST /api/admin/users
@@ -37,6 +38,7 @@ export async function POST(req: NextRequest) {
       institutional_email,
       phone,
       role,
+      allowed_modules,
       send_invite,
     } = body;
 
@@ -113,6 +115,7 @@ export async function POST(req: NextRequest) {
         display_name: full_name.split(' ')[0],
         phone: phone || null,
         role,
+        allowed_modules: Array.isArray(allowed_modules) && allowed_modules.length > 0 ? allowed_modules : null,
         institution_id: institution.id,
         account_status: 'active',
         is_active: true,
@@ -173,11 +176,21 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Send password reset email if requested
+    // Send welcome email with password-set link if requested (same flow as approve, with app redirect)
     if (send_invite) {
-      await supabase.auth.admin.generateLink({
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://lev8.ai';
+      const { data: linkData } = await supabase.auth.admin.generateLink({
         type: 'recovery',
         email: personal_email.toLowerCase(),
+        options: { redirectTo: `${appUrl}/update-password` },
+      });
+      const resetLink = linkData?.properties?.action_link;
+      notifyUserApproved({
+        full_name,
+        email: personal_email.toLowerCase(),
+        reset_link: resetLink || undefined,
+      }).catch((err) => {
+        console.error('[CreateUser] Email notification error:', err);
       });
     }
 

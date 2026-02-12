@@ -24,6 +24,7 @@ interface ApiUser {
   id: string;
   email: string;
   role?: string;
+  allowed_modules?: string[] | null;
 }
 
 /**
@@ -106,7 +107,7 @@ export const getApiUser = cache(async (request: NextRequest): Promise<{
 
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('user_profiles')
-    .select('role, email')
+    .select('role, email, allowed_modules')
     .eq('id', user.id)
     .single();
 
@@ -122,6 +123,7 @@ export const getApiUser = cache(async (request: NextRequest): Promise<{
       id: user.id,
       email: user.email || profile?.email || '',
       role: profile?.role || undefined,
+      allowed_modules: profile?.allowed_modules || null,
     },
   };
 });

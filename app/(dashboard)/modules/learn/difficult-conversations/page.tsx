@@ -117,7 +117,7 @@ export default function DifficultConversationsPage() {
 
   return (
     <ModuleGuard
-      availableToRoles={['resident', 'faculty', 'program_director', 'assistant_program_director', 'clerkship_director', 'super_admin', 'admin']}
+      availableToRoles={['resident', 'faculty', 'program_director', 'assistant_program_director', 'clerkship_director', 'studio_creator', 'super_admin', 'admin']}
     >
       <ModuleLayout
         title="Difficult Conversations"

@@ -8,7 +8,7 @@ const EXPECTATIONS_ALLOWED_ROLES = ['program_director', 'assistant_program_direc
 
 export default function ExpectationsLayout({ children }: { children: ReactNode }) {
   return (
-    <ModuleGuard availableToRoles={[...EXPECTATIONS_ALLOWED_ROLES]}>
+    <ModuleGuard availableToRoles={[...EXPECTATIONS_ALLOWED_ROLES]} moduleSlug="expectations">
       {children}
     </ModuleGuard>
   );

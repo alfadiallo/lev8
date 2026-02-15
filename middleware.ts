@@ -16,6 +16,7 @@ const NON_TENANT_PREFIXES = [
   'studio',  // Studio has its own routing
   'interview',  // Interview tool (eqpqiq.com) - publicly accessible
   'pulsecheck', // Pulse Check tool - publicly accessible
+  'eqpqiq-landing', // EQ·PQ·IQ brand landing page
   '_next',
   'favicon.ico',
   'public'
@@ -105,14 +106,23 @@ export async function middleware(request: NextRequest) {
       return response;
     }
 
-    // If already on /interview or /pulsecheck path, continue
-    if (pathname.startsWith('/interview') || pathname.startsWith('/pulsecheck')) {
+    // If already on /interview, /pulsecheck, or /eqpqiq-landing path, continue
+    if (pathname.startsWith('/interview') || pathname.startsWith('/pulsecheck') || pathname.startsWith('/eqpqiq-landing')) {
       const response = NextResponse.next();
       response.headers.set('x-lev8-context', 'eqpqiq');
       return response;
     }
 
-    // Redirect root and all other paths to /interview
+    // Rewrite root to the EQ·PQ·IQ landing page (URL stays as /)
+    if (pathname === '/') {
+      const landingUrl = new URL('/eqpqiq-landing', request.url);
+      landingUrl.search = request.nextUrl.search;
+      const response = NextResponse.rewrite(landingUrl);
+      response.headers.set('x-lev8-context', 'eqpqiq');
+      return response;
+    }
+
+    // Redirect all other paths to /interview
     const interviewUrl = new URL('/interview', request.url);
     // Preserve query params
     interviewUrl.search = request.nextUrl.search;

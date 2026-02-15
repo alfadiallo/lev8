@@ -58,10 +58,10 @@ function Section({
   );
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+function SectionLabel({ children, center = true }: { children: React.ReactNode; center?: boolean }) {
   return (
     <p
-      className="text-xs font-semibold uppercase tracking-widest mb-3"
+      className={`text-xs font-semibold uppercase tracking-widest mb-3 ${center ? 'text-center' : ''}`}
       style={{ color: COLORS.mediumDark }}
     >
       {children}
@@ -69,15 +69,15 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
+function SectionTitle({ children, center = true }: { children: React.ReactNode; center?: boolean }) {
   return (
-    <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">{children}</h2>
+    <h2 className={`text-3xl sm:text-4xl font-bold text-slate-900 mb-4 ${center ? 'text-center' : ''}`}>{children}</h2>
   );
 }
 
-function SectionSubtitle({ children }: { children: React.ReactNode }) {
+function SectionSubtitle({ children, center = true }: { children: React.ReactNode; center?: boolean }) {
   return (
-    <p className="text-lg text-slate-600 max-w-3xl">{children}</p>
+    <p className={`text-lg text-slate-600 max-w-3xl ${center ? 'text-center mx-auto' : ''}`}>{children}</p>
   );
 }
 
@@ -337,9 +337,9 @@ export default function EqpqiqLandingPage() {
       <Section id="ai-analytics" alt>
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           <div>
-            <SectionLabel>AI-Powered Analytics</SectionLabel>
-            <SectionTitle>From Narratives to Structured Insights</SectionTitle>
-            <SectionSubtitle>
+            <SectionLabel center={false}>AI-Powered Analytics</SectionLabel>
+            <SectionTitle center={false}>From Narratives to Structured Insights</SectionTitle>
+            <SectionSubtitle center={false}>
               Evaluation comments are rich but hard to aggregate. Our AI mid-layer transforms
               unstructured narratives into quantified EQ·PQ·IQ scores, SWOT analyses, and
               actionable recommendations—while maintaining full privacy.
@@ -592,8 +592,8 @@ export default function EqpqiqLandingPage() {
 
           {/* Text */}
           <div className="order-1 lg:order-2">
-            <SectionLabel>Longitudinal Tracking</SectionLabel>
-            <SectionTitle>Growth Over Time, Not Snapshots</SectionTitle>
+            <SectionLabel center={false}>Longitudinal Tracking</SectionLabel>
+            <SectionTitle center={false}>Growth Over Time, Not Snapshots</SectionTitle>
             <div className="space-y-4 mt-4">
               <div className="flex gap-3">
                 <TrendingUp className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: COLORS.dark }} />

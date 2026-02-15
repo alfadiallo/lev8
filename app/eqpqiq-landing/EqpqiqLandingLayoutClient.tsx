@@ -55,19 +55,13 @@ export default function EqpqiqLandingLayoutClient({ children }: EqpqiqLandingLay
               >
                 Pulse Check
               </Link>
-              <span className="hidden sm:inline text-sm text-slate-400">|</span>
-              <span className="hidden sm:inline text-sm text-slate-500">
-                Powered by{' '}
-                <a
-                  href="https://lev8.ai"
-                  className="font-medium"
-                  style={{ color: COLORS.darker }}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  lev8.ai
-                </a>
-              </span>
+              <a
+                href="mailto:hello@eqpqiq.com"
+                className="text-sm font-medium transition-colors hover:underline underline-offset-4"
+                style={{ color: COLORS.dark }}
+              >
+                Contact Us
+              </a>
             </nav>
           </div>
         </div>

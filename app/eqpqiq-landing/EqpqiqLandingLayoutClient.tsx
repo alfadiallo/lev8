@@ -119,11 +119,11 @@ export default function EqpqiqLandingLayoutClient({ children }: EqpqiqLandingLay
               <ul className="space-y-2 text-sm text-slate-500">
                 <li>
                   <a
-                    href="mailto:support@eqpqiq.com"
+                    href="mailto:hello@eqpqiq.com"
                     className="hover:underline"
                     style={{ color: COLORS.dark }}
                   >
-                    support@eqpqiq.com
+                    hello@eqpqiq.com
                   </a>
                 </li>
               </ul>

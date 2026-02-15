@@ -8,6 +8,20 @@ All notable deployments and changes to this project.
 
 <!-- Cursor: Always add new entries directly below this line -->
 
+## 2026-02-14
+
+### Added
+- **EQ·PQ·IQ brand landing page** at eqpqiq.com root — philosophy, use cases, AI analytics, archetyping, longitudinal value, individual vs group sections
+- New route: `app/eqpqiq-landing/` (layout, client layout, page)
+- Middleware rewrite: eqpqiq.com `/` → `/eqpqiq-landing` (URL stays as `/`)
+- "Contact Us" header link → mailto:hello@eqpqiq.com
+- Google Workspace email: hello@eqpqiq.com
+
+### Removed
+- `performance-budget.yml` GitHub Actions workflow (relying on Vercel for builds)
+
+---
+
 ## 2026-02-09
 
 ### Changed

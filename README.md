@@ -100,6 +100,7 @@ app/
 │   │   ├── reflect/          # Voice journal
 │   │   └── understand/       # Analytics dashboard
 │   └── settings/             # User settings
+├── eqpqiq-landing/          # EQ·PQ·IQ brand landing page (eqpqiq.com root)
 ├── api/                      # API routes
 │   ├── analytics/           # SWOT, scores, ITE endpoints
 │   ├── voice-journal/       # Voice upload and processing
@@ -184,6 +185,12 @@ scripts/
 - **[Historical Documentation](docs/archive/)** - Archived setup guides and bug fixes
 
 ## Recent Updates
+
+### February 2026: EQ·PQ·IQ Brand Landing Page ✅
+**Comprehensive landing page at eqpqiq.com root**
+- ✅ Philosophy, use cases, AI analytics, archetyping, longitudinal value sections
+- ✅ Middleware rewrite serves /eqpqiq-landing at eqpqiq.com/
+- ✅ Contact email: hello@eqpqiq.com (Google Workspace)
 
 ### January 2026: EQ·PQ·IQ Products Launch ✅
 **New standalone products on eqpqiq.com**

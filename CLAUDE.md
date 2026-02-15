@@ -56,6 +56,7 @@
 - Dynamic routing via `[org]/[dept]` URL parameters
 - Middleware handles tenant context initialization
 - Domain-based routing for subdomains (studio., eqpqiq.com)
+- eqpqiq.com root (/) serves brand landing page via middleware rewrite to /eqpqiq-landing
 
 ## Directory Structure
 
@@ -66,6 +67,7 @@ lev8/
 │   ├── (dashboard)/              # Protected dashboard routes
 │   ├── api/                      # 187 API endpoints (28 route groups)
 │   ├── admin/                    # Admin dashboard
+│   ├── eqpqiq-landing/           # EQ·PQ·IQ brand landing page (eqpqiq.com root)
 │   ├── interview/                # Interview tool pages
 │   ├── pulsecheck/               # Pulse Check pages
 │   └── studio/                   # Content creator studio
@@ -142,7 +144,14 @@ lev8/
 ## Recent Changes
 
 From git history:
-1. **Warning Noise Cleanup Pass (February 2026)**
+1. **EQ·PQ·IQ Brand Landing Page (February 2026)**
+   - New comprehensive landing page at eqpqiq.com root (philosophy, use cases, AI analytics, archetyping, longitudinal value, individual vs group)
+   - Middleware rewrite: eqpqiq.com / → /eqpqiq-landing (URL stays as /)
+   - New files: app/eqpqiq-landing/ (layout, client layout, page)
+   - Contact email: hello@eqpqiq.com (Google Workspace)
+   - Removed performance-budget GitHub Actions workflow (relying on Vercel for builds)
+
+2. **Warning Noise Cleanup Pass (February 2026)**
    - Targeted cleanup of top-noise files so future errors are easier to spot.
    - **lib/types/modules.ts:** `any` → `unknown` / typed helpers; `SessionMetrics` index signature tightened.
    - **lib/archetypes/evolution-manager.ts:** Typed relation helpers and DB row types; no `as any`.
@@ -152,11 +161,11 @@ From git history:
    - **Compatibility:** difficult-conversations detail page and CaseInterface updated for stricter module types.
    - Build/Vercel: Supabase env vars must be set for `npm run build` and Vercel deploys (see SETUP.md / CHANGELOG).
 
-2. **ESLint Technical Debt Cleanup (January 2026)**
+3. **ESLint Technical Debt Cleanup (January 2026)**
    - Comprehensive cleanup of ~300 ESLint warnings across 64 files
    - See detailed report below in "Technical Debt Cleanup Report" section
 
-3. **Pulse Check Frequency & Trends Enhancement**
+4. **Pulse Check Frequency & Trends Enhancement**
    - Add Settings tab to Admin panel for frequency config (quarterly/biannually/annually)
    - Create Sparkline component with smooth bezier curves for trend visualization
    - Add accordion details in Medical Director providers view with EQ/PQ/IQ breakdown

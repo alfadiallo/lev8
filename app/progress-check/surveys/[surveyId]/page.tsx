@@ -80,7 +80,7 @@ type Tab = 'survey' | 'overview' | 'recipients' | 'completion';
 const SURVEY_SECTIONS = [
   {
     id: 'eq',
-    title: 'Emotional Intelligence (EQ)',
+    title: 'Emotional Quotient (EQ)',
     subtitle: 'Interpersonal & Intrapersonal Skills',
     icon: Heart,
     iconColor: '#EF4444',
@@ -97,7 +97,7 @@ const SURVEY_SECTIONS = [
   },
   {
     id: 'pq',
-    title: 'Professional Intelligence (PQ)',
+    title: 'Professional Quotient (PQ)',
     subtitle: 'Professional Decorum & Leadership',
     icon: Award,
     iconColor: '#2563EB',
@@ -114,7 +114,7 @@ const SURVEY_SECTIONS = [
   },
   {
     id: 'iq',
-    title: 'Intellectual Intelligence (IQ)',
+    title: 'Intellectual Quotient (IQ)',
     subtitle: 'Clinical Acumen & Critical Thinking',
     icon: Brain,
     iconColor: '#7C3AED',

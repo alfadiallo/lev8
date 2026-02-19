@@ -242,7 +242,7 @@ export default function EQPQIQForm({
 
       {/* EQ Section */}
       <EQPQIQFormSection
-        title="EQ: Emotional Intelligence"
+        title="EQ: Emotional Quotient"
         subtitle="Mastering Interpersonal and Intrapersonal Skills"
         color="text-blue-600"
         attributes={EQ_ATTRIBUTES}
@@ -253,7 +253,7 @@ export default function EQPQIQForm({
 
       {/* IQ Section */}
       <EQPQIQFormSection
-        title="IQ: Intellectual Intelligence"
+        title="IQ: Intellectual Quotient"
         subtitle="Clinical Acumen and Critical Thinking"
         color="text-purple-600"
         attributes={IQ_ATTRIBUTES}
@@ -264,7 +264,7 @@ export default function EQPQIQForm({
 
       {/* PQ Section */}
       <EQPQIQFormSection
-        title="PQ: Professional Intelligence"
+        title="PQ: Professional Quotient"
         subtitle="Professional Decorum and Leadership"
         color="text-green-600"
         attributes={PQ_ATTRIBUTES}

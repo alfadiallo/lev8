@@ -112,7 +112,7 @@ const COLORS = {
 const SECTIONS = [
   {
     id: 'eq',
-    title: 'Emotional Intelligence (EQ)',
+    title: 'Emotional Quotient (EQ)',
     subtitle: 'Interpersonal & Intrapersonal Skills',
     hex: '#EF4444',
     hexText: '#DC2626',
@@ -127,7 +127,7 @@ const SECTIONS = [
   },
   {
     id: 'pq',
-    title: 'Professional Intelligence (PQ)',
+    title: 'Professional Quotient (PQ)',
     subtitle: 'Professional Decorum & Leadership',
     hex: '#2563EB',
     hexText: '#1D4ED8',
@@ -142,7 +142,7 @@ const SECTIONS = [
   },
   {
     id: 'iq',
-    title: 'Intellectual Intelligence (IQ)',
+    title: 'Intellectual Quotient (IQ)',
     subtitle: 'Clinical Acumen & Critical Thinking',
     hex: '#7C3AED',
     hexText: '#6D28D9',
@@ -175,17 +175,24 @@ const DEFAULT_SCORES: ScoreValues = {
   iq_performance_for_level: 50,
 };
 
-const RATING_LABELS: Record<number, string> = {
-  0: 'Well Below',
-  15: 'Below',
-  25: 'Slightly Below',
-  35: 'Approaching',
-  50: 'At Expected',
-  65: 'Above',
-  75: 'Well Above',
-  85: 'Outstanding',
-  100: 'Exceptional',
-};
+const RATING_LABEL_STOPS = [
+  { max: 7, label: 'Well Below' },
+  { max: 20, label: 'Below' },
+  { max: 30, label: 'Slightly Below' },
+  { max: 42, label: 'Approaching' },
+  { max: 57, label: 'At Expected' },
+  { max: 70, label: 'Above' },
+  { max: 80, label: 'Well Above' },
+  { max: 92, label: 'Outstanding' },
+  { max: 100, label: 'Exceptional' },
+];
+
+function getRatingLabel(value: number): string {
+  for (const stop of RATING_LABEL_STOPS) {
+    if (value <= stop.max) return stop.label;
+  }
+  return 'Exceptional';
+}
 
 // ============================================================================
 // Rating Slider Component (Mobile-Optimized)
@@ -230,8 +237,8 @@ function RatingSlider({
           {Math.round(value)}
         </span>
       </div>
-      <div className="text-center mt-1">
-        <span className="text-xs text-neutral-500">{RATING_LABELS[value] || ''}</span>
+      <div className="text-center mt-1 h-4">
+        <span className="text-xs text-neutral-500">{getRatingLabel(value)}</span>
       </div>
     </div>
   );

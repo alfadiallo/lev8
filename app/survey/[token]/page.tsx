@@ -97,17 +97,26 @@ interface ScoreValues {
 }
 
 // ============================================================================
-// Attribute Definitions
+// Theme & Attribute Definitions
 // ============================================================================
+
+const COLORS = {
+  lightest: '#D8F3DC',
+  light: '#B7E4C7',
+  medium: '#74C69D',
+  dark: '#40916C',
+  darker: '#2D6A4F',
+  veryDark: '#1B4332',
+};
 
 const SECTIONS = [
   {
     id: 'eq',
     title: 'Emotional Intelligence (EQ)',
     subtitle: 'Interpersonal & Intrapersonal Skills',
-    color: 'bg-blue-500',
-    textColor: 'text-blue-600',
-    bgColor: 'bg-blue-50',
+    hex: '#EF4444',
+    hexText: '#DC2626',
+    hexBg: '#FEF2F2',
     attributes: [
       { key: 'eq_empathy_positive_interactions', label: 'Empathy & Positive Interactions', desc: 'Patient/family rapport, compassionate care' },
       { key: 'eq_adaptability_self_awareness', label: 'Adaptability & Self-Awareness', desc: 'Flexibility, insight into strengths/weaknesses' },
@@ -120,9 +129,9 @@ const SECTIONS = [
     id: 'pq',
     title: 'Professional Intelligence (PQ)',
     subtitle: 'Professional Decorum & Leadership',
-    color: 'bg-green-500',
-    textColor: 'text-green-600',
-    bgColor: 'bg-green-50',
+    hex: '#2563EB',
+    hexText: '#1D4ED8',
+    hexBg: '#EFF6FF',
     attributes: [
       { key: 'pq_work_ethic_reliability', label: 'Work Ethic & Reliability', desc: 'Dedication, punctuality, follow-through' },
       { key: 'pq_integrity_accountability', label: 'Integrity & Accountability', desc: 'Ethics, honesty, ownership of mistakes' },
@@ -135,9 +144,9 @@ const SECTIONS = [
     id: 'iq',
     title: 'Intellectual Intelligence (IQ)',
     subtitle: 'Clinical Acumen & Critical Thinking',
-    color: 'bg-purple-500',
-    textColor: 'text-purple-600',
-    bgColor: 'bg-purple-50',
+    hex: '#7C3AED',
+    hexText: '#6D28D9',
+    hexBg: '#F5F3FF',
     attributes: [
       { key: 'iq_knowledge_base', label: 'Strong Knowledge Base', desc: 'Medical knowledge breadth and depth' },
       { key: 'iq_analytical_thinking', label: 'Analytical Thinking', desc: 'Clinical reasoning, differential diagnosis' },
@@ -187,13 +196,13 @@ function RatingSlider({
   description,
   value,
   onChange,
-  color,
+  hexColor,
 }: {
   label: string;
   description: string;
   value: number;
   onChange: (v: number) => void;
-  color: string;
+  hexColor: string;
 }) {
   return (
     <div className="py-4 border-b border-neutral-100 last:border-0">
@@ -210,15 +219,16 @@ function RatingSlider({
           step={5}
           value={value}
           onChange={(e) => onChange(parseInt(e.target.value))}
-          className={`flex-1 h-2 rounded-full appearance-none cursor-pointer accent-current ${color}
+          className="flex-1 h-2 rounded-full appearance-none cursor-pointer
             [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-7 [&::-webkit-slider-thumb]:h-7 
             [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-lg
-            [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-current`}
+            [&::-webkit-slider-thumb]:border-2"
+          style={{ accentColor: hexColor, color: hexColor }}
         />
         <span className="text-xs text-neutral-400 w-8">100</span>
-        <div className={`min-w-[60px] text-center py-1 px-2 rounded-full text-sm font-bold ${color} bg-opacity-10`}>
+        <span className="min-w-[60px] text-center py-1 px-2 rounded-full text-sm font-bold" style={{ color: hexColor }}>
           {Math.round(value)}
-        </div>
+        </span>
       </div>
       <div className="text-center mt-1">
         <span className="text-xs text-neutral-500">{RATING_LABELS[value] || ''}</span>
@@ -241,8 +251,8 @@ function ProgressBar({ current, total, label }: { current: number; total: number
       </div>
       <div className="w-full h-2 bg-neutral-200 rounded-full overflow-hidden">
         <div
-          className="h-full bg-blue-500 rounded-full transition-all duration-500"
-          style={{ width: `${pct}%` }}
+          className="h-full rounded-full transition-all duration-500"
+          style={{ width: `${pct}%`, backgroundColor: COLORS.dark }}
         />
       </div>
     </div>
@@ -280,12 +290,12 @@ export default function SurveyPage() {
   const [showRoster, setShowRoster] = useState(true);
 
   // Dynamic sections: use framework data if available, else fall back to hardcoded SECTIONS
-  const PILLAR_COLORS: Record<string, { color: string; textColor: string; bgColor: string }> = {
-    eq: { color: 'bg-blue-500', textColor: 'text-blue-600', bgColor: 'bg-blue-50' },
-    pq: { color: 'bg-green-500', textColor: 'text-green-600', bgColor: 'bg-green-50' },
-    iq: { color: 'bg-purple-500', textColor: 'text-purple-600', bgColor: 'bg-purple-50' },
+  const PILLAR_COLORS: Record<string, { hex: string; hexText: string; hexBg: string }> = {
+    eq: { hex: '#EF4444', hexText: '#DC2626', hexBg: '#FEF2F2' },
+    pq: { hex: '#2563EB', hexText: '#1D4ED8', hexBg: '#EFF6FF' },
+    iq: { hex: '#7C3AED', hexText: '#6D28D9', hexBg: '#F5F3FF' },
   };
-  const DEFAULT_PILLAR_STYLE = { color: 'bg-indigo-500', textColor: 'text-indigo-600', bgColor: 'bg-indigo-50' };
+  const DEFAULT_PILLAR_STYLE = { hex: '#6366F1', hexText: '#4F46E5', hexBg: '#EEF2FF' };
 
   const activeSections = surveyData?.framework
     ? surveyData.framework.pillars.map(pillar => {
@@ -609,7 +619,7 @@ export default function SurveyPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-3" />
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3" style={{ color: COLORS.dark }} />
           <p className="text-neutral-600">Loading your survey...</p>
         </div>
       </div>
@@ -711,8 +721,8 @@ export default function SurveyPage() {
         </div>
 
         {/* Soft guidance banner */}
-        <div className="mx-4 mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-sm text-blue-800">
+        <div className="mx-4 mb-4 p-3 rounded-lg" style={{ backgroundColor: COLORS.lightest, border: `1px solid ${COLORS.light}` }}>
+          <p className="text-sm" style={{ color: COLORS.veryDark }}>
             We recommend evaluating at least <strong>{guidanceMin} residents</strong> you&apos;ve worked with closely.
             Rate as many as you&apos;d like — select any resident below to begin.
           </p>
@@ -733,7 +743,7 @@ export default function SurveyPage() {
               className="h-full rounded-full transition-all duration-500"
               style={{
                 width: `${Math.round((ratedCount / surveyData.residents.length) * 100)}%`,
-                backgroundColor: ratedCount >= guidanceMin ? '#22c55e' : '#3b82f6',
+                backgroundColor: ratedCount >= guidanceMin ? '#22c55e' : COLORS.medium,
               }}
             />
           </div>
@@ -751,7 +761,7 @@ export default function SurveyPage() {
                 className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
                   isRated
                     ? 'bg-green-50 border-green-200 opacity-75'
-                    : 'bg-white border-neutral-200 hover:border-blue-300 hover:shadow-sm active:scale-[0.99]'
+                    : 'bg-white border-neutral-200 hover:shadow-sm active:scale-[0.99]'
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -782,8 +792,9 @@ export default function SurveyPage() {
               <button
                 onClick={handleCompleteAll}
                 disabled={submitting}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg 
-                           hover:bg-green-700 transition-colors font-medium text-sm disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 text-white rounded-lg 
+                           hover:opacity-90 transition-colors font-medium text-sm disabled:opacity-50"
+                style={{ backgroundColor: COLORS.darker }}
               >
                 {submitting ? (
                   <>
@@ -828,7 +839,8 @@ export default function SurveyPage() {
                 saveProgress();
                 setShowRoster(true);
               }}
-              className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 mr-2 shrink-0"
+              className="flex items-center gap-1 text-xs mr-2 shrink-0"
+              style={{ color: COLORS.dark }}
             >
               <ChevronLeft className="w-3.5 h-3.5" />
               Roster
@@ -875,24 +887,26 @@ export default function SurveyPage() {
             <button
               key={section.id}
               onClick={() => setCurrentSection(idx)}
-              className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              className="flex-1 py-1.5 text-xs font-medium rounded-md transition-colors"
+              style={
                 idx === currentSection
-                  ? `${section.color} text-white`
+                  ? { backgroundColor: section.hex, color: '#fff' }
                   : idx < currentSection
-                    ? 'bg-neutral-200 text-neutral-600'
-                    : 'bg-neutral-100 text-neutral-400'
-              }`}
+                    ? { backgroundColor: '#E5E7EB', color: '#4B5563' }
+                    : { backgroundColor: '#F3F4F6', color: '#9CA3AF' }
+              }
             >
               {section.id.toUpperCase()}
             </button>
           ))}
           <button
             onClick={() => setCurrentSection(activeSections.length)}
-            className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
+            className="flex-1 py-1.5 text-xs font-medium rounded-md transition-colors"
+            style={
               isReviewSection
-                ? 'bg-neutral-800 text-white'
-                : 'bg-neutral-100 text-neutral-400'
-            }`}
+                ? { backgroundColor: COLORS.darker, color: '#fff' }
+                : { backgroundColor: '#F3F4F6', color: '#9CA3AF' }
+            }
           >
             Review
           </button>
@@ -919,8 +933,8 @@ export default function SurveyPage() {
       {/* Section content */}
       {!isReviewSection && currentSectionData && (
         <div className="px-4 mt-4">
-          <div className={`${currentSectionData.bgColor} rounded-lg p-4 mb-4`}>
-            <h2 className={`text-lg font-bold ${currentSectionData.textColor}`}>
+          <div className="rounded-lg p-4 mb-4" style={{ backgroundColor: currentSectionData.hexBg }}>
+            <h2 className="text-lg font-bold" style={{ color: currentSectionData.hexText }}>
               {currentSectionData.title}
             </h2>
             <p className="text-sm text-neutral-600 mt-1">{currentSectionData.subtitle}</p>
@@ -936,7 +950,7 @@ export default function SurveyPage() {
                     description={attr.desc}
                     value={scores[attr.key as keyof ScoreValues]}
                     onChange={(v) => handleScoreChange(attr.key, v)}
-                    color={currentSectionData.textColor}
+                    hexColor={currentSectionData.hexText}
                   />
                   {hasError && (
                     <p className="text-xs text-red-500 pb-2 -mt-1">Please rate this attribute</p>
@@ -949,7 +963,7 @@ export default function SurveyPage() {
           {/* Section average */}
           <div className="mt-4 text-center">
             <span className="text-sm text-neutral-500">Section Average: </span>
-            <span className={`text-lg font-bold ${currentSectionData.textColor}`}>
+            <span className="text-lg font-bold" style={{ color: currentSectionData.hexText }}>
               {getSectionAverage(currentSection).toFixed(2)}
             </span>
           </div>
@@ -974,7 +988,7 @@ export default function SurveyPage() {
               {activeSections.map((section, idx) => (
                 <div key={section.id}>
                   <div className="text-xs text-neutral-500 mb-1">{section.id.toUpperCase()}</div>
-                  <div className={`text-2xl font-bold ${section.textColor}`}>
+                  <div className="text-2xl font-bold" style={{ color: section.hexText }}>
                     {getSectionAverage(idx).toFixed(1)}
                   </div>
                 </div>
@@ -1004,8 +1018,8 @@ export default function SurveyPage() {
               value={comments}
               onChange={(e) => { setComments(e.target.value); setError(null); }}
               rows={4}
-              className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-500 
-                         focus:border-transparent text-sm resize-none"
+              className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:border-transparent text-sm resize-none"
+              style={{ '--tw-ring-color': COLORS.medium } as React.CSSProperties}
               placeholder={
                 isLearner
                   ? 'What are your current concerns or goals?'
@@ -1041,8 +1055,9 @@ export default function SurveyPage() {
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }
               }}
-              className="flex-1 flex items-center justify-center gap-1 px-4 py-3 bg-blue-600 text-white rounded-lg 
-                         hover:bg-blue-700 transition-colors font-medium text-sm"
+              className="flex-1 flex items-center justify-center gap-1 px-4 py-3 text-white rounded-lg 
+                         hover:opacity-90 transition-colors font-medium text-sm"
+              style={{ backgroundColor: COLORS.dark }}
             >
               Next
               <ChevronRight className="w-4 h-4" />
@@ -1051,8 +1066,9 @@ export default function SurveyPage() {
             <button
               onClick={submitCurrentRating}
               disabled={submitting}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg 
-                         hover:bg-green-700 transition-colors font-medium text-sm disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-white rounded-lg 
+                         hover:opacity-90 transition-colors font-medium text-sm disabled:opacity-50"
+              style={{ backgroundColor: COLORS.darker }}
             >
               {submitting ? (
                 <>

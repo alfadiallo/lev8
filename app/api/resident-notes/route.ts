@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate source_type
-    const validSourceTypes = ['portal_review', 'ccc_session', 'one_on_one', 'voice_memo'];
+    const validSourceTypes = ['portal_review', 'progress_check_session', 'one_on_one', 'voice_memo'];
     if (!validSourceTypes.includes(source_type)) {
       return NextResponse.json(
         { error: `Invalid source_type. Must be one of: ${validSourceTypes.join(', ')}` },

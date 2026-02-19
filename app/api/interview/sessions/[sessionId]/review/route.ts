@@ -15,6 +15,9 @@ export async function GET(
 ) {
   try {
     const { sessionId } = await params;
+    const { searchParams } = new URL(request.url);
+    const email = searchParams.get('email')?.toLowerCase() || null;
+    const shareToken = searchParams.get('token');
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // 1. Fetch session info
@@ -26,6 +29,45 @@ export async function GET(
 
     if (sessionError || !session) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+    }
+
+    // Access check mirrors session detail route
+    let hasAccess =
+      session.creator_email === email ||
+      session.share_token === shareToken ||
+      session.is_public;
+
+    if (!hasAccess && email) {
+      const { data: interviewerRecord } = await supabase
+        .from('interview_session_interviewers')
+        .select('id')
+        .eq('session_id', sessionId)
+        .eq('interviewer_email', email)
+        .maybeSingle();
+
+      if (interviewerRecord) {
+        hasAccess = true;
+      }
+    }
+
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    // Faculty view should see their own submitted ratings only.
+    let viewScope: 'all' | 'self' = 'all';
+    if (email) {
+      const { data: roleRow } = await supabase
+        .from('interview_session_interviewers')
+        .select('role')
+        .eq('session_id', sessionId)
+        .eq('interviewer_email', email)
+        .maybeSingle();
+
+      const isProgramDirector = session.creator_email === email || roleRow?.role === 'program_director';
+      if (!isProgramDirector) {
+        viewScope = 'self';
+      }
     }
 
     // 2. Fetch all candidates for this session
@@ -45,10 +87,15 @@ export async function GET(
     
     let ratings: unknown[] = [];
     if (candidateIds.length > 0) {
-      const { data: ratingsData, error: ratingsError } = await supabase
+      let ratingsQuery = supabase
         .from('interview_ratings')
         .select('*')
         .in('candidate_id', candidateIds);
+      if (viewScope === 'self' && email) {
+        ratingsQuery = ratingsQuery.eq('interviewer_email', email);
+      }
+
+      const { data: ratingsData, error: ratingsError } = await ratingsQuery;
 
       if (ratingsError) {
         console.error('[review] Ratings error:', ratingsError);
@@ -57,7 +104,7 @@ export async function GET(
       ratings = ratingsData || [];
     }
 
-    // 4. Fetch session interviewers
+    // 4. Fetch session interviewers (scoped for faculty self view)
     const { data: interviewers, error: interviewersError } = await supabase
       .from('interview_session_interviewers')
       .select('*')
@@ -67,6 +114,10 @@ export async function GET(
     if (interviewersError) {
       console.error('[review] Interviewers error:', interviewersError);
     }
+
+    const scopedInterviewers = viewScope === 'self' && email
+      ? (interviewers || []).filter((i) => i.interviewer_email === email)
+      : (interviewers || []);
 
     // 5. Build interviewer summary from ratings
     const interviewerMap = new Map<string, {
@@ -81,7 +132,7 @@ export async function GET(
     }>();
 
     // First, add known interviewers from session_interviewers table
-    (interviewers || []).forEach(i => {
+    scopedInterviewers.forEach(i => {
       interviewerMap.set(i.interviewer_email, {
         email: i.interviewer_email,
         name: i.interviewer_name || i.interviewer_email,
@@ -160,6 +211,9 @@ export async function GET(
     
     const candidatesWithRatings = (candidates || []).map(candidate => {
       const candidateRatings = (ratings as CandidateRating[]).filter(r => r.candidate_id === candidate.id);
+      const validCandidateRatings = candidateRatings.filter(
+        (r) => r.eq_score != null && r.pq_score != null && r.iq_score != null
+      );
       
       // Build ratings by interviewer
       const ratingsByInterviewerForCandidate: Record<string, {
@@ -188,13 +242,25 @@ export async function GET(
 
       return {
         ...candidate,
+        eq_total: validCandidateRatings.length > 0 ? validCandidateRatings.reduce((sum, r) => sum + (r.eq_score || 0), 0) : null,
+        pq_total: validCandidateRatings.length > 0 ? validCandidateRatings.reduce((sum, r) => sum + (r.pq_score || 0), 0) : null,
+        iq_total: validCandidateRatings.length > 0 ? validCandidateRatings.reduce((sum, r) => sum + (r.iq_score || 0), 0) : null,
+        interview_total: validCandidateRatings.length > 0
+          ? validCandidateRatings.reduce((sum, r) => sum + (r.eq_score || 0) + (r.pq_score || 0) + (r.iq_score || 0), 0)
+          : null,
         ratings: ratingsByInterviewerForCandidate,
         ratingCount: candidateRatings.length,
       };
     });
 
-    // Sort interviewers: PD first, then coordinators, then interviewers
-    const roleOrder = { program_director: 0, coordinator: 1, interviewer: 2 };
+    // Sort interviewers: PD first, then faculty/coordinators, then interviewer
+    const roleOrder = {
+      program_director: 0,
+      core_faculty: 1,
+      teaching_faculty: 2,
+      coordinator: 3,
+      interviewer: 4,
+    };
     const sortedInterviewers = Array.from(interviewerMap.values()).sort((a, b) => {
       const aOrder = roleOrder[a.role as keyof typeof roleOrder] ?? 2;
       const bOrder = roleOrder[b.role as keyof typeof roleOrder] ?? 2;
@@ -205,6 +271,7 @@ export async function GET(
       session,
       candidates: candidatesWithRatings,
       interviewers: sortedInterviewers,
+      viewScope,
       summary: {
         totalCandidates: candidates?.length || 0,
         totalRatings: ratings.length,

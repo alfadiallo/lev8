@@ -20,7 +20,7 @@ import { FacultyOnly } from '@/components/auth/PermissionGate';
 import CreateSessionModal from './CreateSessionModal';
 import EditSessionModal from '@/components/modules/understand/EditSessionModal';
 
-interface CCCSession {
+interface ProgressCheckSession {
   id: string;
   session_date: string;
   academic_year: string;
@@ -33,29 +33,29 @@ interface CCCSession {
 }
 
 interface UnderstandClientProps {
-  initialSessions: CCCSession[];
+  initialSessions: ProgressCheckSession[];
 }
 
 export default function UnderstandClient({ initialSessions }: UnderstandClientProps) {
   const router = useRouter();
   const permissions = usePermissions();
-  const [sessions, setSessions] = useState<CCCSession[]>(initialSessions);
+  const [sessions, setSessions] = useState<ProgressCheckSession[]>(initialSessions);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editingSession, setEditingSession] = useState<CCCSession | null>(null);
+  const [editingSession, setEditingSession] = useState<ProgressCheckSession | null>(null);
 
   const handleSessionCreated = (sessionId: string) => {
     setShowCreateModal(false);
     router.push(`/modules/understand/${sessionId}`);
   };
 
-  const handleSessionUpdated = (updatedSession: CCCSession) => {
+  const handleSessionUpdated = (updatedSession: ProgressCheckSession) => {
     setSessions(prev => prev.map(s => 
       s.id === updatedSession.id ? updatedSession : s
     ));
     setEditingSession(null);
   };
 
-  const handleEditClick = (e: React.MouseEvent, session: CCCSession) => {
+  const handleEditClick = (e: React.MouseEvent, session: ProgressCheckSession) => {
     e.stopPropagation();
     setEditingSession(session);
   };
@@ -79,7 +79,7 @@ export default function UnderstandClient({ initialSessions }: UnderstandClientPr
             Understand
           </h1>
           <p className="text-neutral-600 mt-2">
-            Resident analytics, data presentation, and CCC meeting interface
+            Resident analytics, data presentation, and progress check meeting interface
           </p>
         </div>
       </div>
@@ -195,7 +195,7 @@ export default function UnderstandClient({ initialSessions }: UnderstandClientPr
           </div>
         </button>
 
-        {/* CCC Meetings Card - Faculty only */}
+        {/* Progress Check Card - Faculty only */}
         <FacultyOnly>
           <button
             onClick={() => setShowCreateModal(true)}
@@ -207,7 +207,7 @@ export default function UnderstandClient({ initialSessions }: UnderstandClientPr
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-bold text-neutral-800 flex items-center gap-2">
-                  CCC Meetings
+                  Progress Check
                   <Plus size={18} className="text-neutral-400 group-hover:rotate-90 transition-transform" />
                 </h3>
                 <p className="text-neutral-600 text-sm mt-1">
@@ -225,11 +225,11 @@ export default function UnderstandClient({ initialSessions }: UnderstandClientPr
         </FacultyOnly>
       </div>
 
-      {/* Recent CCC Sessions List - Faculty only */}
+      {/* Recent Progress Check Sessions List - Faculty only */}
       <FacultyOnly>
         <div className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-lg border border-white/50 overflow-hidden">
           <div className="p-6 border-b border-neutral-200/50 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-neutral-700">Recent CCC Sessions</h2>
+            <h2 className="text-lg font-semibold text-neutral-700">Recent Progress Check Sessions</h2>
             <button
               onClick={() => setShowCreateModal(true)}
               className="flex items-center gap-2 px-4 py-2 bg-[#0EA5E9] text-white text-sm rounded-lg hover:bg-[#0284C7] transition-colors"
@@ -242,8 +242,8 @@ export default function UnderstandClient({ initialSessions }: UnderstandClientPr
           {sessions.length === 0 ? (
             <div className="p-12 text-center">
               <Calendar className="mx-auto text-neutral-300 mb-4" size={48} />
-              <h3 className="text-lg font-medium text-neutral-600 mb-2">No CCC Sessions Yet</h3>
-              <p className="text-neutral-500 mb-6">Create your first CCC session to get started</p>
+              <h3 className="text-lg font-medium text-neutral-600 mb-2">No Progress Check Sessions Yet</h3>
+              <p className="text-neutral-500 mb-6">Create your first progress check session to get started</p>
               <button
                 onClick={() => setShowCreateModal(true)}
                 className="px-6 py-2 bg-[#0EA5E9] text-white rounded-lg hover:bg-[#0284C7] transition-colors"
@@ -267,7 +267,7 @@ export default function UnderstandClient({ initialSessions }: UnderstandClientPr
                     </div>
                     <div>
                       <h3 className="font-semibold text-neutral-800">
-                        {session.title || `${session.session_type} CCC ${session.academic_year}`}
+                        {session.title || `${session.session_type} Progress Check ${session.academic_year}`}
                       </h3>
                       <div className="flex items-center gap-4 text-sm text-neutral-500 mt-1">
                         <span className="flex items-center gap-1">

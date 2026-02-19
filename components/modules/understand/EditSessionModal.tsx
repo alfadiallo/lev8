@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { X, Calendar, Clock, Save } from 'lucide-react';
 
-interface CCCSession {
+interface ProgressCheckSession {
   id: string;
   session_date: string;
   academic_year: string;
@@ -16,9 +16,9 @@ interface CCCSession {
 }
 
 interface EditSessionModalProps {
-  session: CCCSession;
+  session: ProgressCheckSession;
   onClose: () => void;
-  onUpdated: (updatedSession: CCCSession) => void;
+  onUpdated: (updatedSession: ProgressCheckSession) => void;
 }
 
 export default function EditSessionModal({ session, onClose, onUpdated }: EditSessionModalProps) {
@@ -37,7 +37,7 @@ export default function EditSessionModal({ session, onClose, onUpdated }: EditSe
     setError(null);
 
     try {
-      const response = await fetch(`/api/v2/sessions/ccc/${session.id}`, {
+      const response = await fetch(`/api/v2/sessions/progress-check/${session.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -79,7 +79,7 @@ export default function EditSessionModal({ session, onClose, onUpdated }: EditSe
       >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-neutral-200">
-          <h2 className="text-xl font-bold text-neutral-800">Edit CCC Session</h2>
+          <h2 className="text-xl font-bold text-neutral-800">Edit Progress Check Session</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-neutral-100 rounded-lg transition-colors"
@@ -99,7 +99,7 @@ export default function EditSessionModal({ session, onClose, onUpdated }: EditSe
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g., Spring CCC 2025-2026"
+              placeholder="e.g., Spring Progress Check 2025-2026"
               className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#0EA5E9]/50 focus:border-[#0EA5E9] transition-colors"
             />
           </div>

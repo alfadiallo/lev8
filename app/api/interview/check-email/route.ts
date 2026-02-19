@@ -3,6 +3,10 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY!;
+const DEMO_INTERVIEWER_EMAILS = new Set([
+  'sarah.chen@hospital.edu',
+  'emily.watson@hospital.edu',
+]);
 
 // Interview tool permission levels based on lev8 role
 type InterviewPermission = 'guest' | 'faculty' | 'program_director' | 'admin';
@@ -37,7 +41,7 @@ const PERMISSION_CAPABILITIES = {
     canJoinGroupSession: true,
     canRateCandidates: true,
     canViewOwnRatings: true,
-    canViewAllRatings: false,
+    canViewAllRatings: true,
     canViewAggregateAnalytics: false,
     canManageSessions: false,
     canExportData: true,
@@ -196,22 +200,29 @@ export async function POST(request: NextRequest) {
     // First check user_profiles role
     let permission = getInterviewPermission(user?.role || null);
     
-    // Also check if they have program_director role in interview_session_interviewers
-    // This handles the case where someone is a PD for interviews but not in user_profiles
+    // Fallback to interview assignments when user_profiles role is missing.
+    // This keeps demo interviewer emails (e.g. emily.watson@hospital.edu) out of "guest".
     if (permission === 'guest' || permission === 'faculty') {
       const { data: interviewerRole } = await supabase
         .from('interview_session_interviewers')
         .select('role')
         .eq('interviewer_email', email.toLowerCase())
-        .eq('role', 'program_director')
+        .in('role', ['program_director', 'core_faculty', 'teaching_faculty', 'coordinator'])
         .limit(1)
-        .single();
-      
-      if (interviewerRole) {
+        .maybeSingle();
+
+      if (interviewerRole?.role === 'program_director') {
         permission = 'program_director';
+      } else if (permission === 'guest' && interviewerRole) {
+        permission = 'faculty';
       }
     }
     
+    // Final demo safety net: never treat known demo interviewers as guests.
+    if (permission === 'guest' && DEMO_INTERVIEWER_EMAILS.has(email.toLowerCase())) {
+      permission = 'faculty';
+    }
+
     const capabilities = PERMISSION_CAPABILITIES[permission];
 
     return NextResponse.json({

@@ -132,7 +132,7 @@ Longitudinal resident evaluation across 15 attributes on the Elevate platform. F
 
 3. **Score & Visualize** — AI scores all 15 EQ·PQ·IQ attributes (1.0–5.0), generates period-over-period trendlines, and surfaces gap analysis between self and observer ratings.
 
-4. **Act** — Program directors and evaluators receive radar charts, SWOT dashboards, archetype classifications, and targeted recommendations—ready for coaching conversations or CCC meetings.
+4. **Act** — Program directors and evaluators receive radar charts, SWOT dashboards, archetype classifications, and targeted recommendations—ready for coaching conversations or Clinical Competency Committee meetings.
 
 ---
 

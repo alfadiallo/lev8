@@ -64,8 +64,15 @@ export default function RatingPage() {
     const fetchCandidates = async () => {
       try {
         const response = await fetch(`/api/interview/sessions/${sessionId}?email=${encodeURIComponent(email)}`);
-        if (!response.ok) throw new Error('Failed to fetch session');
-        const data = await response.json();
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const message = data?.error === 'Session not found'
+            ? 'This session was not found. It may have been removed or the link may be from a different environment (e.g. demo data that isn’t in production).'
+            : data?.error === 'Access denied'
+              ? 'You don’t have access to this session. Sign in with the email that was invited to rate.'
+              : data?.error || 'Failed to load session.';
+          throw new Error(message);
+        }
         setCandidates(data.candidates || []);
 
         // Set initial candidate if specified
@@ -243,13 +250,22 @@ export default function RatingPage() {
           <p className="text-red-600">
             {error || 'No candidates to rate.'}
           </p>
-          <button
-            onClick={() => router.push(`/interview/session/${sessionId}?email=${encodeURIComponent(email)}`)}
-            className="mt-4 font-medium"
-            style={{ color: COLORS.dark }}
-          >
-            Return to Session
-          </button>
+          <div className="mt-4 flex flex-col sm:flex-row gap-3 justify-center">
+            <button
+              onClick={() => router.push(`/interview/session/${sessionId}?email=${encodeURIComponent(email)}`)}
+              className="font-medium"
+              style={{ color: COLORS.dark }}
+            >
+              Return to Session
+            </button>
+            <a
+              href={email ? `/interview/dashboard?email=${encodeURIComponent(email)}` : '/interview'}
+              className="font-medium"
+              style={{ color: COLORS.dark }}
+            >
+              {email ? 'Go to Interview dashboard' : 'Go to Interview'}
+            </a>
+          </div>
         </div>
       </div>
     );

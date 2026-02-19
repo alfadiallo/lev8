@@ -2,6 +2,7 @@
 
 import { ReactNode } from 'react';
 import Link from 'next/link';
+import VisitorGate from '@/components/eqpqiq/VisitorGate';
 
 const COLORS = {
   lightest: '#D8F3DC',
@@ -66,6 +67,9 @@ export default function EqpqiqLandingLayoutClient({ children }: EqpqiqLandingLay
           </div>
         </div>
       </header>
+
+      {/* Visitor Gate (only active on eqpqiq.com) */}
+      <VisitorGate page="/" />
 
       {/* Main Content */}
       <main>{children}</main>

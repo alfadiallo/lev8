@@ -796,7 +796,7 @@ resident (own data only)
 
 #### `program_director`
 - Can access: All residents in program, all faculty
-- Can see: All program analytics, CCC reports
+- Can see: All program analytics, Progress Check reports
 - Can manage: Program settings, academic classes
 
 #### `super_admin`
@@ -813,7 +813,7 @@ resident (own data only)
 | View own SWOT analysis | ✅ | ❌ | ❌ | ❌ |
 | View raw evaluation comments | ❌ | ✅ (own program) | ✅ (own program) | ✅ (institution) |
 | View resident dashboards | ❌ | ✅ (own program) | ✅ (own program) | ✅ (institution) |
-| Generate CCC reports | ❌ | ❌ | ✅ | ✅ |
+| Generate Progress Check reports | ❌ | ❌ | ✅ | ✅ |
 | Upload evaluation CSV | ❌ | ✅ | ✅ | ✅ |
 | Configure risk thresholds | ❌ | ❌ | ✅ | ✅ |
 
@@ -876,7 +876,7 @@ Current routes follow this pattern:
 - `/api/analytics/residents/:residentId` - Resident analytics
 - `/api/analytics/program/:programId/dashboard` - Program dashboard
 - `/api/analytics/upload` - Upload evaluation CSV
-- `/api/analytics/ccc-reports` - Generate CCC reports
+- `/api/analytics/progress-check-reports` - Generate Progress Check reports
 
 ---
 
@@ -928,7 +928,7 @@ Create new tables in a separate migration file:
 - `resident_analytics` (processed AI results)
 - `swot_analyses`
 - `risk_assessments`
-- `ccc_reports`
+- `progress_check_reports`
 
 ### Step 2: Enable RLS
 Immediately enable RLS on all new tables:

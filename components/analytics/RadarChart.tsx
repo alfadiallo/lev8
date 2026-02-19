@@ -51,25 +51,25 @@ export default function RadarChart({ facultyData, selfData }: RadarChartProps) {
   // Transform data for recharts - 15 points grouped by section
   const chartData = [
     // EQ Section (5 points)
-    { attribute: 'Empathy', Faculty: facultyData.eq_empathy, Self: selfData.eq_empathy, section: 'EQ', fullMark: 5 },
-    { attribute: 'Adaptability', Faculty: facultyData.eq_adaptability, Self: selfData.eq_adaptability, section: 'EQ', fullMark: 5 },
-    { attribute: 'Stress Mgmt', Faculty: facultyData.eq_stress, Self: selfData.eq_stress, section: 'EQ', fullMark: 5 },
-    { attribute: 'Curiosity', Faculty: facultyData.eq_curiosity, Self: selfData.eq_curiosity, section: 'EQ', fullMark: 5 },
-    { attribute: 'Communication', Faculty: facultyData.eq_communication, Self: selfData.eq_communication, section: 'EQ', fullMark: 5 },
+    { attribute: 'Empathy', Faculty: facultyData.eq_empathy, Self: selfData.eq_empathy, section: 'EQ', fullMark: 100 },
+    { attribute: 'Adaptability', Faculty: facultyData.eq_adaptability, Self: selfData.eq_adaptability, section: 'EQ', fullMark: 100 },
+    { attribute: 'Stress Mgmt', Faculty: facultyData.eq_stress, Self: selfData.eq_stress, section: 'EQ', fullMark: 100 },
+    { attribute: 'Curiosity', Faculty: facultyData.eq_curiosity, Self: selfData.eq_curiosity, section: 'EQ', fullMark: 100 },
+    { attribute: 'Communication', Faculty: facultyData.eq_communication, Self: selfData.eq_communication, section: 'EQ', fullMark: 100 },
     
     // PQ Section (5 points)
-    { attribute: 'Work Ethic', Faculty: facultyData.pq_work_ethic, Self: selfData.pq_work_ethic, section: 'PQ', fullMark: 5 },
-    { attribute: 'Integrity', Faculty: facultyData.pq_integrity, Self: selfData.pq_integrity, section: 'PQ', fullMark: 5 },
-    { attribute: 'Teachability', Faculty: facultyData.pq_teachability, Self: selfData.pq_teachability, section: 'PQ', fullMark: 5 },
-    { attribute: 'Documentation', Faculty: facultyData.pq_documentation, Self: selfData.pq_documentation, section: 'PQ', fullMark: 5 },
-    { attribute: 'Leadership', Faculty: facultyData.pq_leadership, Self: selfData.pq_leadership, section: 'PQ', fullMark: 5 },
+    { attribute: 'Work Ethic', Faculty: facultyData.pq_work_ethic, Self: selfData.pq_work_ethic, section: 'PQ', fullMark: 100 },
+    { attribute: 'Integrity', Faculty: facultyData.pq_integrity, Self: selfData.pq_integrity, section: 'PQ', fullMark: 100 },
+    { attribute: 'Teachability', Faculty: facultyData.pq_teachability, Self: selfData.pq_teachability, section: 'PQ', fullMark: 100 },
+    { attribute: 'Documentation', Faculty: facultyData.pq_documentation, Self: selfData.pq_documentation, section: 'PQ', fullMark: 100 },
+    { attribute: 'Leadership', Faculty: facultyData.pq_leadership, Self: selfData.pq_leadership, section: 'PQ', fullMark: 100 },
     
     // IQ Section (5 points)
-    { attribute: 'Knowledge', Faculty: facultyData.iq_knowledge, Self: selfData.iq_knowledge, section: 'IQ', fullMark: 5 },
-    { attribute: 'Analytical', Faculty: facultyData.iq_analytical, Self: selfData.iq_analytical, section: 'IQ', fullMark: 5 },
-    { attribute: 'Learning', Faculty: facultyData.iq_learning, Self: selfData.iq_learning, section: 'IQ', fullMark: 5 },
-    { attribute: 'Flexibility', Faculty: facultyData.iq_flexibility, Self: selfData.iq_flexibility, section: 'IQ', fullMark: 5 },
-    { attribute: 'Performance', Faculty: facultyData.iq_performance, Self: selfData.iq_performance, section: 'IQ', fullMark: 5 },
+    { attribute: 'Knowledge', Faculty: facultyData.iq_knowledge, Self: selfData.iq_knowledge, section: 'IQ', fullMark: 100 },
+    { attribute: 'Analytical', Faculty: facultyData.iq_analytical, Self: selfData.iq_analytical, section: 'IQ', fullMark: 100 },
+    { attribute: 'Learning', Faculty: facultyData.iq_learning, Self: selfData.iq_learning, section: 'IQ', fullMark: 100 },
+    { attribute: 'Flexibility', Faculty: facultyData.iq_flexibility, Self: selfData.iq_flexibility, section: 'IQ', fullMark: 100 },
+    { attribute: 'Performance', Faculty: facultyData.iq_performance, Self: selfData.iq_performance, section: 'IQ', fullMark: 100 },
   ];
 
   // Custom tick component for color-coded labels
@@ -78,9 +78,9 @@ export default function RadarChart({ facultyData, selfData }: RadarChartProps) {
     const { payload, x, y, textAnchor, radius } = props;
     const section = chartData[payload.index]?.section || '';
     const colors: Record<string, string> = {
-      'EQ': '#FF6B9D', // Pink for EQ
-      'PQ': '#4ECDC4', // Teal for PQ
-      'IQ': '#95E1D3', // Light green for IQ
+      'EQ': '#2563EB', // Blue for EQ
+      'PQ': '#16A34A', // Green for PQ
+      'IQ': '#9333EA', // Purple for IQ
     };
     
     return (
@@ -114,15 +114,15 @@ export default function RadarChart({ facultyData, selfData }: RadarChartProps) {
         <h3 className="text-lg font-semibold text-neutral-800 mb-4">Comprehensive EQ + PQ + IQ Analysis</h3>
         <div className="mb-4 flex items-center justify-center gap-6 text-sm">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#FF6B9D' }}></div>
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#2563EB' }}></div>
             <span className="text-neutral-600 font-medium">EQ (Emotional)</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#4ECDC4' }}></div>
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#16A34A' }}></div>
             <span className="text-neutral-600 font-medium">PQ (Professional)</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#95E1D3' }}></div>
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#9333EA' }}></div>
             <span className="text-neutral-600 font-medium">IQ (Intellectual)</span>
           </div>
         </div>
@@ -135,7 +135,7 @@ export default function RadarChart({ facultyData, selfData }: RadarChartProps) {
             />
             <PolarRadiusAxis 
               angle={90} 
-              domain={[0, 5]} 
+              domain={[0, 100]} 
               tick={{ fill: '#9ca3af', fontSize: 11 }}
               tickCount={6}
             />
@@ -168,7 +168,7 @@ export default function RadarChart({ facultyData, selfData }: RadarChartProps) {
                 boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
               }}
               formatter={(value: number | string, name: string) => [
-                typeof value === 'number' ? value.toFixed(1) : String(value),
+                typeof value === 'number' ? Math.round(value) : String(value),
                 name
               ]}
             />
@@ -181,32 +181,32 @@ export default function RadarChart({ facultyData, selfData }: RadarChartProps) {
         <h3 className="text-lg font-semibold text-neutral-800 mb-4">Average Scores by Pillar</h3>
         <div className="grid grid-cols-3 gap-6">
           <div className="text-center">
-            <div className="text-3xl font-bold mb-1" style={{ color: '#FF6B9D' }}>
-              {((facultyData.eq_empathy + facultyData.eq_adaptability + facultyData.eq_stress + facultyData.eq_curiosity + facultyData.eq_communication) / 5).toFixed(1)}
+            <div className="text-3xl font-bold mb-1" style={{ color: '#2563EB' }}>
+              {Math.round((facultyData.eq_empathy + facultyData.eq_adaptability + facultyData.eq_stress + facultyData.eq_curiosity + facultyData.eq_communication) / 5)}
             </div>
             <div className="text-sm text-neutral-600 font-medium">EQ (Faculty)</div>
-            <div className="text-2xl font-semibold mt-2" style={{ color: '#FFB5A7' }}>
-              {((selfData.eq_empathy + selfData.eq_adaptability + selfData.eq_stress + selfData.eq_curiosity + selfData.eq_communication) / 5).toFixed(1)}
+            <div className="text-2xl font-semibold mt-2" style={{ color: '#60A5FA' }}>
+              {Math.round((selfData.eq_empathy + selfData.eq_adaptability + selfData.eq_stress + selfData.eq_curiosity + selfData.eq_communication) / 5)}
             </div>
             <div className="text-sm text-neutral-500">EQ (Self)</div>
           </div>
           <div className="text-center">
-            <div className="text-3xl font-bold mb-1" style={{ color: '#4ECDC4' }}>
-              {((facultyData.pq_work_ethic + facultyData.pq_integrity + facultyData.pq_teachability + facultyData.pq_documentation + facultyData.pq_leadership) / 5).toFixed(1)}
+            <div className="text-3xl font-bold mb-1" style={{ color: '#16A34A' }}>
+              {Math.round((facultyData.pq_work_ethic + facultyData.pq_integrity + facultyData.pq_teachability + facultyData.pq_documentation + facultyData.pq_leadership) / 5)}
             </div>
             <div className="text-sm text-neutral-600 font-medium">PQ (Faculty)</div>
-            <div className="text-2xl font-semibold mt-2" style={{ color: '#FFB5A7' }}>
-              {((selfData.pq_work_ethic + selfData.pq_integrity + selfData.pq_teachability + selfData.pq_documentation + selfData.pq_leadership) / 5).toFixed(1)}
+            <div className="text-2xl font-semibold mt-2" style={{ color: '#4ADE80' }}>
+              {Math.round((selfData.pq_work_ethic + selfData.pq_integrity + selfData.pq_teachability + selfData.pq_documentation + selfData.pq_leadership) / 5)}
             </div>
             <div className="text-sm text-neutral-500">PQ (Self)</div>
           </div>
           <div className="text-center">
-            <div className="text-3xl font-bold mb-1" style={{ color: '#95E1D3' }}>
-              {((facultyData.iq_knowledge + facultyData.iq_analytical + facultyData.iq_learning + facultyData.iq_flexibility + facultyData.iq_performance) / 5).toFixed(1)}
+            <div className="text-3xl font-bold mb-1" style={{ color: '#9333EA' }}>
+              {Math.round((facultyData.iq_knowledge + facultyData.iq_analytical + facultyData.iq_learning + facultyData.iq_flexibility + facultyData.iq_performance) / 5)}
             </div>
             <div className="text-sm text-neutral-600 font-medium">IQ (Faculty)</div>
-            <div className="text-2xl font-semibold mt-2" style={{ color: '#FFB5A7' }}>
-              {((selfData.iq_knowledge + selfData.iq_analytical + selfData.iq_learning + selfData.iq_flexibility + selfData.iq_performance) / 5).toFixed(1)}
+            <div className="text-2xl font-semibold mt-2" style={{ color: '#C084FC' }}>
+              {Math.round((selfData.iq_knowledge + selfData.iq_analytical + selfData.iq_learning + selfData.iq_flexibility + selfData.iq_performance) / 5)}
             </div>
             <div className="text-sm text-neutral-500">IQ (Self)</div>
           </div>

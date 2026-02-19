@@ -18,12 +18,18 @@ const COLORS = {
 
 // Rating scale labels
 const RATING_LABELS: Record<number, { label: string; color: string; bg: string }> = {
-  1: { label: 'Unsatisfactory', color: '#DC2626', bg: '#FEE2E2' },
-  2: { label: 'Needs Improvement', color: '#EA580C', bg: '#FFEDD5' },
-  3: { label: 'Developing', color: '#CA8A04', bg: '#FEF9C3' },
-  4: { label: 'Proficient', color: '#15803D', bg: '#D1FAE5' },
-  5: { label: 'Exemplary', color: '#166534', bg: '#DCFCE7' },
+  0:  { label: 'Unsatisfactory', color: '#DC2626', bg: '#FEE2E2' },
+  25: { label: 'Needs Improvement', color: '#EA580C', bg: '#FFEDD5' },
+  50: { label: 'Developing', color: '#CA8A04', bg: '#FEF9C3' },
+  75: { label: 'Proficient', color: '#15803D', bg: '#D1FAE5' },
+  100: { label: 'Exemplary', color: '#166534', bg: '#DCFCE7' },
 };
+
+const LABEL_KEYS = [0, 25, 50, 75, 100];
+function closestLabel(value: number) {
+  const key = LABEL_KEYS.reduce((prev, curr) => Math.abs(curr - value) < Math.abs(prev - value) ? curr : prev);
+  return RATING_LABELS[key] || { label: '', color: '#64748B', bg: '#F1F5F9' };
+}
 
 // Attribute definitions
 const ATTRIBUTES = {
@@ -118,9 +124,12 @@ export default function RatingSliders({ values, onChange, readOnly = false }: Ra
 
   const getSliderBackground = (value: number | null) => {
     if (value === null) return '#E2E8F0';
-    const percentage = ((value - 1) / 4) * 100;
-    const colorInfo = RATING_LABELS[value];
-    return `linear-gradient(to right, ${colorInfo.color} ${percentage}%, #E2E8F0 ${percentage}%)`;
+    const percentage = value; // 0-100 maps directly to percentage
+    // Find closest label key for color
+    const labelKeys = [0, 25, 50, 75, 100];
+    const closest = labelKeys.reduce((prev, curr) => Math.abs(curr - value) < Math.abs(prev - value) ? curr : prev);
+    const colorInfo = RATING_LABELS[closest];
+    return `linear-gradient(to right, ${colorInfo?.color || '#64748B'} ${percentage}%, #E2E8F0 ${percentage}%)`;
   };
 
   return (
@@ -159,11 +168,11 @@ export default function RatingSliders({ values, onChange, readOnly = false }: Ra
                   <div 
                     className="px-2 py-0.5 rounded-full text-xs font-medium"
                     style={{ 
-                      backgroundColor: RATING_LABELS[Math.round(domainAvg)]?.bg || '#F1F5F9',
-                      color: RATING_LABELS[Math.round(domainAvg)]?.color || '#64748B',
+                      backgroundColor: closestLabel(domainAvg).bg,
+                      color: closestLabel(domainAvg).color,
                     }}
                   >
-                    {domainAvg}
+                    {Math.round(domainAvg)}
                   </div>
                 )}
                 {isExpanded ? (
@@ -199,11 +208,11 @@ export default function RatingSliders({ values, onChange, readOnly = false }: Ra
                             <span 
                               className="px-2 py-0.5 rounded text-xs font-medium"
                               style={{ 
-                                backgroundColor: RATING_LABELS[currentValue]?.bg,
-                                color: RATING_LABELS[currentValue]?.color,
+                                backgroundColor: closestLabel(currentValue).bg,
+                                color: closestLabel(currentValue).color,
                               }}
                             >
-                              {currentValue} - {RATING_LABELS[currentValue]?.label}
+                              {currentValue} - {closestLabel(currentValue).label}
                             </span>
                           )}
                           {!readOnly && currentValue !== null && (
@@ -220,13 +229,13 @@ export default function RatingSliders({ values, onChange, readOnly = false }: Ra
 
                       {/* Slider Row */}
                       <div className="flex items-center gap-3">
-                        <span className="text-xs text-slate-400 w-4 text-center">1</span>
+                        <span className="text-xs text-slate-400 w-4 text-center">0</span>
                         <input
                           type="range"
-                          min="1"
-                          max="5"
-                          step="1"
-                          value={currentValue || 3}
+                          min="0"
+                          max="100"
+                          step="5"
+                          value={currentValue || 50}
                           onChange={(e) => !readOnly && handleRatingChange(attr.id, parseInt(e.target.value))}
                           disabled={readOnly}
                           className="flex-1 h-2 rounded-full appearance-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
@@ -234,7 +243,7 @@ export default function RatingSliders({ values, onChange, readOnly = false }: Ra
                             background: currentValue !== null ? getSliderBackground(currentValue) : '#E2E8F0',
                           }}
                         />
-                        <span className="text-xs text-slate-400 w-4 text-center">5</span>
+                        <span className="text-xs text-slate-400 w-6 text-center">100</span>
                       </div>
                     </div>
                   );

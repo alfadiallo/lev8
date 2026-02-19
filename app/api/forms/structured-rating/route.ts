@@ -42,12 +42,12 @@ const IQ_ATTRIBUTES = [
 
 const ALL_ATTRIBUTES = [...EQ_ATTRIBUTES, ...PQ_ATTRIBUTES, ...IQ_ATTRIBUTES];
 
-// Validate score is in range 1.0 to 5.0 with 0.5 increments
+// Validate score is in range 0 to 100 with step-5 increments
 function isValidScore(value: unknown): boolean {
   if (typeof value !== 'number') return false;
-  if (value < 1.0 || value > 5.0) return false;
-  // Check if it's a multiple of 0.5
-  return (value * 2) % 1 === 0;
+  if (value < 0 || value > 100) return false;
+  // Check if it's a multiple of 5
+  return value % 5 === 0;
 }
 
 // Calculate PGY level from graduation year
@@ -168,9 +168,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!rater_type || !['faculty', 'self'].includes(rater_type)) {
+    if (!rater_type || !['core_faculty', 'teaching_faculty', 'self'].includes(rater_type)) {
       return NextResponse.json(
-        { error: 'rater_type must be "faculty" or "self"' },
+        { error: 'rater_type must be "core_faculty", "teaching_faculty", or "self"' },
         { status: 400 }
       );
     }
@@ -188,14 +188,14 @@ export async function POST(request: NextRequest) {
     for (const attr of providedAttributes) {
       if (!isValidScore(scores[attr])) {
         return NextResponse.json(
-          { error: `Invalid score for ${attr}. Must be 1.0-5.0 in 0.5 increments` },
+          { error: `Invalid score for ${attr}. Must be 0-100 in increments of 5` },
           { status: 400 }
         );
       }
     }
 
     // Validate faculty_id for faculty ratings
-    if (rater_type === 'faculty' && !body.faculty_id) {
+    if ((rater_type === 'core_faculty' || rater_type === 'teaching_faculty') && !body.faculty_id) {
       return NextResponse.json(
         { error: 'faculty_id is required for faculty ratings' },
         { status: 400 }
@@ -237,7 +237,7 @@ export async function POST(request: NextRequest) {
     };
 
     // Add faculty_id if faculty rating
-    if (rater_type === 'faculty' && body.faculty_id) {
+    if ((rater_type === 'core_faculty' || rater_type === 'teaching_faculty') && body.faculty_id) {
       insertData.faculty_id = body.faculty_id;
     }
 

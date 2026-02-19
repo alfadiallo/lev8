@@ -67,20 +67,32 @@ function getStatusBadge(status: string) {
 export default function InterviewSessionsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, isLoading: isUserLoading, isAuthenticated, isProgramDirector, login } = useInterviewUserContext();
+  const { user, isLoading: isUserLoading, isAuthenticated, isProgramDirector, login, can } = useInterviewUserContext();
   const email = user?.email || searchParams.get('email') || '';
 
   const [sessions, setSessions] = useState<Session[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // If email is in URL and not logged in, log in
+  // If email is in URL, re-auth when needed (including stale guest sessions)
   useEffect(() => {
     const emailParam = searchParams.get('email');
-    if (emailParam && !isAuthenticated && !isUserLoading) {
-      login(emailParam);
+    const normalizedParam = emailParam?.toLowerCase();
+    const normalizedUserEmail = user?.email?.toLowerCase();
+    const shouldRefreshAuth = Boolean(
+      normalizedParam &&
+      !isUserLoading &&
+      (
+        !isAuthenticated ||
+        normalizedUserEmail !== normalizedParam ||
+        user?.permission === 'guest'
+      )
+    );
+
+    if (shouldRefreshAuth && normalizedParam) {
+      login(normalizedParam);
     }
-  }, [searchParams, isAuthenticated, isUserLoading, login]);
+  }, [searchParams, isAuthenticated, isUserLoading, login, user?.email, user?.permission]);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -94,7 +106,7 @@ export default function InterviewSessionsPage() {
       if (!email) return;
 
       try {
-        const sessionsResponse = await fetch('/api/interview/sessions/list');
+        const sessionsResponse = await fetch(`/api/interview/sessions/list?email=${encodeURIComponent(email)}`);
         if (!sessionsResponse.ok) throw new Error('Failed to fetch sessions');
         
         const sessionsData = await sessionsResponse.json();
@@ -112,6 +124,7 @@ export default function InterviewSessionsPage() {
   }, [email]);
 
   const isPDorAdmin = isProgramDirector;
+  const canViewSessionResults = can('canViewAllRatings');
 
   if (isLoading) {
     return (
@@ -160,7 +173,7 @@ export default function InterviewSessionsPage() {
             Interview Dates
           </h1>
           <p className="text-slate-600 dark:text-slate-400">
-            {isPDorAdmin 
+            {canViewSessionResults
               ? 'Manage interview sessions and view candidate ratings'
               : 'View interview sessions and rate candidates'
             }
@@ -231,7 +244,7 @@ export default function InterviewSessionsPage() {
                 className="bg-white dark:bg-slate-800 rounded-xl border p-4 hover:shadow-md transition-shadow cursor-pointer group"
                 style={{ borderColor: COLORS.light }}
                 onClick={() => router.push(
-                  isPDorAdmin 
+                  canViewSessionResults
                     ? `/interview/session/${session.id}/review?email=${encodeURIComponent(email)}`
                     : `/interview/session/${session.id}/rate?email=${encodeURIComponent(email)}`
                 )}

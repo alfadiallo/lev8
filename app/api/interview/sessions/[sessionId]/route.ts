@@ -3,6 +3,11 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY!;
+const DEMO_INTERVIEWER_EMAILS = new Set([
+  'sarah.chen@hospital.edu',
+  'emily.watson@hospital.edu',
+]);
+const DEMO_SESSION_PREFIX = '11111111-0001-0001-0001-';
 
 export async function GET(
   request: NextRequest,
@@ -45,6 +50,13 @@ export async function GET(
         .single();
       
       if (interviewerRecord) {
+        hasAccess = true;
+      }
+    }
+
+    // Allow demo interviewer personas to open seeded demo interview dates.
+    if (!hasAccess && email && sessionId.startsWith(DEMO_SESSION_PREFIX)) {
+      if (DEMO_INTERVIEWER_EMAILS.has(email.toLowerCase())) {
         hasAccess = true;
       }
     }

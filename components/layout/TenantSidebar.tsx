@@ -63,7 +63,7 @@ function getNavigation(buildUrl: (path: string) => string): NavItem[] {
         { name: 'Residents', href: buildUrl('/modules/understand/residents') },
         { name: 'Class Cohort', href: buildUrl('/modules/understand/class') },
         { name: 'Program-Wide', href: buildUrl('/modules/understand/program') },
-        { name: 'CCC Meetings', href: buildUrl('/modules/understand') },
+        { name: 'Progress Check', href: buildUrl('/modules/understand') },
       ]
     },
     { 

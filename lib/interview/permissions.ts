@@ -75,7 +75,7 @@ export const PERMISSION_CAPABILITIES: Record<InterviewPermission, InterviewCapab
     canJoinGroupSession: true,
     canRateCandidates: true,
     canViewOwnRatings: true,
-    canViewAllRatings: false,
+    canViewAllRatings: true,
     canViewAggregateAnalytics: false,
     canManageSessions: false,
     canExportData: true,

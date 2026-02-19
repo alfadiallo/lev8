@@ -467,6 +467,126 @@ Time: ${formattedTime}
 }
 
 /**
+ * Notify admin of an EQ·PQ·IQ website visitor
+ */
+export async function notifyEqpqiqVisitor(visitor: {
+  email: string;
+  visitorId: string;
+  page: string;
+  ip: string;
+  userAgent: string;
+  isReturning: boolean;
+  visitCount: number;
+  timestamp: string;
+}): Promise<boolean> {
+  const { email, visitorId, page, ip, userAgent, isReturning, visitCount, timestamp } = visitor;
+
+  const EQPQIQ_ADMIN_EMAIL = process.env.EQPQIQ_NOTIFICATION_EMAIL || 'hello@eqpqiq.com';
+
+  const pageLabels: Record<string, string> = {
+    '/': 'Landing Page',
+    '/interview': 'Interview Assessment',
+    '/pulsecheck': 'Pulse Check',
+  };
+  const pageLabel = pageLabels[page] || page;
+
+  const visitorType = isReturning ? 'Returning Visitor' : 'New Visitor';
+  const formattedTime = new Date(timestamp).toLocaleString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  });
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #2D6A4F 0%, #40916C 100%); color: white; padding: 30px; border-radius: 12px 12px 0 0; }
+          .content { background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; border-top: none; }
+          .field { margin-bottom: 15px; }
+          .label { font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
+          .value { font-size: 16px; color: #111827; }
+          .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+          .new { background: #DCFCE7; color: #166534; }
+          .returning { background: #DBEAFE; color: #1E40AF; }
+          .page-badge { display: inline-block; padding: 4px 12px; border-radius: 8px; font-size: 13px; font-weight: 500; background: #F0FDF4; color: #166534; border: 1px solid #BBF7D0; }
+          .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 14px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1 style="margin: 0; font-size: 24px;">EQPQIQ.com Visitor</h1>
+            <p style="margin: 10px 0 0; opacity: 0.9;">${formattedTime}</p>
+          </div>
+          <div class="content">
+            <div class="field">
+              <span class="badge ${isReturning ? 'returning' : 'new'}">${visitorType}</span>
+            </div>
+            <div class="field">
+              <div class="label">Email</div>
+              <div class="value">${email}</div>
+            </div>
+            <div class="field">
+              <div class="label">Page Visited</div>
+              <div class="value"><span class="page-badge">${pageLabel}</span></div>
+            </div>
+            <div class="field">
+              <div class="label">IP Address</div>
+              <div class="value">${ip}</div>
+            </div>
+            ${isReturning && visitCount > 1 ? `
+            <div class="field">
+              <div class="label">Total Visits</div>
+              <div class="value">${visitCount}</div>
+            </div>
+            ` : ''}
+            <div class="field">
+              <div class="label">User Agent</div>
+              <div class="value" style="font-size: 12px; color: #6b7280; word-break: break-all;">${userAgent}</div>
+            </div>
+            <div class="field">
+              <div class="label">Visitor ID</div>
+              <div class="value" style="font-family: monospace; font-size: 13px; color: #6b7280;">${visitorId}</div>
+            </div>
+          </div>
+          <div class="footer">
+            <p>EQ·PQ·IQ by lev8.ai</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  const text = `
+EQPQIQ.com site visitor
+
+${visitorType}
+Email: ${email}
+Page: ${pageLabel}
+IP: ${ip}
+${isReturning && visitCount > 1 ? `Total Visits: ${visitCount}` : ''}
+Time: ${formattedTime}
+Visitor ID: ${visitorId}
+  `.trim();
+
+  return sendEmail({
+    to: EQPQIQ_ADMIN_EMAIL,
+    subject: 'EQPQIQ.com site visitor',
+    html,
+    text,
+    from: PULSECHECK_FROM_EMAIL,
+  });
+}
+
+/**
  * Notify admin of a new Studio creator access request
  */
 export async function notifyStudioCreatorRequest(request: {

@@ -3,6 +3,11 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY!;
+const DEMO_INTERVIEWER_EMAILS = new Set([
+  'sarah.chen@hospital.edu',
+  'emily.watson@hospital.edu',
+]);
+const DEMO_SESSION_PREFIX = '11111111-0001-0001-0001-';
 
 /**
  * GET /api/interview/sessions/list
@@ -12,6 +17,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const creatorEmail = searchParams.get('creator_email');
+    const email = searchParams.get('email')?.toLowerCase();
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -37,7 +43,31 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ sessions: [] });
     }
 
-    const sessionIds = sessions.map(s => s.id);
+    // Optional access filtering by current email so UI doesn't show dates that 403 on click.
+    let visibleSessions = sessions;
+    if (email && !creatorEmail) {
+      const { data: assignedRows } = await supabase
+        .from('interview_session_interviewers')
+        .select('session_id')
+        .eq('interviewer_email', email);
+
+      const assignedIds = new Set((assignedRows || []).map((r) => r.session_id as string));
+      const isDemoInterviewer = DEMO_INTERVIEWER_EMAILS.has(email);
+      visibleSessions = sessions.filter((session) => {
+        const isCreator = session.creator_email === email;
+        const isPublic = Boolean(session.is_public);
+        const isAssigned = assignedIds.has(session.id);
+        const isDemoSession = session.id.startsWith(DEMO_SESSION_PREFIX);
+        const isDemoAllowed = isDemoInterviewer && isDemoSession;
+        return isCreator || isPublic || isAssigned || isDemoAllowed;
+      });
+    }
+
+    if (visibleSessions.length === 0) {
+      return NextResponse.json({ sessions: [] });
+    }
+
+    const sessionIds = visibleSessions.map(s => s.id);
 
     // Get candidate counts per session
     const { data: candidates, error: candidatesError } = await supabase
@@ -114,7 +144,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Build response
-    const sessionsWithCounts = sessions.map(session => ({
+    const sessionsWithCounts = visibleSessions.map(session => ({
       id: session.id,
       session_name: session.session_name,
       session_date: session.session_date,

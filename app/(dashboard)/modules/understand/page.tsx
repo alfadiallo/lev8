@@ -2,7 +2,7 @@ import { getServerUserWithProfile } from '@/lib/auth/server';
 import { getServerSupabaseClient } from '@/lib/supabase/server';
 import UnderstandClient from './UnderstandClient';
 
-interface CCCSession {
+interface ProgressCheckSession {
   id: string;
   session_date: string;
   academic_year: string;
@@ -18,13 +18,13 @@ export default async function UnderstandModulePage() {
   // Fetch user to check permissions
   const user = await getServerUserWithProfile();
   
-  // Fetch CCC sessions server-side (only if user has permission)
-  let sessions: CCCSession[] = [];
+  // Fetch Progress Check sessions server-side (only if user has permission)
+  let sessions: ProgressCheckSession[] = [];
   
   if (user?.role && ['faculty', 'program_director', 'assistant_program_director', 'clerkship_director', 'super_admin', 'admin'].includes(user.role)) {
     const supabase = await getServerSupabaseClient();
     const { data: sessionsData } = await supabase
-      .from('ccc_sessions')
+      .from('progress_check_sessions')
       .select('*')
       .order('session_date', { ascending: false });
     

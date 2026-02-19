@@ -1,9 +1,9 @@
 /**
- * V2 CCC Session Detail API
+ * V2 Progress Check Session Detail API
  * 
- * GET /api/v2/sessions/ccc/[id] - Get session details with resident discussions
- * PATCH /api/v2/sessions/ccc/[id] - Update session
- * DELETE /api/v2/sessions/ccc/[id] - Delete session
+ * GET /api/v2/sessions/progress-check/[id] - Get session details with resident discussions
+ * PATCH /api/v2/sessions/progress-check/[id] - Update session
+ * DELETE /api/v2/sessions/progress-check/[id] - Delete session
  * 
  * Role-based behavior:
  * - Residents: No access
@@ -27,7 +27,7 @@ async function handleGet(
 
   // Fetch session - super_admin can access any session
   let query = ctx.supabase
-    .from('ccc_sessions')
+    .from('progress_check_sessions')
     .select('*')
     .eq('id', sessionId);
   
@@ -68,7 +68,7 @@ async function handleGet(
 
   // Get resident discussions
   const { data: discussions } = await ctx.supabase
-    .from('ccc_resident_discussions')
+    .from('progress_check_resident_discussions')
     .select(`
       id,
       resident_id,
@@ -156,7 +156,7 @@ async function handlePatch(
 ): Promise<NextResponse> {
   const { id: sessionId } = await routeCtx.params;
 
-  console.log('[V2 CCC Session PATCH] Auth context:', {
+  console.log('[V2 Progress Check Session PATCH] Auth context:', {
     userId: ctx.user?.id,
     role: ctx.role,
     isAdmin: ctx.isAdmin,
@@ -168,7 +168,7 @@ async function handlePatch(
   // Only leadership can update sessions
   if (!ctx.isProgramLeadership) {
     return NextResponse.json(
-      { error: 'Only program leadership can update CCC sessions' },
+      { error: 'Only program leadership can update Progress Check sessions' },
       { status: 403 }
     );
   }
@@ -187,7 +187,7 @@ async function handlePatch(
 
   // Build query - super_admin can update any session
   let query = ctx.supabase
-    .from('ccc_sessions')
+    .from('progress_check_sessions')
     .update(updates)
     .eq('id', sessionId);
   
@@ -199,7 +199,7 @@ async function handlePatch(
   const { data: session, error } = await query.select().single();
 
   if (error || !session) {
-    console.error('[V2 CCC Session] Update error:', error);
+    console.error('[V2 Progress Check Session] Update error:', error);
     return NextResponse.json(
       { error: 'Failed to update session' },
       { status: 500 }
@@ -227,14 +227,14 @@ async function handleDelete(
   // Only leadership can delete sessions
   if (!ctx.isProgramLeadership) {
     return NextResponse.json(
-      { error: 'Only program leadership can delete CCC sessions' },
+      { error: 'Only program leadership can delete Progress Check sessions' },
       { status: 403 }
     );
   }
 
   // Build delete query - super_admin can delete any session
   let deleteQuery = ctx.supabase
-    .from('ccc_sessions')
+    .from('progress_check_sessions')
     .delete()
     .eq('id', sessionId);
   
@@ -246,7 +246,7 @@ async function handleDelete(
   const { error } = await deleteQuery;
 
   if (error) {
-    console.error('[V2 CCC Session] Delete error:', error);
+    console.error('[V2 Progress Check Session] Delete error:', error);
     return NextResponse.json(
       { error: 'Failed to delete session' },
       { status: 500 }

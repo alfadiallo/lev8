@@ -2,7 +2,7 @@
 
 ## Project Overview
 Healthcare platform for medical residency programs. Emergency Medicine focus.
-Resident analytics, SWOT analysis, EQ/PQ/IQ scoring, and CCC meeting management.
+Resident analytics, SWOT analysis, EQ/PQ/IQ scoring, and Progress Check meeting management.
 
 ## Tech Stack
 - Next.js 15 (App Router), TypeScript, Supabase, Tailwind CSS, D3.js, Recharts
@@ -10,7 +10,7 @@ Resident analytics, SWOT analysis, EQ/PQ/IQ scoring, and CCC meeting management.
 ## Module Structure
 - learn/ - Clinical cases, conversations, EKG/ACLS, running board
 - reflect/ - Voice journaling with AI transcription
-- understand/ - Resident analytics, class cohorts, CCC meetings
+- understand/ - Resident analytics, class cohorts, Progress Check meetings
 
 ## Key Directories
 - app/(dashboard)/modules/ - Module pages
@@ -20,11 +20,11 @@ Resident analytics, SWOT analysis, EQ/PQ/IQ scoring, and CCC meeting management.
 - lib/ - Utilities and services
 
 ## Understand Module Routes
-- /modules/understand - Main page with tiles (Residents, Class Cohort, Program-Wide, CCC Meetings)
+- /modules/understand - Main page with tiles (Residents, Class Cohort, Program-Wide, Progress Check)
 - /modules/understand/residents - Individual resident analytics with SWOT, EQ/PQ/IQ
 - /modules/understand/class - Class cohort analytics (placeholder)
 - /modules/understand/program - Program-wide analytics (placeholder)
-- /modules/understand/[sessionId] - CCC session detail
+- /modules/understand/[sessionId] - Progress Check session detail
 
 ## Key API Endpoints
 - /api/analytics/scores/resident/[id] - Resident EQ/PQ/IQ scores

@@ -8,7 +8,7 @@ This doc explains how to give a user **only** Learn modules and Studio (no Refle
 - **Learn** (Clinical Cases, Difficult Conversations, EKG & ACLS, Running the Board): Yes  
 - **Studio**: Yes  
 - **Reflect** (Voice Journal): No  
-- **Understand** (Analytics, CCC): No  
+- **Understand** (Analytics, Progress Check): No  
 - **Truths**: No  
 - **Expectations**: No  
 

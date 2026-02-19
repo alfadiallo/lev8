@@ -23,13 +23,25 @@ export default function DashboardPage() {
   const searchParams = useSearchParams();
   const { user, isLoading, isAuthenticated, login } = useInterviewUserContext();
 
-  // If email is in URL and not logged in, log in
+  // If email is in URL, re-auth when needed (including stale guest sessions)
   useEffect(() => {
     const emailParam = searchParams.get('email');
-    if (emailParam && !isAuthenticated && !isLoading) {
-      login(emailParam);
+    const normalizedParam = emailParam?.toLowerCase();
+    const normalizedUserEmail = user?.email?.toLowerCase();
+    const shouldRefreshAuth = Boolean(
+      normalizedParam &&
+      !isLoading &&
+      (
+        !isAuthenticated ||
+        normalizedUserEmail !== normalizedParam ||
+        user?.permission === 'guest'
+      )
+    );
+
+    if (shouldRefreshAuth && normalizedParam) {
+      login(normalizedParam);
     }
-  }, [searchParams, isAuthenticated, isLoading, login]);
+  }, [searchParams, isAuthenticated, isLoading, login, user?.email, user?.permission]);
 
   // Redirect to home if not authenticated after loading
   useEffect(() => {

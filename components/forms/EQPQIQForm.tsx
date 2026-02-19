@@ -6,7 +6,7 @@ import EQPQIQFormSection from './EQPQIQFormSection';
 interface EQPQIQFormProps {
   residentId: string;
   residentName: string;
-  raterType: 'faculty' | 'self';
+  raterType: 'core_faculty' | 'teaching_faculty' | 'self';
   periodLabel: string;
   onSubmit: (data: FormData) => Promise<void>;
   initialData?: Partial<FormData>;
@@ -134,21 +134,21 @@ export default function EQPQIQForm({
   isEditMode = false,
 }: EQPQIQFormProps) {
   const [values, setValues] = useState<Record<string, number>>({
-    eq_empathy: 3.0,
-    eq_adaptability: 3.0,
-    eq_stress: 3.0,
-    eq_curiosity: 3.0,
-    eq_communication: 3.0,
-    iq_knowledge: 3.0,
-    iq_analytical: 3.0,
-    iq_learning: 3.0,
-    iq_flexibility: 3.0,
-    iq_performance: 3.0,
-    pq_work_ethic: 3.0,
-    pq_integrity: 3.0,
-    pq_teachability: 3.0,
-    pq_documentation: 3.0,
-    pq_leadership: 3.0,
+    eq_empathy: 50,
+    eq_adaptability: 50,
+    eq_stress: 50,
+    eq_curiosity: 50,
+    eq_communication: 50,
+    iq_knowledge: 50,
+    iq_analytical: 50,
+    iq_learning: 50,
+    iq_flexibility: 50,
+    iq_performance: 50,
+    pq_work_ethic: 50,
+    pq_integrity: 50,
+    pq_teachability: 50,
+    pq_documentation: 50,
+    pq_leadership: 50,
   });
 
   const [textFields, setTextFields] = useState({
@@ -163,7 +163,7 @@ export default function EQPQIQForm({
     if (initialData) {
       const newValues: Record<string, number> = {};
       Object.keys(values).forEach((key) => {
-        newValues[key] = (initialData as Record<string, number>)[key] || 3.0;
+        newValues[key] = (initialData as Record<string, number>)[key] || 50;
       });
       setValues(newValues);
       
@@ -211,7 +211,7 @@ export default function EQPQIQForm({
         pq_leadership: values.pq_leadership,
       };
 
-      if (raterType === 'faculty' && textFields.comments) {
+      if ((raterType === 'core_faculty' || raterType === 'teaching_faculty') && textFields.comments) {
         formData.comments = textFields.comments;
       }
 
@@ -232,10 +232,10 @@ export default function EQPQIQForm({
       {/* Header */}
       <div className="bg-gradient-to-r from-[#05BFDB] to-[#7EC8E3] text-white rounded-lg p-6">
         <h2 className="text-2xl font-bold mb-2">
-          {isEditMode ? 'Edit' : 'Submit'} {raterType === 'faculty' ? 'Evaluation' : 'Self-Assessment'}
+          {isEditMode ? 'Edit' : 'Submit'} {raterType !== 'self' ? 'Evaluation' : 'Self-Assessment'}
         </h2>
         <p className="text-white/90">
-          {raterType === 'faculty' ? `Evaluating: ${residentName}` : `Self-Assessment for ${residentName}`}
+          {raterType !== 'self' ? `Evaluating: ${residentName}` : `Self-Assessment for ${residentName}`}
         </p>
         <p className="text-sm text-white/80 mt-1">Period: {periodLabel}</p>
       </div>
@@ -274,7 +274,7 @@ export default function EQPQIQForm({
       />
 
       {/* Text Fields */}
-      {raterType === 'faculty' && (
+      {(raterType === 'core_faculty' || raterType === 'teaching_faculty') && (
         <div className="bg-white rounded-lg border border-neutral-200 p-6">
           <label className="block text-sm font-medium text-neutral-700 mb-2">
             Comments (Optional)
@@ -338,7 +338,7 @@ export default function EQPQIQForm({
           disabled={isSubmitting}
           className="px-6 py-3 bg-[#05BFDB] text-white rounded-lg hover:bg-[#7EC8E3] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isSubmitting ? 'Submitting...' : isEditMode ? 'Update' : 'Submit'} {raterType === 'faculty' ? 'Evaluation' : 'Assessment'}
+          {isSubmitting ? 'Submitting...' : isEditMode ? 'Update' : 'Submit'} {raterType !== 'self' ? 'Evaluation' : 'Assessment'}
         </button>
       </div>
     </form>

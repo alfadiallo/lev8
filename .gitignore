@@ -47,3 +47,6 @@ _traction/
 # Guidance docs with potential secrets
 docs/_guidance/
 
+# Supabase CLI cache
+supabase/.temp/
+

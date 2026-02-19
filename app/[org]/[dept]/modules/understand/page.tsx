@@ -3,7 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import UnderstandClient from '@/components/modules/understand/UnderstandClient';
 
-interface CCCSession {
+interface ProgressCheckSession {
   id: string;
   session_date: string;
   academic_year: string;
@@ -74,13 +74,13 @@ async function getServerData(orgSlug: string, deptSlug: string) {
     .eq('is_active', true)
     .single();
 
-  // Fetch CCC sessions if user has permission - filtered by program
-  let sessions: CCCSession[] = [];
+  // Fetch Progress Check sessions if user has permission - filtered by program
+  let sessions: ProgressCheckSession[] = [];
   
   if (profile?.role && ['faculty', 'program_director', 'assistant_program_director', 'clerkship_director', 'super_admin', 'admin'].includes(profile.role)) {
     if (program?.id) {
       const { data: sessionsData } = await supabaseAdmin
-        .from('ccc_sessions')
+        .from('progress_check_sessions')
         .select('*')
         .eq('program_id', program.id)
         .order('session_date', { ascending: false });

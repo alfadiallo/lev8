@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
       `)
       .order('user_profiles(full_name)');
 
-    // Get faculty
+    // Get faculty (active only)
     const { data: faculty } = await supabase
       .from('faculty')
       .select(`
@@ -75,6 +75,7 @@ export async function GET(request: NextRequest) {
           email
         )
       `)
+      .eq('is_active', true)
       .order('user_profiles(full_name)');
 
     // Format the data

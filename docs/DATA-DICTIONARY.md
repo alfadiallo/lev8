@@ -10,7 +10,7 @@ Last Updated: December 2024
 
 1. [Core Entity Tables](#core-entity-tables)
 2. [Classes & PGY Tracking](#classes--pgy-tracking)
-3. [CCC Session Tables](#ccc-session-tables)
+3. [Progress Check Session Tables](#progress-check-session-tables)
 4. [KPI Data Tables](#kpi-data-tables)
 5. [Anonymization](#anonymization)
 6. [User Roles & Access](#user-roles--access)
@@ -138,9 +138,9 @@ Audit trail for resident class reassignments.
 
 ---
 
-## CCC Session Tables
+## Progress Check Session Tables
 
-### `ccc_sessions`
+### `progress_check_sessions`
 Clinical Competency Committee meeting sessions.
 
 | Column | Type | Constraints | Description |
@@ -166,13 +166,13 @@ Clinical Competency Committee meeting sessions.
 - `completed` - Finished
 - `cancelled` - Cancelled
 
-### `ccc_session_residents`
-Residents assigned to a CCC session.
+### `progress_check_session_residents`
+Residents assigned to a Progress Check session.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `id` | UUID | PK, DEFAULT uuid_generate_v4() | Unique identifier |
-| `session_id` | UUID | FK → ccc_sessions(id), NOT NULL | Parent session |
+| `session_id` | UUID | FK → progress_check_sessions(id), NOT NULL | Parent session |
 | `resident_id` | UUID | FK → residents(id), NOT NULL | Resident to discuss |
 | `discussion_order` | INT | NOT NULL, DEFAULT 1 | Order in agenda |
 | `time_allocated` | INT | DEFAULT 5 | Minutes allocated |
@@ -190,13 +190,13 @@ Residents assigned to a CCC session.
 - `completed` - Discussion finished
 - `skipped` - Skipped for this session
 
-### `ccc_notes`
-Real-time collaborative notes during CCC sessions.
+### `progress_check_notes`
+Real-time collaborative notes during Progress Check sessions.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `id` | UUID | PK, DEFAULT uuid_generate_v4() | Unique identifier |
-| `session_id` | UUID | FK → ccc_sessions(id), NOT NULL | Parent session |
+| `session_id` | UUID | FK → progress_check_sessions(id), NOT NULL | Parent session |
 | `resident_id` | UUID | FK → residents(id) | Related resident (NULL = session-level) |
 | `note_type` | VARCHAR(30) | NOT NULL, DEFAULT 'general' | Note category |
 | `note_text` | TEXT | NOT NULL | Note content |
@@ -217,13 +217,13 @@ Real-time collaborative notes during CCC sessions.
 
 **Realtime:** Enabled via `supabase_realtime` publication.
 
-### `ccc_note_history`
+### `progress_check_note_history`
 Version history for edited notes.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `id` | UUID | PK, DEFAULT uuid_generate_v4() | Unique identifier |
-| `note_id` | UUID | FK → ccc_notes(id), NOT NULL | Parent note |
+| `note_id` | UUID | FK → progress_check_notes(id), NOT NULL | Parent note |
 | `previous_text` | TEXT | NOT NULL | Text before edit |
 | `changed_by` | UUID | FK → auth.users(id) | Editor |
 | `changed_at` | TIMESTAMPTZ | DEFAULT NOW() | Edit timestamp |
@@ -283,7 +283,7 @@ Each person entity has an `anon_code` column for display when anonymization is a
 
 ### Anonymization Toggle
 
-Client-side toggle with 2-hour expiry (for CCC meeting duration):
+Client-side toggle with 2-hour expiry (for Progress Check meeting duration):
 - Stored in localStorage
 - When ON: Display anon_codes instead of names
 - Narrative text: Simple name replacement using roster
@@ -309,10 +309,10 @@ Client-side toggle with 2-hour expiry (for CCC meeting duration):
 |-------|--------|--------|--------|--------|
 | `classes` | All authenticated | PD/Admin | PD/Admin | - |
 | `resident_class_changes` | Staff | PD/Admin | - | - |
-| `ccc_sessions` | Staff | PD/Admin | PD/Admin | - |
-| `ccc_session_residents` | Staff | PD/Admin | PD/Admin | - |
-| `ccc_notes` | Staff | Staff | Own/Admin | - |
-| `ccc_note_history` | Staff | System | - | - |
+| `progress_check_sessions` | Staff | PD/Admin | PD/Admin | - |
+| `progress_check_session_residents` | Staff | PD/Admin | PD/Admin | - |
+| `progress_check_notes` | Staff | Staff | Own/Admin | - |
+| `progress_check_note_history` | Staff | System | - | - |
 
 **Staff** = program_director, admin, system_admin, faculty, coordinator
 
@@ -367,7 +367,7 @@ SELECT calculate_pgy_level(2027, '2026-02-15', 3); -- Returns 2 (PGY-2)
 |------|-------------|
 | `20250130000001_anonymization_codes.sql` | Adds anon_code columns + triggers |
 | `20250130000004_classes_table.sql` | Classes table + resident_class_changes |
-| `20250130000005_ccc_sessions.sql` | CCC session tables + realtime |
+| `20250130000005_ccc_sessions.sql` | Progress Check session tables + realtime |
 
 ---
 
@@ -381,20 +381,20 @@ idx_classes_program (program_id)
 idx_classes_graduation_year (graduation_year)
 idx_classes_is_active (is_active)
 
--- CCC Sessions
-idx_ccc_sessions_program (program_id)
-idx_ccc_sessions_date (session_date)
-idx_ccc_sessions_status (status)
+-- Progress Check Sessions
+idx_progress_check_sessions_program (program_id)
+idx_progress_check_sessions_date (session_date)
+idx_progress_check_sessions_status (status)
 
--- CCC Session Residents
-idx_ccc_session_residents_session (session_id)
-idx_ccc_session_residents_resident (resident_id)
-idx_ccc_session_residents_order (session_id, discussion_order)
+-- Progress Check Session Residents
+idx_progress_check_session_residents_session (session_id)
+idx_progress_check_session_residents_resident (resident_id)
+idx_progress_check_session_residents_order (session_id, discussion_order)
 
--- CCC Notes
-idx_ccc_notes_session (session_id)
-idx_ccc_notes_resident (resident_id)
-idx_ccc_notes_type (note_type)
+-- Progress Check Notes
+idx_progress_check_notes_session (session_id)
+idx_progress_check_notes_resident (resident_id)
+idx_progress_check_notes_type (note_type)
 
 -- Resident Class Changes
 idx_class_changes_resident (resident_id)

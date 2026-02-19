@@ -16,6 +16,8 @@ const NON_TENANT_PREFIXES = [
   'studio',  // Studio has its own routing
   'interview',  // Interview tool (eqpqiq.com) - publicly accessible
   'pulsecheck', // Pulse Check tool - publicly accessible
+  'progress-check', // Progress Check tool (eqpqiq.com) - publicly accessible
+  'survey',     // Survey forms (eqpqiq.com) - token-based public access
   'eqpqiq-landing', // EQ·PQ·IQ brand landing page
   '_next',
   'favicon.ico',
@@ -106,8 +108,14 @@ export async function middleware(request: NextRequest) {
       return response;
     }
 
-    // If already on /interview, /pulsecheck, or /eqpqiq-landing path, continue
-    if (pathname.startsWith('/interview') || pathname.startsWith('/pulsecheck') || pathname.startsWith('/eqpqiq-landing')) {
+    // If already on an eqpqiq tool path, continue
+    if (
+      pathname.startsWith('/interview') || 
+      pathname.startsWith('/pulsecheck') || 
+      pathname.startsWith('/progress-check') ||
+      pathname.startsWith('/survey') ||
+      pathname.startsWith('/eqpqiq-landing')
+    ) {
       const response = NextResponse.next();
       response.headers.set('x-lev8-context', 'eqpqiq');
       return response;
@@ -122,11 +130,10 @@ export async function middleware(request: NextRequest) {
       return response;
     }
 
-    // Redirect all other paths to /interview
-    const interviewUrl = new URL('/interview', request.url);
-    // Preserve query params
-    interviewUrl.search = request.nextUrl.search;
-    return NextResponse.redirect(interviewUrl);
+    // Redirect all other eqpqiq.com paths to the landing page
+    const landingRedirectUrl = new URL('/', request.url);
+    landingRedirectUrl.search = request.nextUrl.search;
+    return NextResponse.redirect(landingRedirectUrl);
   }
 
   // Early return for static files
@@ -174,8 +181,13 @@ export async function middleware(request: NextRequest) {
     });
   }
 
-  // Interview and Pulse Check tools are publicly accessible
-  if (pathname.startsWith('/interview') || pathname.startsWith('/pulsecheck')) {
+  // EQ·PQ·IQ tools are publicly accessible (email-based or token-based auth)
+  if (
+    pathname.startsWith('/interview') || 
+    pathname.startsWith('/pulsecheck') ||
+    pathname.startsWith('/progress-check') ||
+    pathname.startsWith('/survey')
+  ) {
     return NextResponse.next();
   }
 

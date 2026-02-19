@@ -43,7 +43,7 @@ const PERMISSION_CAPABILITIES: Record<Permission, Record<string, boolean>> = {
     canJoinGroupSession: true,
     canRateCandidates: true,
     canViewOwnRatings: true,
-    canViewAllRatings: false,
+    canViewAllRatings: true,
     canViewAggregateAnalytics: false,
     canManageSessions: false,
     canExportData: true,

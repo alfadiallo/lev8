@@ -13,12 +13,12 @@ export async function GET(request: NextRequest) {
 
   try {
     const { data: sessions, error } = await supabase
-      .from('ccc_sessions')
+      .from('progress_check_sessions')
       .select('*')
       .order('session_date', { ascending: false });
 
     if (error) {
-      console.error('[CCC Sessions API] Error:', error);
+      console.error('[Progress Check Sessions API] Error:', error);
       return NextResponse.json(
         { error: 'Failed to fetch sessions' },
         { status: 500 }
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ sessions: sessions || [] });
   } catch (error) {
-    console.error('[CCC Sessions API] Error:', error);
+    console.error('[Progress Check Sessions API] Error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch sessions' },
       { status: 500 }

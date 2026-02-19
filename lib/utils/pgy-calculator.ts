@@ -2,7 +2,7 @@
  * PGY Level Calculator
  * 
  * Calculates the Post-Graduate Year (PGY) level for a resident based on their
- * graduation year and a reference date (typically the CCC session date).
+ * graduation year and a reference date (typically the progress check session date).
  * 
  * For a 3-year Emergency Medicine program:
  * - PGY-1: First year residents

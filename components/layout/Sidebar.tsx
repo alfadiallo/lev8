@@ -64,7 +64,7 @@ const BASE_NAVIGATION: NavItem[] = [
       { name: 'Residents', href: '/modules/understand/residents' },
       { name: 'Class Cohort', href: '/modules/understand/class' },
       { name: 'Program-Wide', href: '/modules/understand/program' },
-      { name: 'CCC Meetings', href: '/modules/understand' },
+      { name: 'Progress Check', href: '/modules/understand' },
     ]
   },
   { 

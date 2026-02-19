@@ -26,7 +26,7 @@ export interface Permissions {
   canViewResidentDetails: (residentUserId?: string) => boolean;
   canViewSWOT: (residentUserId?: string) => boolean;
   canViewScores: (residentUserId?: string) => boolean;
-  canViewCCCMeetings: boolean;
+  canViewProgressCheckMeetings: boolean;
   canViewResidentNotes: boolean;
   
   // Aggregate access (all roles)
@@ -89,7 +89,7 @@ export function usePermissions(): Permissions {
         return false;
       },
       
-      canViewCCCMeetings: isFacultyOrAbove,
+      canViewProgressCheckMeetings: isFacultyOrAbove,
       canViewResidentNotes: isFacultyOrAbove,
       
       // Aggregate access - everyone can see

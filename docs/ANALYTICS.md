@@ -1939,7 +1939,7 @@ Dashboard (radar charts, gap analysis)
    - Personalized recommendations
 
 5. **Export Functionality**
-   - PDF reports for CCC
+   - PDF reports for Progress Check
    - Excel exports for analysis
    - Custom report builder
 

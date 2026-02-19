@@ -283,7 +283,7 @@ export default function EvaluateResidentPage() {
           <EQPQIQForm
             residentId={selectedResident}
             residentName={selectedResidentData.full_name}
-            raterType="faculty"
+            raterType="core_faculty"
             periodLabel={selectedPeriod}
             onSubmit={handleSubmit}
             initialData={existingEvaluation || undefined}

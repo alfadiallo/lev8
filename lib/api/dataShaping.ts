@@ -251,12 +251,12 @@ export function sanitizeForRole<T extends Record<string, unknown>>(
 }
 
 /**
- * Shape CCC session data based on role
+ * Shape Progress Check session data based on role
  * - Residents: No access (handled by auth)
  * - Faculty: See sessions they participated in
  * - Leadership: See all
  */
-export function shapeCCCSessions<T extends { facilitatorId?: string; attendees?: string[] }>(
+export function shapeProgressCheckSessions<T extends { facilitatorId?: string; attendees?: string[] }>(
   sessions: T[],
   ctx: TenantAuthContext
 ): T[] {

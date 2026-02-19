@@ -1,8 +1,8 @@
 /**
- * V2 CCC Sessions API
+ * V2 Progress Check Sessions API
  * 
- * GET /api/v2/sessions/ccc - List CCC sessions
- * POST /api/v2/sessions/ccc - Create a new CCC session
+ * GET /api/v2/sessions/progress-check - List Progress Check sessions
+ * POST /api/v2/sessions/progress-check - Create a new Progress Check session
  * 
  * Query params (GET):
  * - status: Filter by status ('scheduled', 'in_progress', 'completed')
@@ -16,7 +16,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { withTenantAuth, TenantAuthContext } from '@/lib/api/withTenantAuth';
-import { shapeCCCSessions } from '@/lib/api/dataShaping';
+import { shapeProgressCheckSessions } from '@/lib/api/dataShaping';
 
 async function handleGet(
   request: NextRequest,
@@ -28,7 +28,7 @@ async function handleGet(
 
   // Build query
   let query = ctx.supabase
-    .from('ccc_sessions')
+    .from('progress_check_sessions')
     .select(`
       id,
       title,
@@ -50,15 +50,15 @@ async function handleGet(
   const { data: sessions, error } = await query;
 
   if (error) {
-    console.error('[V2 CCC Sessions] Error:', error);
+    console.error('[V2 Progress Check Sessions] Error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch CCC sessions' },
+      { error: 'Failed to fetch Progress Check sessions' },
       { status: 500 }
     );
   }
 
   // Shape based on role (faculty only sees their sessions)
-  const shapedSessions = shapeCCCSessions(
+  const shapedSessions = shapeProgressCheckSessions(
     (sessions || []).map(s => ({
       ...s,
       facilitatorId: s.facilitator_id,
@@ -83,7 +83,7 @@ async function handleGet(
   let residentCounts = new Map<string, number>();
   if (!includeResidents) {
     const { data: discussions } = await ctx.supabase
-      .from('ccc_resident_discussions')
+      .from('progress_check_resident_discussions')
       .select('session_id')
       .in('session_id', shapedSessions.map(s => s.id));
 
@@ -122,7 +122,7 @@ async function handlePost(
   // Only leadership can create sessions
   if (!ctx.isProgramLeadership) {
     return NextResponse.json(
-      { error: 'Only program leadership can create CCC sessions' },
+      { error: 'Only program leadership can create Progress Check sessions' },
       { status: 403 }
     );
   }
@@ -138,7 +138,7 @@ async function handlePost(
   }
 
   const { data: session, error } = await ctx.supabase
-    .from('ccc_sessions')
+    .from('progress_check_sessions')
     .insert({
       program_id: ctx.programId,
       title,
@@ -152,9 +152,9 @@ async function handlePost(
     .single();
 
   if (error) {
-    console.error('[V2 CCC Sessions] Create error:', error);
+    console.error('[V2 Progress Check Sessions] Create error:', error);
     return NextResponse.json(
-      { error: 'Failed to create CCC session' },
+      { error: 'Failed to create Progress Check session' },
       { status: 500 }
     );
   }
@@ -167,7 +167,7 @@ async function handlePost(
       status: session.status,
       facilitatorId: session.facilitator_id,
     },
-    message: 'CCC session created successfully',
+    message: 'Progress Check session created successfully',
   }, { status: 201 });
 }
 

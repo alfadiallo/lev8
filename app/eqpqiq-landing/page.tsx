@@ -411,7 +411,7 @@ export default function EqpqiqLandingPage() {
                 <p className="text-sm text-slate-500">
                   Program directors and evaluators receive radar charts, SWOT dashboards,
                   archetype classifications, and targeted recommendations—ready for coaching
-                  conversations or CCC meetings.
+                  conversations or progress check meetings.
                 </p>
               </div>
             </div>

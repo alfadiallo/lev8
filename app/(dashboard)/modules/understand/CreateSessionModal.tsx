@@ -167,7 +167,7 @@ export default function CreateSessionModal({ onClose, onCreated }: CreateSession
 
       // Create the session
       const { data, error } = await supabaseClient
-        .from('ccc_sessions')
+        .from('progress_check_sessions')
         .insert({
           program_id: program.id,
           session_date: formData.session_date,
@@ -193,7 +193,7 @@ export default function CreateSessionModal({ onClose, onCreated }: CreateSession
         }));
 
         await supabaseClient
-          .from('ccc_session_residents')
+          .from('progress_check_session_residents')
           .insert(sessionResidents);
       }
 
@@ -212,7 +212,7 @@ export default function CreateSessionModal({ onClose, onCreated }: CreateSession
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="p-6 border-b border-neutral-200 flex items-center justify-between flex-shrink-0">
-          <h2 className="text-xl font-bold text-neutral-800">Create CCC Session</h2>
+          <h2 className="text-xl font-bold text-neutral-800">Create Progress Check Session</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-neutral-100 rounded-lg transition-colors"

@@ -7,6 +7,7 @@ import {
   GraduationCap, UserCog, ClipboardList, Mail 
 } from 'lucide-react';
 import { useInterviewUserContext } from '@/context/InterviewUserContext';
+import VisitorGate from '@/components/eqpqiq/VisitorGate';
 
 // Green color palette
 const COLORS = {
@@ -58,8 +59,14 @@ export default function InterviewLandingPage() {
   }, [user, email]);
 
   // Visitor tracking on mount
+  // On eqpqiq.com the unified VisitorGate handles this; only show
+  // the per-page modal when accessed via lev8.ai or other domains.
   useEffect(() => {
     const trackVisitor = async () => {
+      // If unified gate already handled it, skip
+      const unifiedId = localStorage.getItem('eqpqiq_visitor');
+      if (unifiedId) return;
+
       const storedVisitorId = localStorage.getItem('interview_visitor_id');
       
       if (storedVisitorId) {
@@ -78,8 +85,12 @@ export default function InterviewLandingPage() {
           console.error('[Visitor Tracking] Error:', error);
         }
       } else {
-        // New visitor - show email modal
-        setShowEmailModal(true);
+        // New visitor - show email modal (only on non-eqpqiq domains)
+        const host = window.location.hostname;
+        const isEqpqiq = host.includes('eqpqiq.com') || host.includes('eqpqiq.localhost');
+        if (!isEqpqiq) {
+          setShowEmailModal(true);
+        }
       }
     };
 
@@ -503,7 +514,10 @@ export default function InterviewLandingPage() {
         </div>
       </div>
 
-      {/* Visitor Email Modal */}
+      {/* Unified Visitor Gate (only active on eqpqiq.com) */}
+      <VisitorGate page="/interview" />
+
+      {/* Legacy Visitor Email Modal (non-eqpqiq domains only) */}
       {showEmailModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-hidden">

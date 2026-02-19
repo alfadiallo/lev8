@@ -27,7 +27,7 @@ import { calculatePGYLevel, formatPGYLevel } from '@/lib/utils/pgy-calculator';
 // TYPES
 // ============================================================================
 
-interface CCCSession {
+interface ProgressCheckSession {
   id: string;
   session_date: string;
   academic_year: string;
@@ -52,7 +52,7 @@ interface SessionResident {
   graduation_year: number;
 }
 
-interface CCCNote {
+interface ProgressCheckNote {
   id: string;
   resident_id: string | null;
   note_type: string;
@@ -80,15 +80,15 @@ type PaneId = typeof PANES[number]['id'];
 // MAIN COMPONENT
 // ============================================================================
 
-export default function CCCSessionPage({ params }: { params: Promise<{ sessionId: string }> }) {
+export default function ProgressCheckSessionPage({ params }: { params: Promise<{ sessionId: string }> }) {
   const resolvedParams = use(params);
   const sessionId = resolvedParams.sessionId;
   const router = useRouter();
   
   // Session state
-  const [session, setSession] = useState<CCCSession | null>(null);
+  const [session, setSession] = useState<ProgressCheckSession | null>(null);
   const [residents, setResidents] = useState<SessionResident[]>([]);
-  const [notes, setNotes] = useState<CCCNote[]>([]);
+  const [notes, setNotes] = useState<ProgressCheckNote[]>([]);
   const [loading, setLoading] = useState(true);
   
   // UI state
@@ -123,7 +123,7 @@ export default function CCCSessionPage({ params }: { params: Promise<{ sessionId
     try {
       // Fetch session
       const { data: sessionData, error: sessionError } = await supabaseClient
-        .from('ccc_sessions')
+        .from('progress_check_sessions')
         .select('*')
         .eq('id', sessionId)
         .single();
@@ -133,13 +133,13 @@ export default function CCCSessionPage({ params }: { params: Promise<{ sessionId
 
       // Fetch residents in this session
       const { data: sessionResidents, error: residentError } = await supabaseClient
-        .from('ccc_session_residents')
+        .from('progress_check_session_residents')
         .select('id, resident_id, discussion_order, time_allocated, time_spent, status')
         .eq('session_id', sessionId)
         .order('discussion_order', { ascending: true });
 
       if (residentError) {
-        console.error('[CCC] Error fetching residents:', residentError);
+        console.error('[ProgressCheck] Error fetching residents:', residentError);
       } else if (sessionResidents && sessionResidents.length > 0) {
         // Fetch resident details using the VIEW which already joins everything
         const residentIds = sessionResidents.map(r => r.resident_id);
@@ -177,7 +177,7 @@ export default function CCCSessionPage({ params }: { params: Promise<{ sessionId
 
       // Fetch notes
       const { data: noteData } = await supabaseClient
-        .from('ccc_notes')
+        .from('progress_check_notes')
         .select('*')
         .eq('session_id', sessionId)
         .order('created_at', { ascending: true });
@@ -186,7 +186,7 @@ export default function CCCSessionPage({ params }: { params: Promise<{ sessionId
         setNotes(noteData);
       }
     } catch (err) {
-      console.error('[CCC] Error fetching session:', err);
+      console.error('[ProgressCheck] Error fetching session:', err);
     } finally {
       setLoading(false);
     }
@@ -269,7 +269,7 @@ export default function CCCSessionPage({ params }: { params: Promise<{ sessionId
             </button>
             <div>
               <h1 className="text-xl font-bold text-neutral-800">
-                {session.title || `${session.session_type} CCC ${session.academic_year}`}
+                {session.title || `${session.session_type} Progress Check ${session.academic_year}`}
               </h1>
               <p className="text-sm text-neutral-500">
                 {new Date(session.session_date).toLocaleDateString('en-US', { 
@@ -471,7 +471,7 @@ interface PaneContentProps {
   paneId: PaneId;
   resident: SessionResident | null;
   sessionDate: Date;
-  notes: CCCNote[];
+  notes: ProgressCheckNote[];
 }
 
 function PaneContent({ paneId, resident, sessionDate, notes: _notes }: PaneContentProps) {
@@ -542,7 +542,7 @@ function NotesFooter({ sessionId, residentId, onNoteAdded }: NotesFooterProps) {
       const { data: user } = await supabaseClient.auth.getUser();
       
       const { error } = await supabaseClient
-        .from('ccc_notes')
+        .from('progress_check_notes')
         .insert({
           session_id: sessionId,
           resident_id: residentId,
@@ -556,7 +556,7 @@ function NotesFooter({ sessionId, residentId, onNoteAdded }: NotesFooterProps) {
       setNoteText('');
       onNoteAdded();
     } catch (err) {
-      console.error('[CCC] Error saving note:', err);
+      console.error('[ProgressCheck] Error saving note:', err);
     } finally {
       setSaving(false);
     }

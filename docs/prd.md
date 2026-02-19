@@ -265,7 +265,7 @@ Users control 5 independent privacy toggles:
 ### Out of Scope (Post-MVP)
 
 - **Learning Modules:** Clinical Cases, Difficult Conversations, ACLS & EKGs, Running the Board (content only; infrastructure ready)
-- **Understand Module:** CCC analytics and dashboards
+- **Understand Module:** Progress Check analytics and dashboards
 - **Data Upload:** CSV/bulk data import workflows
 - **Advanced Analytics:** Resident performance dashboards, benchmarking
 - **Mobile App:** iOS/Android applications
@@ -660,7 +660,7 @@ Local Development (laptop)
 - Module completion certificates
 
 ### Phase 4: Advanced Analytics (Q3 2026)
-- Implement Understand bucket: CCC competency framework
+- Implement Understand bucket: Progress Check competency framework
 - Program Director analytics dashboard
 - Comparative benchmarking (anonymized)
 - Resident performance reports

@@ -62,6 +62,7 @@ interface ReviewData {
   session: Session;
   candidates: Candidate[];
   interviewers: Interviewer[];
+  viewScope?: 'all' | 'self';
   summary: {
     totalCandidates: number;
     totalRatings: number;
@@ -104,8 +105,11 @@ export default function SessionReviewPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch(`/api/interview/sessions/${sessionId}/review`);
-        if (!response.ok) throw new Error('Failed to fetch review data');
+        const response = await fetch(`/api/interview/sessions/${sessionId}/review?email=${encodeURIComponent(email)}`);
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({}));
+          throw new Error(payload?.error || 'Failed to fetch review data');
+        }
         const result = await response.json();
         setData(result);
       } catch (err) {
@@ -116,7 +120,7 @@ export default function SessionReviewPage() {
     };
 
     fetchData();
-  }, [sessionId]);
+  }, [sessionId, email]);
 
   const handleSort = (field: typeof sortField) => {
     if (sortField === field) {
@@ -225,7 +229,7 @@ export default function SessionReviewPage() {
             {data.session.session_name}
           </h1>
           <p className="text-slate-600 dark:text-slate-400">
-            All Ratings Review
+            {data.viewScope === 'self' ? 'My Ratings Review' : 'All Ratings Review'}
           </p>
         </div>
         <button

@@ -50,7 +50,7 @@ All notable deployments and changes to this project.
 ### Added
 - Multi-tenant RBAC infrastructure
 - Class Cohort archetype scatter visualization
-- CCC session editing
+- Progress Check session editing
 - SWOT analysis for Interview Assessment Tool
 
 ### Changed

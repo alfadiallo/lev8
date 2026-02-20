@@ -243,6 +243,9 @@ export default function SurveyDetailPage() {
     }
   };
 
+  // "Add more respondents" mode for active surveys
+  const [addingRespondents, setAddingRespondents] = useState(false);
+
   // Load populate data for recipient tab
   const loadPopulateData = useCallback(async () => {
     if (!survey?.program_id) return;
@@ -275,7 +278,10 @@ export default function SurveyDetailPage() {
       const audienceType = survey.audience_filter?.type;
       const respondentPayload: { email: string; name: string; role: string; rater_type: string; resident_id?: string }[] = [];
 
-      const isIncluded = (email: string) => !excludedEmails.has(email);
+      const alreadyAssigned = new Set(respondents.map(r => r.email.toLowerCase()));
+      const isIncluded = (email: string) =>
+        !excludedEmails.has(email) &&
+        (!addingRespondents || !alreadyAssigned.has(email.toLowerCase()));
 
       if (audienceType === 'self' || survey.survey_type === 'learner_self_assessment') {
         for (const r of residents.filter(r => isIncluded(r.email))) {
@@ -538,6 +544,7 @@ export default function SurveyDetailPage() {
           populateLoading={populateLoading}
           distributing={distributing}
           excludedEmails={excludedEmails}
+          addingRespondents={addingRespondents}
           onToggleRecipient={(email) => {
             setExcludedEmails(prev => {
               const next = new Set(prev);
@@ -546,7 +553,20 @@ export default function SurveyDetailPage() {
               return next;
             });
           }}
-          onDistribute={handleDistribute}
+          onStartAddRespondents={() => {
+            setAddingRespondents(true);
+            setExcludedEmails(new Set());
+            if (faculty.length === 0) loadPopulateData();
+          }}
+          onCancelAddRespondents={() => {
+            setAddingRespondents(false);
+            setExcludedEmails(new Set());
+          }}
+          onDistribute={async () => {
+            await handleDistribute();
+            setAddingRespondents(false);
+            setExcludedEmails(new Set());
+          }}
         />
       )}
 
@@ -753,7 +773,8 @@ function SettingLine({ on, label, offLabel }: { on?: boolean; label: string; off
 
 function RecipientsTab({
   survey, respondents, faculty, residents, populateLoading, distributing,
-  excludedEmails, onToggleRecipient, onDistribute,
+  excludedEmails, addingRespondents, onToggleRecipient,
+  onStartAddRespondents, onCancelAddRespondents, onDistribute,
 }: {
   survey: SurveyData;
   respondents: RespondentData[];
@@ -762,11 +783,16 @@ function RecipientsTab({
   populateLoading: boolean;
   distributing: boolean;
   excludedEmails: Set<string>;
+  addingRespondents: boolean;
   onToggleRecipient: (email: string) => void;
+  onStartAddRespondents: () => void;
+  onCancelAddRespondents: () => void;
   onDistribute: () => void;
 }) {
   const isDraft = survey.status === 'draft';
+  const isActive = survey.status === 'active';
   const hasRespondents = respondents.length > 0;
+  const existingEmails = new Set(respondents.map(r => r.email.toLowerCase()));
 
   if (populateLoading) {
     return (
@@ -777,7 +803,121 @@ function RecipientsTab({
     );
   }
 
-  // Already distributed — show respondent list
+  // Build target list from audience filter
+  const audienceType = survey.audience_filter?.type;
+  const buildTargetList = (filterOutExisting: boolean) => {
+    let list: { name: string; email: string; type: string }[] = [];
+
+    if (audienceType === 'self' || survey.survey_type === 'learner_self_assessment') {
+      list = residents.map(r => ({ name: r.full_name, email: r.email, type: 'Resident' }));
+    } else if (audienceType === 'core_faculty') {
+      list = faculty.filter(f => f.faculty_type === 'core').map(f => ({
+        name: f.full_name + (f.credentials ? `, ${f.credentials}` : ''),
+        email: f.email,
+        type: 'Core Faculty',
+      }));
+    } else if (audienceType === 'teaching_faculty') {
+      list = faculty.filter(f => f.faculty_type === 'teaching').map(f => ({
+        name: f.full_name + (f.credentials ? `, ${f.credentials}` : ''),
+        email: f.email,
+        type: 'Teaching Faculty',
+      }));
+    }
+
+    if (filterOutExisting) {
+      list = list.filter(r => !existingEmails.has(r.email.toLowerCase()));
+    }
+    return list;
+  };
+
+  // "Add more" mode for active surveys
+  if (hasRespondents && addingRespondents) {
+    const newTargetList = buildTargetList(true);
+    const enabledCount = newTargetList.filter(r => !excludedEmails.has(r.email)).length;
+
+    return (
+      <div className="space-y-5">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-slate-900">Add New Respondents</h3>
+          <button
+            onClick={onCancelAddRespondents}
+            className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700"
+          >
+            <X className="w-3.5 h-3.5" /> Cancel
+          </button>
+        </div>
+
+        <div className="bg-white rounded-xl border p-5" style={{ borderColor: COLORS.light }}>
+          {newTargetList.length === 0 ? (
+            <p className="text-sm text-slate-400 italic">
+              All eligible {audienceType === 'core_faculty' ? 'core faculty' : audienceType === 'teaching_faculty' ? 'teaching faculty' : 'recipients'} have already been assigned.
+            </p>
+          ) : (
+            <>
+              <p className="text-sm text-slate-500 mb-3">
+                {enabledCount} new recipient{enabledCount !== 1 ? 's' : ''} to add
+                {excludedEmails.size > 0 && (
+                  <span className="text-xs text-slate-400 ml-2">({excludedEmails.size} excluded)</span>
+                )}
+              </p>
+              <div className="space-y-1 max-h-80 overflow-y-auto">
+                {newTargetList.map((r, i) => {
+                  const isOn = !excludedEmails.has(r.email);
+                  return (
+                    <div key={i} className={`flex items-center justify-between py-2 px-3 rounded-lg hover:bg-slate-50 ${!isOn ? 'opacity-50' : ''}`}>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-slate-800 truncate">{r.name}</p>
+                        <p className="text-xs text-slate-400 truncate">{r.email}</p>
+                      </div>
+                      <span className="text-xs text-slate-400 shrink-0 ml-2 mr-3">{r.type}</span>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={isOn}
+                        onClick={() => onToggleRecipient(r.email)}
+                        className="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1"
+                        style={{ backgroundColor: isOn ? COLORS.dark : '#CBD5E1' }}
+                      >
+                        <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition-transform duration-200 ${isOn ? 'translate-x-4' : 'translate-x-0'}`} />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
+
+        {enabledCount > 0 && (
+          <div className="rounded-xl border p-5" style={{ borderColor: COLORS.light, backgroundColor: COLORS.lightest + '40' }}>
+            <div className="flex items-start gap-3">
+              <Send className="w-5 h-5 mt-0.5 shrink-0" style={{ color: COLORS.dark }} />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-slate-800">Send to {enabledCount} new recipient{enabledCount !== 1 ? 's' : ''}</p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Each new recipient will receive a unique survey link via email.
+                </p>
+                <button
+                  onClick={onDistribute}
+                  disabled={distributing}
+                  className="mt-3 flex items-center gap-2 px-5 py-2.5 text-white rounded-lg text-sm font-medium disabled:opacity-50 hover:opacity-90"
+                  style={{ backgroundColor: COLORS.dark }}
+                >
+                  {distributing ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Sending...</>
+                  ) : (
+                    <><Send className="w-4 h-4" /> Add &amp; Send Emails</>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Already distributed — show respondent list with "Add more" option
   if (hasRespondents) {
     const grouped = {
       self: respondents.filter(r => r.rater_type === 'self'),
@@ -788,7 +928,19 @@ function RecipientsTab({
 
     return (
       <div className="space-y-4">
-        <p className="text-sm text-slate-500">{respondents.length} respondents assigned</p>
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-slate-500">{respondents.length} respondents assigned</p>
+          {isActive && (
+            <button
+              onClick={onStartAddRespondents}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border hover:opacity-90"
+              style={{ color: COLORS.dark, borderColor: COLORS.medium }}
+            >
+              <Users className="w-3.5 h-3.5" />
+              Add Respondents
+            </button>
+          )}
+        </div>
         {grouped.self.length > 0 && <RespondentGroup title="Residents (Self)" icon={<GraduationCap className="w-4 h-4" />} list={grouped.self} />}
         {grouped.core.length > 0 && <RespondentGroup title="Core Faculty" icon={<UserCheck className="w-4 h-4" />} list={grouped.core} />}
         {grouped.teaching.length > 0 && <RespondentGroup title="Teaching Faculty" icon={<Users className="w-4 h-4" />} list={grouped.teaching} />}
@@ -798,25 +950,7 @@ function RecipientsTab({
   }
 
   // Draft — show who will receive it + Distribute button
-  const audienceType = survey.audience_filter?.type;
-  let targetList: { name: string; email: string; type: string }[] = [];
-
-  if (audienceType === 'self' || survey.survey_type === 'learner_self_assessment') {
-    targetList = residents.map(r => ({ name: r.full_name, email: r.email, type: 'Resident' }));
-  } else if (audienceType === 'core_faculty') {
-    targetList = faculty.filter(f => f.faculty_type === 'core').map(f => ({
-      name: f.full_name + (f.credentials ? `, ${f.credentials}` : ''),
-      email: f.email,
-      type: 'Core Faculty',
-    }));
-  } else if (audienceType === 'teaching_faculty') {
-    targetList = faculty.filter(f => f.faculty_type === 'teaching').map(f => ({
-      name: f.full_name + (f.credentials ? `, ${f.credentials}` : ''),
-      email: f.email,
-      type: 'Teaching Faculty',
-    }));
-  }
-
+  const targetList = buildTargetList(false);
   const enabledCount = targetList.filter(r => !excludedEmails.has(r.email)).length;
 
   return (
@@ -853,7 +987,7 @@ function RecipientsTab({
                     role="switch"
                     aria-checked={isOn}
                     onClick={() => onToggleRecipient(r.email)}
-                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1`}
+                    className="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1"
                     style={{ backgroundColor: isOn ? COLORS.dark : '#CBD5E1' }}
                   >
                     <span

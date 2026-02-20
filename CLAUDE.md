@@ -2,13 +2,13 @@
 
 ## Project Overview
 
-**Elevate (Lev8)** is a medical residency education platform for Memorial Hospital West Emergency Medicine Residency Program. It includes three main product suites: the Elevate learning platform, Interview Assessment Tool, and Pulse Check provider evaluations.
+**Elevate (Lev8)** is a medical residency education platform for Memorial Hospital West Emergency Medicine Residency Program. It includes the Elevate learning platform plus EQ·PQ·IQ products: Progress Check (residency evaluation surveys), Interview Assessment Tool, and Pulse Check provider evaluations.
 
 - **Main Platform:** www.lev8.ai
 - **EQ·PQ·IQ Products:** www.eqpqiq.com
 - **Repository:** https://github.com/alfadiallo/lev8
-- **Status:** Production (January 2026)
-- **API Routes:** 187 endpoints
+- **Status:** Production (February 2026)
+- **API Routes:** ~200 endpoints
 
 ## Tech Stack
 
@@ -43,12 +43,13 @@
 
 ┌─────────────────────────────────────────────────────────────┐
 │                 EQ·PQ·IQ PRODUCTS (eqpqiq.com)              │
-├─────────────────────────────┬───────────────────────────────┤
-│    INTERVIEW ASSESSMENT     │         PULSE CHECK           │
-│ • Candidate evaluation      │ • Provider performance eval   │
-│ • Score normalization       │ • Healthsystem hierarchy      │
-│ • Season-wide rank lists    │ • Voice memo transcription    │
-└─────────────────────────────┴───────────────────────────────┘
+├────────────────────┬────────────────────┬───────────────────┤
+│   PROGRESS CHECK   │ INTERVIEW ASSESS.  │   PULSE CHECK     │
+│ • Survey campaigns │ • Candidate eval   │ • Provider eval   │
+│ • EQ/PQ/IQ ratings │ • Score normalize  │ • Healthsystem    │
+│ • Faculty/Self     │ • Season rank list │ • Voice memos     │
+│ • Cron reminders   │ • Demo role tiles  │ • Email reports   │
+└────────────────────┴────────────────────┴───────────────────┘
 ```
 
 ### Multi-Tenant Routing
@@ -65,18 +66,23 @@ lev8/
 ├── app/                          # Next.js App Router
 │   ├── (auth)/                   # Authentication routes
 │   ├── (dashboard)/              # Protected dashboard routes
-│   ├── api/                      # 187 API endpoints (28 route groups)
+│   ├── api/                      # ~200 API endpoints (~30 route groups)
 │   ├── admin/                    # Admin dashboard
 │   ├── eqpqiq-landing/           # EQ·PQ·IQ brand landing page (eqpqiq.com root)
 │   ├── interview/                # Interview tool pages
+│   ├── progress-check/           # Progress Check pages (surveys, admin)
 │   ├── pulsecheck/               # Pulse Check pages
+│   ├── survey/                   # Public survey response form (/survey/[token])
 │   └── studio/                   # Content creator studio
-├── components/                   # React components (~17 subdirectories)
+├── components/                   # React components (~18 subdirectories)
 │   ├── modules/                  # Learn module UIs
 │   ├── analytics/                # SWOT, ITE, radar charts
+│   ├── eqpqiq/                   # Shared EQ·PQ·IQ brand components
 │   ├── forms/                    # EQ+PQ+IQ rating forms
 │   ├── pulsecheck/               # Sparkline, ProviderProfileModal, RatingSliders
 │   └── ui/                       # Shadcn/ui components
+├── context/                      # React context providers
+│   └── ProgressCheckUserContext   # Auth context for Progress Check
 ├── lib/                          # Shared utilities
 │   ├── ai/                       # Claude API, anonymization, SWOT prompts
 │   ├── conversations/            # v1 and v2 conversation engines
@@ -105,6 +111,20 @@ lev8/
 - **EQ+PQ+IQ Dashboard:** 15-point radar charts (faculty vs self-assessment)
 - **ITE Score Tracking:** Historical performance trends
 - **Period Scores:** Longitudinal competency tracking across PGY levels
+- **Progress Check Sessions:** Faculty-led evaluation meetings (renamed from CCC)
+
+### Progress Check (Survey System)
+- **Survey Campaigns:** Program Directors create evaluation surveys targeting residents by class
+- **EQ/PQ/IQ Ratings:** Emotional Quotient, Professional Quotient, Intellectual Quotient scoring (0-100 scale)
+- **Evaluation Frameworks:** Configurable per-program attribute sets (e.g., ACGME milestones)
+- **Faculty & Self-Assessment:** Surveys distributed to faculty evaluators and residents for self-evaluation
+- **Token-Based Access:** Public survey form at `/survey/[token]` - no login required for respondents
+- **Recipient Toggles:** Toggle individual recipients on/off before distributing
+- **Email Distribution:** Automated survey invitations with personalized tokens
+- **Cron Reminders:** Scheduled reminder emails for incomplete surveys (`/api/cron/survey-reminders`)
+- **Results Aggregation:** Per-resident score rollups with faculty vs self-assessment breakdown
+- **Demo Accounts:** Program Director, Faculty, and Resident test accounts
+- **Green Theme:** Consistent green (#16A34A / #15803D) UI chrome with red/blue/purple pillar accents
 
 ### Interview Assessment Tool
 - Candidate evaluation for residency interviews
@@ -141,17 +161,56 @@ lev8/
 - Some settings pages not fully connected to backend
 - Dev mode bypasses Stripe subscription validation
 
+## Key API Endpoints (Progress Check / Survey)
+
+- `/api/progress-check/campaign/populate` - Fetch classes, faculty, residents for campaign wizard
+- `/api/progress-check/check-email` - Validate Progress Check user email
+- `/api/progress-check/data` - Program data for authenticated PC users
+- `/api/progress-check/faculty` - Faculty listing for a program
+- `/api/progress-check/residents` - Resident listing; `[residentId]/scores` for individual scores
+- `/api/progress-check/frameworks/[programId]` - Evaluation frameworks; `/attributes/[attrId]` for details
+- `/api/surveys` - Survey CRUD (GET list, POST create)
+- `/api/surveys/[surveyId]` - Single survey (GET, PATCH status)
+- `/api/surveys/[surveyId]/distribute` - Send survey emails to recipients
+- `/api/surveys/[surveyId]/remind` - Send reminders for pending responses
+- `/api/surveys/[surveyId]/results` - Aggregated results per resident
+- `/api/surveys/respond/[token]` - Public survey form data (GET) and submission (POST)
+- `/api/cron/survey-reminders` - Cron endpoint for automated reminder emails
+- `/api/progress-check-sessions` - Progress Check meeting sessions (renamed from CCC)
+- `/api/v2/sessions/progress-check` - V2 session endpoints (renamed from CCC)
+
 ## Recent Changes
 
 From git history:
-1. **EQ·PQ·IQ Brand Landing Page (February 2026)**
+1. **Progress Check Survey System (February 2026)**
+   - Full survey campaign lifecycle: create → configure → distribute → collect → aggregate results
+   - New page routes: `/progress-check/*` (admin), `/survey/[token]` (public respondent form)
+   - New API routes: 15+ endpoints across `/api/progress-check/`, `/api/surveys/`, `/api/cron/`
+   - Token-based public survey access (no auth required for respondents)
+   - Recipient toggle switches with default-on state before distribution
+   - EQ/PQ/IQ terminology updated: "Intelligence" → "Quotient" across all surfaces
+   - Slider label flashing fix: continuous label display with fixed-height container
+   - Green theme consistency across survey form (hex-based inline styles)
+   - PostgREST FK workaround: split `user_profiles:user_id` joins into separate queries (7 API routes)
+   - Database migrations: survey tables, evaluation frameworks, demo accounts, CCC→Progress Check rename
+   - Context provider: `ProgressCheckUserContext` for email-based auth flow
+   - Cron job for automated survey reminder emails
+   - New docs: `PRD-PROGRESS-CHECK.md`, `OPS-SURVEY-RUNBOOK.md`, `site-map-eqpqiq.md`
+
+2. **CCC → Progress Check Rename (February 2026)**
+   - Renamed all "CCC" references to "Progress Check" across codebase
+   - API routes: `/api/ccc-sessions` → `/api/progress-check-sessions`, `/api/v2/sessions/ccc` → `/api/v2/sessions/progress-check`
+   - Database migration: `20260218000001_rename_ccc_to_progress_check.sql`
+   - UI labels, component names, and documentation updated throughout
+
+3. **EQ·PQ·IQ Brand Landing Page (February 2026)**
    - New comprehensive landing page at eqpqiq.com root (philosophy, use cases, AI analytics, archetyping, longitudinal value, individual vs group)
    - Middleware rewrite: eqpqiq.com / → /eqpqiq-landing (URL stays as /)
    - New files: app/eqpqiq-landing/ (layout, client layout, page)
    - Contact email: hello@eqpqiq.com (Google Workspace)
    - Removed performance-budget GitHub Actions workflow (relying on Vercel for builds)
 
-2. **Warning Noise Cleanup Pass (February 2026)**
+4. **Warning Noise Cleanup Pass (February 2026)**
    - Targeted cleanup of top-noise files so future errors are easier to spot.
    - **lib/types/modules.ts:** `any` → `unknown` / typed helpers; `SessionMetrics` index signature tightened.
    - **lib/archetypes/evolution-manager.ts:** Typed relation helpers and DB row types; no `as any`.
@@ -161,11 +220,11 @@ From git history:
    - **Compatibility:** difficult-conversations detail page and CaseInterface updated for stricter module types.
    - Build/Vercel: Supabase env vars must be set for `npm run build` and Vercel deploys (see SETUP.md / CHANGELOG).
 
-3. **ESLint Technical Debt Cleanup (January 2026)**
+5. **ESLint Technical Debt Cleanup (January 2026)**
    - Comprehensive cleanup of ~300 ESLint warnings across 64 files
    - See detailed report below in "Technical Debt Cleanup Report" section
 
-4. **Pulse Check Frequency & Trends Enhancement**
+6. **Pulse Check Frequency & Trends Enhancement**
    - Add Settings tab to Admin panel for frequency config (quarterly/biannually/annually)
    - Create Sparkline component with smooth bezier curves for trend visualization
    - Add accordion details in Medical Director providers view with EQ/PQ/IQ breakdown
@@ -174,15 +233,15 @@ From git history:
    - Add historical seed data (Q2-Q4 2025) for Metro General providers
    - Add Provider Profile Modal with history tab
    - Database migrations for frequency fields and operational metrics
-4. Update README with EQ·PQ·IQ product documentation
-5. Remove lev8.ai references from Pulse Check
-6. Fix Interview module - favicon, title, footer, API env var
-7. Update Supabase service key env var naming
-8. Add demo role tiles to Interview landing page with visitor tracking
-9. Allow /pulsecheck routes on eqpqiq.com domain
-10. Fix invalid focusRing CSS property
-11. Add eqpqiq.com email support, apply rating colors
-12. Enhance interview tool: navigation, stats, normalization
+7. Update README with EQ·PQ·IQ product documentation
+8. Remove lev8.ai references from Pulse Check
+9. Fix Interview module - favicon, title, footer, API env var
+10. Update Supabase service key env var naming
+11. Add demo role tiles to Interview landing page with visitor tracking
+12. Allow /pulsecheck routes on eqpqiq.com domain
+13. Fix invalid focusRing CSS property
+14. Add eqpqiq.com email support, apply rating colors
+15. Enhance interview tool: navigation, stats, normalization
 
 ## Development Commands
 
@@ -196,13 +255,14 @@ npm run audit:bundle     # Analyze bundle size
 npm run audit:all        # Run all architecture audits
 ```
 
-## Data Status (January 2026)
+## Data Status (February 2026)
 
-- 50 residents across 4 classes (2024-2028)
-- 13 faculty members
+- 50 residents across 4 classes (2024-2028) + Class of 2026 demo residents
+- 13 faculty members + demo faculty accounts
 - 5,860 MedHub evaluation comments imported
 - 319 EQ+PQ+IQ ratings (267 faculty + 52 self-assessments)
 - 66 period scores aggregated
+- Progress Check demo accounts (PD, Faculty, Resident)
 
 ## Role-Based Access Control
 
@@ -232,6 +292,11 @@ npm run audit:all        # Run all architecture audits
 - `docs/EQ-PQ-IQ.md` - Evaluation framework definition
 - `docs/prd.md` - Product requirements document
 - `docs/claude.md` - Development guidelines
+- `docs/PRD-PROGRESS-CHECK.md` - Progress Check product requirements
+- `docs/PRD-INTERVIEW.md` - Interview Assessment product requirements
+- `docs/PRD-PULSECHECK.md` - Pulse Check product requirements
+- `docs/OPS-SURVEY-RUNBOOK.md` - Survey operations runbook
+- `docs/site-map-eqpqiq.md` - EQ·PQ·IQ site map and routing
 
 ---
 

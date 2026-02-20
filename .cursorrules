@@ -14,9 +14,12 @@ Resident analytics, SWOT analysis, EQ/PQ/IQ scoring, and Progress Check meeting 
 
 ## Key Directories
 - app/(dashboard)/modules/ - Module pages
-- app/api/ - API routes (REST endpoints)
+- app/api/ - API routes (~200 REST endpoints)
+- app/progress-check/ - Progress Check survey admin pages
+- app/survey/ - Public survey response form (/survey/[token])
 - components/analytics/ - Shared analytics (SWOT, Scores, D3 Charts)
 - components/modules/understand/ - OverviewPane
+- context/ - React context providers (ProgressCheckUserContext)
 - lib/ - Utilities and services
 
 ## Understand Module Routes
@@ -26,12 +29,26 @@ Resident analytics, SWOT analysis, EQ/PQ/IQ scoring, and Progress Check meeting 
 - /modules/understand/program - Program-wide analytics (placeholder)
 - /modules/understand/[sessionId] - Progress Check session detail
 
+## Progress Check Routes
+- /progress-check - Landing page with role-based auth (email login)
+- /progress-check/surveys - Survey list for Program Directors
+- /progress-check/surveys/new - Survey campaign creation wizard
+- /progress-check/surveys/[surveyId] - Survey detail (Overview, Recipients, Results tabs)
+- /survey/[token] - Public survey form for respondents (no auth required)
+
 ## Key API Endpoints
 - /api/analytics/scores/resident/[id] - Resident EQ/PQ/IQ scores
 - /api/analytics/swot/resident/[id] - Resident SWOT analysis
 - /api/analytics/trendlines/resident/[id] - Attribute trendlines
 - /api/forms/structured-rating - EQ/PQ/IQ rating submissions (GET/POST)
 - /api/resident-notes - Resident notes CRUD
+- /api/progress-check/campaign/populate - Classes, faculty, residents for campaign wizard
+- /api/surveys - Survey CRUD (GET/POST)
+- /api/surveys/[surveyId]/distribute - Send survey emails
+- /api/surveys/[surveyId]/results - Aggregated results
+- /api/surveys/respond/[token] - Public survey form data + submission
+- /api/progress-check-sessions - Progress Check meeting sessions
+- /api/cron/survey-reminders - Automated reminder emails
 
 ## Database Schema (Key Tables)
 - residents - Resident profiles (FK to classes via class_id)
@@ -41,9 +58,26 @@ Resident analytics, SWOT analysis, EQ/PQ/IQ scoring, and Progress Check meeting 
 - structured_ratings - Faculty/self EQ/PQ/IQ submissions
 - ite_scores - In-Training Exam scores
 - imported_comments - MedHub evaluation comments
+- surveys - Survey campaigns (program_id, title, status, class_id)
+- survey_respondents - Individual survey assignments with unique tokens
+- survey_responses - Submitted EQ/PQ/IQ ratings per respondent
+- evaluation_frameworks - Configurable attribute sets per program
+- evaluation_attributes - Individual EQ/PQ/IQ attributes within frameworks
+- progress_check_sessions - Progress Check meeting sessions (renamed from ccc_sessions)
+
+## EQ/PQ/IQ Terminology
+- EQ = Emotional Quotient (not Intelligence)
+- PQ = Professional Quotient
+- IQ = Intellectual Quotient
+- Scoring: 0-100 scale with labeled stops (Well Below → Exceptional)
 
 ## Coding Standards
 - TypeScript strict mode
 - console.log('[ComponentName]', ...) for debugging
 - PGY levels from graduation_year via lib/utils/pgy-calculator.ts
 - All class lookups use classes table (not academic_classes)
+- EQ/PQ/IQ labels use "Quotient" not "Intelligence"
+
+## Known Patterns
+- **PostgREST FK joins:** `user_profiles:user_id` embedded joins fail because `faculty.user_id` / `residents.user_id` FK to `auth.users(id)` (auth schema), not `user_profiles(id)` (public schema). Workaround: query main table first, collect user_ids, query `user_profiles` separately, merge in application code.
+- **Survey form styling:** Uses hex-based inline styles (not Tailwind color classes) for consistent green theme (#16A34A primary, #15803D dark) with pillar accents (red=EQ, blue=PQ, purple=IQ).

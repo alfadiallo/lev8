@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
-import { CheckCircle, ChevronLeft, ChevronRight, Loader2, Save, AlertCircle } from 'lucide-react';
+import { CheckCircle, ChevronLeft, ChevronRight, Loader2, Save, AlertCircle, Heart, Award, Brain } from 'lucide-react';
 import ScoreRangeKey from '@/components/eqpqiq/analytics/ScoreRangeKey';
 
 // ============================================================================
@@ -109,6 +109,12 @@ const COLORS = {
   veryDark: '#1B4332',
 };
 
+const SECTION_ICONS: Record<string, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
+  eq: Heart,
+  pq: Award,
+  iq: Brain,
+};
+
 const SECTIONS = [
   {
     id: 'eq',
@@ -195,30 +201,46 @@ function getRatingLabel(value: number): string {
 }
 
 // ============================================================================
-// Rating Slider Component (Mobile-Optimized)
+// Custom Filled-Bar Slider (matches portal design)
 // ============================================================================
 
-function RatingSlider({
+function getSliderColor(value: number) {
+  if (value < 33) return COLORS.medium;
+  if (value < 66) return COLORS.dark;
+  return COLORS.darker;
+}
+
+function CompactSlider({
   label,
-  description,
   value,
   onChange,
-  hexColor,
+  hasError,
 }: {
   label: string;
-  description: string;
   value: number;
   onChange: (v: number) => void;
-  hexColor: string;
+  hasError?: boolean;
 }) {
+  const fillColor = getSliderColor(value);
+
   return (
-    <div className="py-4 border-b border-neutral-100 last:border-0">
-      <div className="mb-2">
-        <div className="font-medium text-neutral-900 text-sm sm:text-base">{label}</div>
-        <div className="text-xs text-neutral-500 mt-0.5">{description}</div>
+    <div className={`px-5 py-3 ${hasError ? 'bg-red-50/50' : ''}`}>
+      <div className="flex items-baseline justify-between mb-0.5">
+        <p className="text-sm font-medium text-slate-800">{label}</p>
+        <span className="text-lg font-bold shrink-0 ml-3" style={{ color: COLORS.dark }}>{value}</span>
       </div>
-      <div className="flex items-center gap-3 mt-3">
-        <span className="text-xs text-neutral-400 w-6 text-right">0</span>
+      <div className="relative h-7 flex items-center">
+        <div className="absolute w-full h-3 rounded-full" style={{ backgroundColor: COLORS.lightest }} />
+        {value > 0 && (
+          <div
+            className="absolute h-3 rounded-full transition-all duration-150"
+            style={{ width: `${Math.max(value, 3)}%`, backgroundColor: fillColor }}
+          />
+        )}
+        <div
+          className="absolute w-5 h-5 rounded-full bg-white shadow-md transition-all duration-150 pointer-events-none"
+          style={{ left: `${value}%`, transform: 'translateX(-50%)', border: `2.5px solid ${fillColor}` }}
+        />
         <input
           type="range"
           min={0}
@@ -226,45 +248,31 @@ function RatingSlider({
           step={5}
           value={value}
           onChange={(e) => onChange(parseInt(e.target.value))}
-          className="flex-1 h-2 rounded-full appearance-none cursor-pointer
-            [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-7 [&::-webkit-slider-thumb]:h-7 
-            [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-lg
-            [&::-webkit-slider-thumb]:border-2"
-          style={{ accentColor: hexColor, color: hexColor }}
+          className="absolute w-full h-7 appearance-none bg-transparent cursor-pointer z-10
+            [&::-webkit-slider-thumb]:appearance-none
+            [&::-webkit-slider-thumb]:w-5
+            [&::-webkit-slider-thumb]:h-5
+            [&::-webkit-slider-thumb]:rounded-full
+            [&::-webkit-slider-thumb]:bg-transparent
+            [&::-webkit-slider-thumb]:cursor-pointer
+            [&::-moz-range-thumb]:w-5
+            [&::-moz-range-thumb]:h-5
+            [&::-moz-range-thumb]:rounded-full
+            [&::-moz-range-thumb]:bg-transparent
+            [&::-moz-range-thumb]:border-0
+            [&::-moz-range-thumb]:cursor-pointer"
         />
-        <span className="text-xs text-neutral-400 w-8">100</span>
-        <span className="min-w-[60px] text-center py-1 px-2 rounded-full text-sm font-bold" style={{ color: hexColor }}>
-          {Math.round(value)}
-        </span>
       </div>
-      <div className="text-center mt-1 h-4">
-        <span className="text-xs text-neutral-500">{getRatingLabel(value)}</span>
-      </div>
+      {hasError && (
+        <p className="text-xs text-red-500 mt-0.5">Please rate this attribute</p>
+      )}
     </div>
   );
 }
 
 // ============================================================================
-// Progress Bar Component
+// Section Ref Helper for Scroll-To
 // ============================================================================
-
-function ProgressBar({ current, total, label }: { current: number; total: number; label: string }) {
-  const pct = total > 0 ? Math.round((current / total) * 100) : 0;
-  return (
-    <div className="w-full">
-      <div className="flex justify-between items-center mb-1">
-        <span className="text-xs text-neutral-600">{label}</span>
-        <span className="text-xs font-medium text-neutral-700">{pct}%</span>
-      </div>
-      <div className="w-full h-2 bg-neutral-200 rounded-full overflow-hidden">
-        <div
-          className="h-full rounded-full transition-all duration-500"
-          style={{ width: `${pct}%`, backgroundColor: COLORS.dark }}
-        />
-      </div>
-    </div>
-  );
-}
 
 // ============================================================================
 // Main Survey Page
@@ -291,6 +299,7 @@ export default function SurveyPage() {
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
+  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Teaching faculty: open roster mode
   const isTeachingFaculty = surveyData?.respondent.rater_type === 'teaching_faculty';
@@ -491,21 +500,6 @@ export default function SurveyPage() {
     setScores(prev => ({ ...prev, [key]: value }));
     setTouchedFields(prev => new Set(prev).add(key));
     setValidationErrors([]);
-  }
-
-  function validateSection(sectionIndex: number): boolean {
-    if (!requireAllRatings) return true;
-    const section = activeSections[sectionIndex];
-    if (!section) return true;
-    const untouched = section.attributes.filter(
-      attr => !touchedFields.has(attr.key)
-    );
-    if (untouched.length > 0) {
-      setValidationErrors(untouched.map(a => a.key));
-      return false;
-    }
-    setValidationErrors([]);
-    return true;
   }
 
   function validateForSubmit(): boolean {
@@ -832,94 +826,9 @@ export default function SurveyPage() {
   const completedResidents = isLearner
     ? 0
     : surveyData.residents.filter(r => r.assignment_status === 'completed').length;
-  const isReviewSection = currentSection === activeSections.length;
-  const currentSectionData = activeSections[currentSection];
 
   return (
-    <div className="max-w-lg mx-auto pb-24">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-white border-b border-neutral-200 px-4 py-3 shadow-sm">
-        <div className="flex items-center justify-between mb-2">
-          {isTeachingFaculty && (
-            <button
-              onClick={() => {
-                saveProgress();
-                setShowRoster(true);
-              }}
-              className="flex items-center gap-1 text-xs mr-2 shrink-0"
-              style={{ color: COLORS.dark }}
-            >
-              <ChevronLeft className="w-3.5 h-3.5" />
-              Roster
-            </button>
-          )}
-          <div className="flex-1 min-w-0">
-            <h1 className="text-sm font-bold text-neutral-900 truncate">
-              {surveyData.survey.title}
-            </h1>
-            <p className="text-xs text-neutral-500 truncate">
-              {isLearner
-                ? `Self-Assessment: ${getCurrentResidentName()}`
-                : `Evaluating: ${getCurrentResidentName()}${isTeachingFaculty ? '' : ` (${currentResidentIndex + 1} of ${totalResidents})`}`}
-            </p>
-          </div>
-          {/* Save indicator */}
-          <div className="flex items-center gap-1 text-xs text-neutral-400 shrink-0 ml-2">
-            {saving ? (
-              <>
-                <Loader2 className="w-3 h-3 animate-spin" />
-                <span>Saving...</span>
-              </>
-            ) : lastSaved ? (
-              <>
-                <Save className="w-3 h-3" />
-                <span>Saved</span>
-              </>
-            ) : null}
-          </div>
-        </div>
-
-        {/* Progress indicators */}
-        {!isLearner && totalResidents > 1 && (
-          <ProgressBar
-            current={completedResidents + (isReviewSection ? 1 : 0)}
-            total={totalResidents}
-            label={`${completedResidents} of ${totalResidents} residents`}
-          />
-        )}
-
-        {/* Section tabs */}
-        <div className="flex gap-1 mt-2">
-          {activeSections.map((section, idx) => (
-            <button
-              key={section.id}
-              onClick={() => setCurrentSection(idx)}
-              className="flex-1 py-1.5 text-xs font-medium rounded-md transition-colors"
-              style={
-                idx === currentSection
-                  ? { backgroundColor: section.hex, color: '#fff' }
-                  : idx < currentSection
-                    ? { backgroundColor: '#E5E7EB', color: '#4B5563' }
-                    : { backgroundColor: '#F3F4F6', color: '#9CA3AF' }
-              }
-            >
-              {section.id.toUpperCase()}
-            </button>
-          ))}
-          <button
-            onClick={() => setCurrentSection(activeSections.length)}
-            className="flex-1 py-1.5 text-xs font-medium rounded-md transition-colors"
-            style={
-              isReviewSection
-                ? { backgroundColor: COLORS.darker, color: '#fff' }
-                : { backgroundColor: '#F3F4F6', color: '#9CA3AF' }
-            }
-          >
-            Review
-          </button>
-        </div>
-      </div>
-
+    <div className="max-w-2xl mx-auto pb-12">
       {/* Error banner */}
       {error && (
         <div className="mx-4 mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-center gap-2">
@@ -929,169 +838,169 @@ export default function SurveyPage() {
         </div>
       )}
 
-      {/* Score legend */}
-      <div className="mx-4 mt-3 bg-white border border-neutral-200 rounded-lg px-3 py-2.5">
-        <p className="text-[11px] text-neutral-500 text-center mb-1.5">
-          Score meaning
-        </p>
-        <ScoreRangeKey />
-      </div>
-
-      {/* Section content */}
-      {!isReviewSection && currentSectionData && (
-        <div className="px-4 mt-4">
-          <div className="rounded-lg p-4 mb-4" style={{ backgroundColor: currentSectionData.hexBg }}>
-            <h2 className="text-lg font-bold" style={{ color: currentSectionData.hexText }}>
-              {currentSectionData.title}
-            </h2>
-            <p className="text-sm text-neutral-600 mt-1">{currentSectionData.subtitle}</p>
-          </div>
-
-          <div className="bg-white rounded-lg border border-neutral-200 px-4">
-            {currentSectionData.attributes.map((attr) => {
-              const hasError = validationErrors.includes(attr.key);
-              return (
-                <div key={attr.key} className={hasError ? 'ring-1 ring-red-300 rounded-lg -mx-1 px-1' : ''}>
-                  <RatingSlider
-                    label={attr.label}
-                    description={attr.desc}
-                    value={scores[attr.key as keyof ScoreValues]}
-                    onChange={(v) => handleScoreChange(attr.key, v)}
-                    hexColor={currentSectionData.hexText}
-                  />
-                  {hasError && (
-                    <p className="text-xs text-red-500 pb-2 -mt-1">Please rate this attribute</p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Section average */}
-          <div className="mt-4 text-center">
-            <span className="text-sm text-neutral-500">Section Average: </span>
-            <span className="text-lg font-bold" style={{ color: currentSectionData.hexText }}>
-              {getSectionAverage(currentSection).toFixed(2)}
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Review section */}
-      {isReviewSection && (
-        <div className="px-4 mt-4 space-y-4">
-          <div className="bg-neutral-100 rounded-lg p-4">
-            <h2 className="text-lg font-bold text-neutral-900 mb-1">Review & Submit</h2>
-            <p className="text-sm text-neutral-600">
+      {/* Combined header + score legend */}
+      <div className="mx-4 mt-4 bg-white rounded-lg border px-4 py-3" style={{ borderColor: COLORS.light }}>
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex-1 min-w-0">
+            {isTeachingFaculty && (
+              <button
+                onClick={() => { saveProgress(); setShowRoster(true); }}
+                className="flex items-center gap-1 text-xs mb-1"
+                style={{ color: COLORS.dark }}
+              >
+                <ChevronLeft className="w-3.5 h-3.5" /> Roster
+              </button>
+            )}
+            <h1 className="text-sm font-bold truncate" style={{ color: COLORS.veryDark }}>
+              {surveyData.survey.title}
+            </h1>
+            <p className="text-xs text-slate-500 truncate">
               {isLearner
-                ? 'Review your self-assessment before submitting.'
-                : `Review your evaluation of ${getCurrentResidentName()}.`}
+                ? getCurrentResidentName()
+                : `Evaluating: ${getCurrentResidentName()}${isTeachingFaculty ? '' : ` (${currentResidentIndex + 1} of ${totalResidents})`}`}
             </p>
           </div>
-
-          {/* Score summary */}
-          <div className="bg-white rounded-lg border border-neutral-200 p-4">
-            <div className="grid grid-cols-3 gap-4 text-center">
-              {activeSections.map((section, idx) => (
-                <div key={section.id}>
-                  <div className="text-xs text-neutral-500 mb-1">{section.id.toUpperCase()}</div>
-                  <div className="text-2xl font-bold" style={{ color: section.hexText }}>
-                    {getSectionAverage(idx).toFixed(1)}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="mt-3 pt-3 border-t border-neutral-100 text-center">
-              <div className="text-xs text-neutral-500 mb-1">Overall</div>
-              <div className="text-3xl font-bold text-neutral-900">
-                {activeSections.length > 0
-                  ? (activeSections.reduce((sum, _, idx) => sum + getSectionAverage(idx), 0) / activeSections.length).toFixed(2)
-                  : '0.00'}
-              </div>
-            </div>
-          </div>
-
-          {/* Comments */}
-          <div className={`bg-white rounded-lg border p-4 ${
-            requireComments && !comments.trim() && error ? 'border-red-300' : 'border-neutral-200'
-          }`}>
-            <label className="block text-sm font-medium text-neutral-700 mb-2">
-              {isLearner ? 'Concerns & Goals' : 'Comments'}
-              {requireComments
-                ? <span className="text-red-500 ml-1">*</span>
-                : <span className="text-neutral-400 ml-1">(Optional)</span>}
-            </label>
-            <textarea
-              value={comments}
-              onChange={(e) => { setComments(e.target.value); setError(null); }}
-              rows={4}
-              className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:border-transparent text-sm resize-none"
-              style={{ '--tw-ring-color': COLORS.medium } as React.CSSProperties}
-              placeholder={
-                isLearner
-                  ? 'What are your current concerns or goals?'
-                  : 'Additional comments or observations...'
-              }
-            />
+          <div className="flex items-center gap-1 text-xs text-slate-400 shrink-0 ml-2 pt-0.5">
+            {saving ? (
+              <><Loader2 className="w-3 h-3 animate-spin" /><span>Saving...</span></>
+            ) : lastSaved ? (
+              <><Save className="w-3 h-3" /><span>Saved</span></>
+            ) : null}
           </div>
         </div>
-      )}
 
-      {/* Bottom navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 px-4 py-3 shadow-lg">
-        <div className="max-w-lg mx-auto flex gap-3">
-          {/* Back button */}
+        {/* Resident progress for faculty */}
+        {!isLearner && totalResidents > 1 && (
+          <div className="mb-2">
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-xs text-slate-500">{completedResidents} of {totalResidents} residents</span>
+              <span className="text-xs font-medium text-slate-600">
+                {totalResidents > 0 ? Math.round((completedResidents / totalResidents) * 100) : 0}%
+              </span>
+            </div>
+            <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: COLORS.lightest }}>
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{ width: `${totalResidents > 0 ? (completedResidents / totalResidents) * 100 : 0}%`, backgroundColor: COLORS.dark }}
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="pt-2" style={{ borderTop: `1px solid ${COLORS.lightest}` }}>
+          <p className="text-[11px] text-slate-500 text-center mb-1.5">Score meaning</p>
+          <ScoreRangeKey />
+        </div>
+      </div>
+
+      {/* All sections — scrollable */}
+      <div className="px-4 mt-4 space-y-5">
+        {activeSections.map((section, sIdx) => {
+          const Icon = SECTION_ICONS[section.id] || Heart;
+          const sectionValues = section.attributes.map(a => scores[a.key as keyof ScoreValues] || 0);
+          const sectionAvg = Math.round(sectionValues.reduce((s, v) => s + v, 0) / sectionValues.length);
+
+          return (
+            <div
+              key={section.id}
+              ref={(el) => { sectionRefs.current[section.id] = el; }}
+              className="bg-white rounded-xl border overflow-hidden"
+              style={{ borderColor: COLORS.light }}
+            >
+              {/* Pillar header — green theme matching portal */}
+              <div className="px-5 py-3 flex items-center justify-between" style={{ backgroundColor: COLORS.lightest }}>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/70">
+                    <Icon className="w-4 h-4" style={{ color: COLORS.dark }} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-sm" style={{ color: COLORS.veryDark }}>{section.title}</h3>
+                    <p className="text-[11px] text-slate-500">{section.subtitle}</p>
+                  </div>
+                </div>
+                <div className="text-xl font-bold" style={{ color: COLORS.dark }}>{sectionAvg}</div>
+              </div>
+
+              {/* Compact attribute rows */}
+              <div>
+                {section.attributes.map((attr, idx) => (
+                  <div key={attr.key} style={idx > 0 ? { borderTop: `1px solid ${COLORS.lightest}` } : undefined}>
+                    <CompactSlider
+                      label={attr.label}
+                      value={scores[attr.key as keyof ScoreValues]}
+                      onChange={(v) => handleScoreChange(attr.key, v)}
+                      hasError={validationErrors.includes(attr.key)}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Comments */}
+        <div className={`bg-white rounded-xl border p-5 ${
+          requireComments && !comments.trim() && error ? 'border-red-300' : ''
+        }`} style={!(requireComments && !comments.trim() && error) ? { borderColor: COLORS.light } : undefined}>
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            {isLearner ? 'Concerns & Goals' : 'Comments & Observations'}
+            {requireComments
+              ? <span className="text-red-500 ml-1">*</span>
+              : <span className="text-slate-400 ml-1">(Optional)</span>}
+          </label>
+          <textarea
+            value={comments}
+            onChange={(e) => { setComments(e.target.value); setError(null); }}
+            rows={3}
+            className="w-full px-3 py-2.5 border rounded-lg bg-white text-sm text-slate-900 placeholder-slate-400 resize-none"
+            style={{ borderColor: COLORS.light }}
+            placeholder={
+              isLearner
+                ? 'What are your current concerns or goals?'
+                : 'Any thoughts or observations...'
+            }
+          />
+        </div>
+
+        {/* Submit */}
+        <div className="rounded-xl border p-5" style={{ borderColor: COLORS.light, backgroundColor: COLORS.lightest + '40' }}>
+          {/* Score summary */}
+          <div className="grid grid-cols-3 gap-4 text-center mb-4">
+            {activeSections.map((section, idx) => (
+              <div key={section.id}>
+                <div className="text-xs text-slate-500 mb-1">{section.id.toUpperCase()}</div>
+                <div className="text-xl font-bold" style={{ color: COLORS.dark }}>
+                  {getSectionAverage(idx).toFixed(0)}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="text-center mb-4 pt-3" style={{ borderTop: `1px solid ${COLORS.light}` }}>
+            <div className="text-xs text-slate-500 mb-1">Overall Average</div>
+            <div className="text-3xl font-bold" style={{ color: COLORS.veryDark }}>
+              {activeSections.length > 0
+                ? (activeSections.reduce((sum, _, idx) => sum + getSectionAverage(idx), 0) / activeSections.length).toFixed(0)
+                : '0'}
+            </div>
+          </div>
+
           <button
-            onClick={() => {
-              if (currentSection > 0) setCurrentSection(prev => prev - 1);
-            }}
-            disabled={currentSection === 0}
-            className="flex items-center gap-1 px-4 py-3 border border-neutral-300 rounded-lg text-neutral-700 
-                       hover:bg-neutral-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-sm"
+            onClick={submitCurrentRating}
+            disabled={submitting}
+            className="w-full flex items-center justify-center gap-2 px-5 py-3 text-white rounded-lg font-medium text-sm disabled:opacity-50 hover:opacity-90"
+            style={{ backgroundColor: COLORS.dark }}
           >
-            <ChevronLeft className="w-4 h-4" />
-            Back
+            {submitting ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</>
+            ) : (
+              <>
+                <CheckCircle className="w-4 h-4" />
+                {isLearner
+                  ? 'Submit'
+                  : `Submit`}
+              </>
+            )}
           </button>
-
-          {/* Next / Submit button */}
-          {!isReviewSection ? (
-            <button
-              onClick={() => {
-                if (validateSection(currentSection)) {
-                  setCurrentSection(prev => prev + 1);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }
-              }}
-              className="flex-1 flex items-center justify-center gap-1 px-4 py-3 text-white rounded-lg 
-                         hover:opacity-90 transition-colors font-medium text-sm"
-              style={{ backgroundColor: COLORS.dark }}
-            >
-              Next
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          ) : (
-            <button
-              onClick={submitCurrentRating}
-              disabled={submitting}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-white rounded-lg 
-                         hover:opacity-90 transition-colors font-medium text-sm disabled:opacity-50"
-              style={{ backgroundColor: COLORS.darker }}
-            >
-              {submitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Submitting...
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="w-4 h-4" />
-                  {isLearner
-                    ? 'Submit Self-Assessment'
-                    : `Submit & ${currentResidentIndex + 1 < totalResidents ? 'Next Resident' : 'Finish'}`}
-                </>
-              )}
-            </button>
-          )}
         </div>
       </div>
     </div>

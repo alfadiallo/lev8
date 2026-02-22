@@ -2,52 +2,81 @@
 **Complete Platform Overview**
 
 **Created:** January 2025  
-**Last Updated:** December 23, 2025  
-**Status:** ✅ All Modules Operational  
+**Last Updated:** February 17, 2026  
+**Status:** ✅ All Modules + EQ·PQ·IQ Product Suite Operational  
 **Purpose:** Comprehensive overview of the Lev8 platform architecture and current capabilities
 
 ---
 
-## Recent Updates (December 23, 2025)
+## Recent Updates (February 2026)
 
-### Performance Improvements
+### EQ·PQ·IQ Product Suite (eqpqiq.com)
+- ✅ **Interview Assessment Tool** — Full session lifecycle, z-score normalization, season rank lists, Stripe billing
+- ✅ **Pulse Check** — Provider evaluation with 13 attributes, sparkline trends, cycle management, CSV import
+- ✅ **Progress Check** — Survey-based resident evaluation replacing CCC workflow:
+  - Survey creation with audience targeting (class year, faculty type)
+  - Token-based email distribution via Resend (passwordless, 48-char hex tokens)
+  - Public survey form (`/survey/[token]`) with compact slider design and auto-save
+  - Respondent status tracking (pending/started/completed)
+  - Add respondents to active surveys after initial distribution
+  - View respondent results inline (EQ/PQ/IQ averages with expandable score cards)
+- ✅ **Brand Landing Page** — Philosophy, use cases, AI analytics at eqpqiq.com root
+- ✅ **Demo Accounts** — PD, Faculty, and Resident roles for all three tools
+
+### Naming & Terminology
+- ✅ **CCC → Progress Check** — Renamed across database, API routes, and UI
+- ✅ **"Intelligence" → "Quotient"** — Framework pillar names updated (Emotional/Professional/Intellectual Quotient)
+- ✅ **0-100 Scale** — Structured ratings migrated from 1.0-5.0 to 0-100 scale
+- ✅ **Rater Types** — Refined to `core_faculty`, `teaching_faculty`, `self`
+
+### Code Quality (January-February 2026)
+- ✅ **ESLint Cleanup** — ~300 warnings resolved across 64 files
+- ✅ **Warning Noise Cleanup** — Targeted pass on top-noise files for cleaner build output
+- ✅ **TypeScript Strict Mode** — Improved type safety across API routes and components
+
+### Previous Updates (December 2025)
+
+#### Performance Improvements
 - ✅ **Enabled Turbopack** for faster development builds (~70% faster page compilation)
-- Dev server now uses `next dev --turbopack` by default
 
-### UI/UX Fixes
-- ✅ **Sidebar Navigation**: Truths, Expectations, Reflect, Understand, and Admin Portal sections now stay expanded when navigating to their child pages
-- ✅ **Voice Journal Button**: Updated "New Entry" button to use standard blue styling (`#0EA5E9`) matching other primary buttons
-- ✅ **Voice Journal Title**: Updated title to use blue gradient matching Clinical Cases (`from-[#0EA5E9] to-[#4A90A8]`)
+#### UI/UX Fixes
+- ✅ **Sidebar Navigation**: Sections stay expanded when navigating to child pages
+- ✅ **Voice Journal**: Updated button and title styling
 
-### Authentication Fixes
-- ✅ **Admin Dashboard Access**: Fixed redirect loop when accessing `/admin/dashboard`
-  - Admin layout now uses shared `AuthContext` instead of independent auth checks
-  - Login page now properly handles `?redirect=` query parameter
-- ✅ **Login Redirect**: After login, users are correctly redirected to their intended destination
+#### Authentication Fixes
+- ✅ **Admin Dashboard Access**: Fixed redirect loop
+- ✅ **Login Redirect**: Users redirected to intended destination after login
 
 ---
 
 ## 1. Executive Summary
 
 ### What is Lev8?
-Lev8 (www.lev8.ai) is a production-ready medical education platform for Emergency Medicine residency programs, featuring:
+Lev8 is a production medical education platform comprising two product suites:
+
+**Elevate (www.lev8.ai)** — Resident learning and analytics:
 - **Learn Module**: Difficult Conversations, Clinical Cases, ACLS Simulations, Running Board
 - **Grow Module**: Voice Journal with AI transcription and summarization
-- **Understand Module**: ✅ **OPERATIONAL** - Analytics Engine with AI-powered SWOT analysis and EQ+PQ+IQ tracking
+- **Understand Module**: Analytics Engine with AI SWOT, EQ+PQ+IQ tracking, Progress Check sessions
+
+**EQ·PQ·IQ (www.eqpqiq.com)** — Evaluation tools:
+- **Interview Assessment**: Candidate evaluation with z-score normalization for residency interviews
+- **Pulse Check**: Provider performance evaluation for health systems
+- **Progress Check**: Survey-based resident evaluation replacing CCC workflow
 
 ### Current Status
-✅ **All Modules Operational**:
-- Complete database schema with 30+ tables
-- User authentication and role-based access (Resident, Faculty, Program Director, Super Admin)
-- Global and institution-specific content patterns
+✅ **All Modules + EQ·PQ·IQ Product Suite Operational**:
+- Complete database schema with 50+ tables
+- ~200 API endpoints across 28+ route groups
+- User authentication: Supabase Auth (Elevate) + email-based context (eqpqiq.com) + token-based (surveys)
 - Comprehensive Row Level Security (RLS) policies
-- Difficult Conversations v2 with assessment engine
-- Voice Journal with AI processing
+- Difficult Conversations v2 with multi-model AI (Claude + Gemini)
+- Voice Journal with Whisper transcription + Claude summarization
 - **Analytics Engine with real data:**
   - 50 residents (Memorial Healthcare System EM program)
   - 13 faculty members
   - 5,860 MedHub evaluation comments imported
-  - 319 EQ+PQ+IQ structured ratings (267 faculty + 52 self-assessments)
+  - 415+ structured ratings (354 core faculty + 61 self-assessments)
   - AI SWOT analysis with supporting citations
   - 15-point radar charts for competency visualization
   - ITE score tracking with historical trends
@@ -58,14 +87,22 @@ Lev8 (www.lev8.ai) is a production-ready medical education platform for Emergenc
     - Methodology versioning and evolution tracking
     - Similar historical profile matching
     - Archetype-specific recommendations
+- **Progress Check Survey System:**
+  - Survey lifecycle (create → distribute → respond → review)
+  - Token-based passwordless access for respondents
+  - Inline respondent results viewing
 
 ### Tech Stack
-- **Frontend**: Next.js 14 (App Router), TypeScript, Tailwind CSS, Recharts
-- **Backend**: Supabase (PostgreSQL), Next.js API Routes
+- **Frontend**: Next.js 15.5.9 (App Router, Turbopack), React 19.1.0, TypeScript 5, Tailwind CSS 4, Recharts 3.4.1, D3 7.9.0
+- **Backend**: Supabase (PostgreSQL with RLS), Next.js API Routes (~200 endpoints)
 - **AI Services**: 
-  - OpenAI Whisper API (voice transcription)
-  - Anthropic Claude API (summarization, SWOT analysis, conversation AI)
-- **Deployment**: Vercel (frontend) + Supabase Cloud (database)
+  - Anthropic Claude v0.68.0 (conversations, SWOT analysis, summarization)
+  - Google Generative AI v0.24.1 (alternative conversation provider)
+  - OpenAI Whisper (voice transcription)
+- **Payments**: Stripe v20.1.2 (Interview Assessment subscriptions)
+- **Email**: Resend (survey distribution, notifications)
+- **Deployment**: Vercel (frontend + backend) + Supabase Cloud (database)
+- **Domains**: www.lev8.ai + www.eqpqiq.com
 
 ---
 
@@ -570,6 +607,34 @@ CREATE TABLE public.classification_history (
 
 ---
 
+### Survey & Progress Check Tables (February 2026)
+
+#### `surveys` (Survey Campaigns)
+- Scoped to a program. Types: `educator_assessment` or `learner_self_assessment`.
+- Tracks status (draft/active/closed), deadline, reminder settings, audience filter.
+
+#### `survey_respondents` (Survey Recipients)
+- 48-character hex tokens for passwordless access.
+- Tracks status (pending/started/completed), reminder count, auto-saved progress (JSONB).
+
+#### `survey_resident_assignments` (Educator → Resident Mapping)
+- For educator surveys: maps each faculty respondent to assigned residents.
+- Tracks per-assignment completion status.
+
+#### `progress_check_sessions` (Meeting Records)
+- Session date, facilitator, attendees, status, notes. Supabase Realtime enabled.
+
+#### `progress_check_notes` (Session Notes)
+- Types: general, strength, weakness, opportunity, threat, action_item. Supports confidential notes.
+
+#### `eqpqiq_user_roles` (Cross-Tool Role Assignments)
+- Keyed on `(user_email, tool, program_id)`. Tools: `progress_check`, `ccc` (legacy).
+
+#### `eqpqiq_visitors` (Visitor Tracking)
+- Unified visitor tracking across all eqpqiq.com products.
+
+---
+
 ## 3. Row Level Security (RLS) Patterns
 
 ### Core RLS Principles
@@ -752,20 +817,33 @@ Benefits:
 
 ## 5. Current Module Structure
 
-### Module Buckets
+### Elevate Module Buckets (lev8.ai)
 | Bucket | Description | Current Modules |
 |--------|-------------|-----------------|
-| **Learn** | Educational content and clinical learning | Difficult Conversations, Clinical Cases |
+| **Learn** | Educational content and clinical learning | Difficult Conversations, Clinical Cases, ACLS Simulations, Running the Board |
 | **Grow** | Personal development and reflection | Voice Journal |
-| **Understand** | Assessment and comprehension | 🔜 **Analytics Engine** |
+| **Understand** | Analytics and evaluation | Analytics Engine, Progress Check Sessions |
 
-### Module Access by Role
+### Module Access by Role (Elevate)
 | Module | Residents | Faculty | Program Directors | Super Admins |
 |--------|-----------|---------|-------------------|--------------|
 | Difficult Conversations | ✅ | ✅ | ✅ | ✅ |
 | Clinical Cases | ✅ | ✅ | ✅ | ✅ |
+| ACLS Simulations | ✅ | ✅ | ✅ | ✅ |
+| Running the Board | ✅ | ✅ | ✅ | ✅ |
 | Voice Journal | ✅ | ❌ | ❌ | ❌ |
-| Analytics Engine | 🔜 (Own data) | 🔜 (Program residents) | 🔜 (All program data) | 🔜 (Institution data) |
+| Analytics (Own data) | ✅ | ❌ | ❌ | ❌ |
+| Analytics (Program) | ❌ | ✅ | ✅ | ✅ |
+| Truths | ❌ | ✅ | ✅ | ✅ |
+| Expectations | ❌ | ✅ | ✅ | ✅ |
+| Admin Portal | ❌ | ❌ | ❌ | ✅ |
+
+### EQ·PQ·IQ Products (eqpqiq.com)
+| Product | Roles | Authentication |
+|---------|-------|---------------|
+| **Interview Assessment** | Program Director, Faculty, Guest | Email-based context |
+| **Pulse Check** | Regional Director, Medical Director, Admin Assistant | Email-based context |
+| **Progress Check** | Program Director, Faculty, Resident | Email-based context + token-based (surveys) |
 
 ---
 
@@ -1072,8 +1150,12 @@ When you add Analytics tables:
 
 **End of Current State Summary**
 
-This document provides everything needed to integrate the Analytics Engine seamlessly into the existing Lev8 architecture. All new tables should follow these patterns, all RLS policies should match these security models, and all API routes should align with the existing structure.
+This document provides a comprehensive overview of the Lev8 + EQ·PQ·IQ platform architecture. All new tables should follow these patterns, all RLS policies should match these security models, and all API routes should align with the existing structure.
 
-Good luck with the Analytics Engine build! 🚀
+See also:
+- `docs/PRD-PROGRESS-CHECK.md` — Progress Check product requirements
+- `docs/PRD-INTERVIEW.md` — Interview Assessment product requirements
+- `docs/PRD-PULSECHECK.md` — Pulse Check product requirements
+- `docs/OPS-SURVEY-RUNBOOK.md` — Survey operational runbook
 
 

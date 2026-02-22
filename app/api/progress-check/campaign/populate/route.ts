@@ -11,12 +11,8 @@ interface FacultyRow {
   credentials: string | null;
   is_active: boolean;
   user_id: string;
-}
-
-interface UserProfileJoin {
-  faculty_type: string | null;
-  email: string;
-  personal_email: string | null;
+  faculty_type: string;
+  site: string | null;
 }
 
 /**
@@ -51,10 +47,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch classes' }, { status: 500 });
     }
 
-    // Fetch faculty (separate from user_profiles to avoid FK schema mismatch)
+    // Fetch faculty with type and site directly from faculty table
     const { data: facultyRaw, error: facultyError } = await supabase
       .from('faculty')
-      .select('id, full_name, email, credentials, is_active, user_id')
+      .select('id, full_name, email, credentials, is_active, user_id, faculty_type, site')
       .eq('program_id', programId)
       .eq('is_active', true)
       .order('full_name');
@@ -64,34 +60,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch faculty' }, { status: 500 });
     }
 
-    // Fetch user_profiles for faculty that have user_id set
-    const facultyUserIds = (facultyRaw || [])
-      .map((f: FacultyRow) => f.user_id)
-      .filter(Boolean);
-
-    const profileMap = new Map<string, UserProfileJoin>();
-    if (facultyUserIds.length > 0) {
-      const { data: profiles } = await supabase
-        .from('user_profiles')
-        .select('id, faculty_type, email, personal_email')
-        .in('id', facultyUserIds);
-      for (const p of profiles || []) {
-        profileMap.set(p.id, p as UserProfileJoin);
-      }
-    }
-
-    const faculty = (facultyRaw || []).map((f: FacultyRow) => {
-      const profile = profileMap.get(f.user_id);
-      return {
-        id: f.id,
-        user_id: f.user_id,
-        full_name: f.full_name,
-        email: f.email,
-        credentials: f.credentials,
-        faculty_type: profile?.faculty_type || 'core',
-        personal_email: profile?.personal_email || null,
-      };
-    });
+    const faculty = (facultyRaw || []).map((f: FacultyRow) => ({
+      id: f.id,
+      user_id: f.user_id,
+      full_name: f.full_name,
+      email: f.email,
+      credentials: f.credentials,
+      faculty_type: f.faculty_type || 'core',
+      site: f.site || null,
+      personal_email: null,
+    }));
 
     // Fetch residents for a specific class (if class_id provided)
     let residents: Array<{

@@ -60,7 +60,7 @@ async function sendSurveyInviteEmail(
       
       <div style="text-align: center; margin: 32px 0;">
         <a href="${surveyUrl}" 
-           style="display: inline-block; padding: 14px 32px; background: #2563eb; color: white; 
+           style="display: inline-block; padding: 14px 32px; background: #40916C; color: white; 
                   text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 600;">
           Open Survey
         </a>
@@ -282,15 +282,15 @@ export async function POST(
       for (const resp of insertedRespondents) {
         let extraContext: string | undefined;
         if (resp.rater_type === 'self') {
-          extraContext = 'Please complete your self-assessment of your EQ, PQ, and IQ competencies.';
+          extraContext = 'Please complete your self-assessment of your Emotional Quotient (EQ), Professionalism Quotient (PQ), and Intellectual Quotient (IQ).</p><p style="color: #555; font-size: 14px; line-height: 1.6;">Thank you for taking the time to do this — it\'s extremely valuable!';
         } else if (resp.rater_type === 'core_faculty') {
-          extraContext = 'Please rate each resident in the class on their EQ, PQ, and IQ competencies. All residents are required.';
+          extraContext = 'Please rate each resident in the class on their Emotional Quotient (EQ), Professionalism Quotient (PQ), and Intellectual Quotient (IQ).</p><p style="color: #555; font-size: 14px; line-height: 1.6;">Thank you for taking the time to do this — it\'s extremely valuable!';
         } else if (resp.rater_type === 'teaching_faculty') {
-          extraContext = 'Please rate the residents you\'ve worked with on their EQ, PQ, and IQ competencies. We recommend evaluating at least 3 residents.';
+          extraContext = 'Please rate the residents you\'ve worked with on their Emotional Quotient (EQ), Professionalism Quotient (PQ), and Intellectual Quotient (IQ).</p><p style="color: #555; font-size: 14px; line-height: 1.6;">We recommend evaluating at least 3 residents you\'ve worked with in the last 60 days.</p><p style="color: #555; font-size: 14px; line-height: 1.6;">Thank you for taking the time to do this — it\'s extremely valuable!';
         } else if (survey.survey_type === 'educator_assessment') {
-          extraContext = 'Please rate each resident on their EQ, PQ, and IQ competencies.';
+          extraContext = 'Please rate each resident on their Emotional Quotient (EQ), Professionalism Quotient (PQ), and Intellectual Quotient (IQ).</p><p style="color: #555; font-size: 14px; line-height: 1.6;">Thank you for taking the time to do this — it\'s extremely valuable!';
         } else if (survey.survey_type === 'learner_self_assessment') {
-          extraContext = 'Please complete your self-assessment of your EQ, PQ, and IQ competencies.';
+          extraContext = 'Please complete your self-assessment of your Emotional Quotient (EQ), Professionalism Quotient (PQ), and Intellectual Quotient (IQ).</p><p style="color: #555; font-size: 14px; line-height: 1.6;">Thank you for taking the time to do this — it\'s extremely valuable!';
         }
 
         const success = await sendSurveyInviteEmail(

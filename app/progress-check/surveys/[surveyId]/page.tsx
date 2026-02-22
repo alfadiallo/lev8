@@ -131,18 +131,6 @@ const SURVEY_SECTIONS = [
   },
 ];
 
-const RATING_LABELS: Record<number, string> = {
-  0: 'Well Below',
-  15: 'Below',
-  25: 'Slightly Below',
-  35: 'Approaching',
-  50: 'At Expected',
-  65: 'Above',
-  75: 'Well Above',
-  85: 'Outstanding',
-  100: 'Exceptional',
-};
-
 export default function SurveyDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -174,6 +162,8 @@ export default function SurveyDetailPage() {
   const [distributing, setDistributing] = useState(false);
   const [excludedEmails, setExcludedEmails] = useState<Set<string>>(new Set());
 
+  const [respondentScores, setRespondentScores] = useState<Record<string, { eq_avg: number; pq_avg: number; iq_avg: number; overall: number }>>({});
+
   const fetchSurvey = useCallback(async () => {
     try {
       const res = await fetch(`/api/surveys/${surveyId}`);
@@ -181,6 +171,7 @@ export default function SurveyDetailPage() {
       const data = await res.json();
       setSurvey(data.survey);
       setRespondents(data.respondents || []);
+      setRespondentScores(data.respondent_scores || {});
     } catch {
       setError('Failed to load survey');
     } finally {
@@ -265,7 +256,7 @@ export default function SurveyDetailPage() {
   }, [survey?.program_id, survey?.class_id]);
 
   useEffect(() => {
-    if (tab === 'recipients' && faculty.length === 0) {
+    if ((tab === 'recipients' || tab === 'survey') && faculty.length === 0) {
       loadPopulateData();
     }
   }, [tab, faculty.length, loadPopulateData]);
@@ -508,7 +499,7 @@ export default function SurveyDetailPage() {
       </div>
 
       {/* Tab Content */}
-      {tab === 'survey' && <SurveyPreviewTab />}
+      {tab === 'survey' && survey && <SurveyPreviewTab survey={survey} residents={residents} populateLoading={populateLoading} />}
 
       {tab === 'overview' && (
         <OverviewTab
@@ -545,6 +536,7 @@ export default function SurveyDetailPage() {
           distributing={distributing}
           excludedEmails={excludedEmails}
           addingRespondents={addingRespondents}
+          respondentScores={respondentScores}
           onToggleRecipient={(email) => {
             setExcludedEmails(prev => {
               const next = new Set(prev);
@@ -553,6 +545,8 @@ export default function SurveyDetailPage() {
               return next;
             });
           }}
+          onSelectAll={() => setExcludedEmails(new Set())}
+          onDeselectAll={(emails: string[]) => setExcludedEmails(new Set(emails))}
           onStartAddRespondents={() => {
             setAddingRespondents(true);
             setExcludedEmails(new Set());
@@ -773,7 +767,8 @@ function SettingLine({ on, label, offLabel }: { on?: boolean; label: string; off
 
 function RecipientsTab({
   survey, respondents, faculty, residents, populateLoading, distributing,
-  excludedEmails, addingRespondents, onToggleRecipient,
+  excludedEmails, addingRespondents, respondentScores, onToggleRecipient,
+  onSelectAll, onDeselectAll,
   onStartAddRespondents, onCancelAddRespondents, onDistribute,
 }: {
   survey: SurveyData;
@@ -784,7 +779,10 @@ function RecipientsTab({
   distributing: boolean;
   excludedEmails: Set<string>;
   addingRespondents: boolean;
+  respondentScores: Record<string, { eq_avg: number; pq_avg: number; iq_avg: number; overall: number }>;
   onToggleRecipient: (email: string) => void;
+  onSelectAll: () => void;
+  onDeselectAll: (emails: string[]) => void;
   onStartAddRespondents: () => void;
   onCancelAddRespondents: () => void;
   onDistribute: () => void;
@@ -854,12 +852,32 @@ function RecipientsTab({
             </p>
           ) : (
             <>
-              <p className="text-sm text-slate-500 mb-3">
-                {enabledCount} new recipient{enabledCount !== 1 ? 's' : ''} to add
-                {excludedEmails.size > 0 && (
-                  <span className="text-xs text-slate-400 ml-2">({excludedEmails.size} excluded)</span>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm text-slate-500">
+                  {enabledCount} new recipient{enabledCount !== 1 ? 's' : ''} to add
+                  {excludedEmails.size > 0 && (
+                    <span className="text-xs text-slate-400 ml-2">({excludedEmails.size} excluded)</span>
+                  )}
+                </p>
+                {newTargetList.length > 0 && (
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={onSelectAll}
+                      className="text-xs font-medium hover:underline"
+                      style={{ color: COLORS.dark }}
+                    >
+                      Select All
+                    </button>
+                    <span className="text-slate-300">|</span>
+                    <button
+                      onClick={() => onDeselectAll(newTargetList.map(r => r.email))}
+                      className="text-xs font-medium text-slate-400 hover:underline"
+                    >
+                      Deselect All
+                    </button>
+                  </div>
                 )}
-              </p>
+              </div>
               <div className="space-y-1 max-h-80 overflow-y-auto">
                 {newTargetList.map((r, i) => {
                   const isOn = !excludedEmails.has(r.email);
@@ -925,6 +943,7 @@ function RecipientsTab({
       teaching: respondents.filter(r => r.rater_type === 'teaching_faculty'),
       other: respondents.filter(r => !r.rater_type),
     };
+    const showResidentsList = survey.survey_type === 'educator_assessment' && residents.length > 0;
 
     return (
       <div className="space-y-4">
@@ -941,10 +960,40 @@ function RecipientsTab({
             </button>
           )}
         </div>
-        {grouped.self.length > 0 && <RespondentGroup title="Residents (Self)" icon={<GraduationCap className="w-4 h-4" />} list={grouped.self} />}
-        {grouped.core.length > 0 && <RespondentGroup title="Core Faculty" icon={<UserCheck className="w-4 h-4" />} list={grouped.core} />}
-        {grouped.teaching.length > 0 && <RespondentGroup title="Teaching Faculty" icon={<Users className="w-4 h-4" />} list={grouped.teaching} />}
-        {grouped.other.length > 0 && <RespondentGroup title="Other" icon={<Users className="w-4 h-4" />} list={grouped.other} />}
+
+        {/* Residents being evaluated */}
+        {showResidentsList && (
+          <div className="bg-white rounded-xl border" style={{ borderColor: COLORS.light }}>
+            <div className="flex items-center justify-between p-4">
+              <div className="flex items-center gap-2">
+                <GraduationCap className="w-4 h-4" style={{ color: COLORS.dark }} />
+                <span className="text-sm font-semibold text-slate-900">
+                  {residents.length} Resident{residents.length !== 1 ? 's' : ''} Being Evaluated
+                </span>
+                {survey.classes && (
+                  <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: COLORS.lightest, color: COLORS.darker }}>
+                    {survey.classes.name}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="border-t px-4 py-2 space-y-0.5" style={{ borderColor: COLORS.lightest }}>
+              {residents.map((r, i) => (
+                <div key={r.id} className="flex items-center gap-3 py-1.5 px-2 rounded-lg">
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold bg-slate-100 text-slate-500 shrink-0">
+                    {i + 1}
+                  </div>
+                  <p className="text-sm text-slate-700 truncate">{r.full_name}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {grouped.self.length > 0 && <RespondentGroup title="Residents (Self)" icon={<GraduationCap className="w-4 h-4" />} list={grouped.self} scores={respondentScores} />}
+        {grouped.core.length > 0 && <RespondentGroup title="Core Faculty" icon={<UserCheck className="w-4 h-4" />} list={grouped.core} scores={respondentScores} />}
+        {grouped.teaching.length > 0 && <RespondentGroup title="Teaching Faculty" icon={<Users className="w-4 h-4" />} list={grouped.teaching} scores={respondentScores} />}
+        {grouped.other.length > 0 && <RespondentGroup title="Other" icon={<Users className="w-4 h-4" />} list={grouped.other} scores={respondentScores} />}
       </div>
     );
   }
@@ -952,19 +1001,70 @@ function RecipientsTab({
   // Draft — show who will receive it + Distribute button
   const targetList = buildTargetList(false);
   const enabledCount = targetList.filter(r => !excludedEmails.has(r.email)).length;
+  const isEducatorSurvey = survey.survey_type === 'educator_assessment';
 
   return (
     <div className="space-y-5">
-      {/* Preview */}
+      {/* Residents being evaluated — for educator surveys */}
+      {isEducatorSurvey && residents.length > 0 && (
+        <div className="bg-white rounded-xl border p-5" style={{ borderColor: COLORS.light }}>
+          <div className="flex items-center gap-2 mb-3">
+            <GraduationCap className="w-4 h-4" style={{ color: COLORS.dark }} />
+            <h3 className="text-sm font-semibold text-slate-900">
+              {residents.length} Resident{residents.length !== 1 ? 's' : ''} Being Evaluated
+            </h3>
+            {survey.classes && (
+              <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: COLORS.lightest, color: COLORS.darker }}>
+                {survey.classes.name}
+              </span>
+            )}
+          </div>
+          <div className="space-y-1 max-h-60 overflow-y-auto">
+            {residents.map((r, i) => (
+              <div key={r.id} className="flex items-center gap-3 py-1.5 px-3 rounded-lg hover:bg-slate-50">
+                <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold bg-slate-100 text-slate-500 shrink-0">
+                  {i + 1}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-slate-800 truncate">{r.full_name}</p>
+                  <p className="text-xs text-slate-400 truncate">{r.email}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Faculty recipients */}
       <div className="bg-white rounded-xl border p-5" style={{ borderColor: COLORS.light }}>
-        <h3 className="text-sm font-semibold text-slate-900 mb-3">
-          {enabledCount} recipient{enabledCount !== 1 ? 's' : ''} will receive this survey
-          {excludedEmails.size > 0 && (
-            <span className="text-xs font-normal text-slate-400 ml-2">
-              ({excludedEmails.size} excluded)
-            </span>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-slate-900">
+            {enabledCount} {isEducatorSurvey ? 'faculty' : 'recipient'}{enabledCount !== 1 ? '' : ''} will {isEducatorSurvey ? 'evaluate these residents' : 'receive this survey'}
+            {excludedEmails.size > 0 && (
+              <span className="text-xs font-normal text-slate-400 ml-2">
+                ({excludedEmails.size} excluded)
+              </span>
+            )}
+          </h3>
+          {targetList.length > 0 && (
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={onSelectAll}
+                className="text-xs font-medium hover:underline"
+                style={{ color: COLORS.dark }}
+              >
+                Select All
+              </button>
+              <span className="text-slate-300">|</span>
+              <button
+                onClick={() => onDeselectAll(targetList.map(r => r.email))}
+                className="text-xs font-medium text-slate-400 hover:underline"
+              >
+                Deselect All
+              </button>
+            </div>
           )}
-        </h3>
+        </div>
 
         {targetList.length === 0 ? (
           <p className="text-sm text-slate-400 italic">
@@ -1031,8 +1131,14 @@ function RecipientsTab({
   );
 }
 
-function RespondentGroup({ title, icon, list }: { title: string; icon: React.ReactNode; list: RespondentData[] }) {
+function RespondentGroup({ title, icon, list, scores }: {
+  title: string;
+  icon: React.ReactNode;
+  list: RespondentData[];
+  scores: Record<string, { eq_avg: number; pq_avg: number; iq_avg: number; overall: number }>;
+}) {
   const [expanded, setExpanded] = useState(false);
+  const [expandedRespondent, setExpandedRespondent] = useState<string | null>(null);
   const completed = list.filter(r => r.status === 'completed').length;
 
   return (
@@ -1046,16 +1152,54 @@ function RespondentGroup({ title, icon, list }: { title: string; icon: React.Rea
         <ChevronRight className={`w-4 h-4 text-slate-400 transition-transform ${expanded ? 'rotate-90' : ''}`} />
       </button>
       {expanded && (
-        <div className="border-t px-4 pb-3 pt-2 space-y-1" style={{ borderColor: COLORS.lightest }}>
-          {list.map(r => (
-            <div key={r.id} className="flex items-center justify-between py-1.5">
-              <div className="min-w-0">
-                <p className="text-sm text-slate-700 truncate">{r.name || r.email}</p>
-                <p className="text-xs text-slate-400 truncate">{r.email}</p>
+        <div className="border-t px-4 pb-3 pt-2" style={{ borderColor: COLORS.lightest }}>
+          {list.map(r => {
+            const hasScores = r.status === 'completed' && scores[r.id];
+            const isOpen = expandedRespondent === r.id;
+            const sc = scores[r.id];
+
+            return (
+              <div key={r.id}>
+                <div
+                  className={`flex items-center justify-between py-2 ${hasScores ? 'cursor-pointer hover:bg-green-50/40 -mx-2 px-2 rounded-lg' : ''}`}
+                  onClick={() => hasScores && setExpandedRespondent(isOpen ? null : r.id)}
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm text-slate-700 truncate">{r.name || r.email}</p>
+                    <p className="text-xs text-slate-400 truncate">{r.email}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 ml-2">
+                    <StatusBadge status={r.status} />
+                    {hasScores && (
+                      <ChevronRight className={`w-3.5 h-3.5 text-slate-300 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
+                    )}
+                  </div>
+                </div>
+                {isOpen && sc && (
+                  <div className="ml-1 mb-2 p-3 rounded-lg" style={{ backgroundColor: COLORS.lightest + '60' }}>
+                    <div className="grid grid-cols-4 gap-3 text-center">
+                      <div>
+                        <p className="text-[10px] font-medium text-slate-500 uppercase">EQ</p>
+                        <p className="text-lg font-bold" style={{ color: '#DC2626' }}>{sc.eq_avg}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-medium text-slate-500 uppercase">PQ</p>
+                        <p className="text-lg font-bold" style={{ color: '#1D4ED8' }}>{sc.pq_avg}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-medium text-slate-500 uppercase">IQ</p>
+                        <p className="text-lg font-bold" style={{ color: '#6D28D9' }}>{sc.iq_avg}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-medium text-slate-500 uppercase">Overall</p>
+                        <p className="text-lg font-bold" style={{ color: COLORS.veryDark }}>{sc.overall}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-              <StatusBadge status={r.status} />
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
@@ -1073,7 +1217,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 // ============================================================================
-// Survey Preview Tab — compact view, all attributes grouped per pillar card
+// Survey Preview Tab — full-fidelity replica of the respondent experience
 // ============================================================================
 
 function getSliderColor(value: number) {
@@ -1082,137 +1226,186 @@ function getSliderColor(value: number) {
   return COLORS.darker;
 }
 
-function SurveyPreviewTab() {
-  const [values, setValues] = useState<Record<string, number>>({});
-  const [localValues, setLocalValues] = useState<Record<string, number>>({});
+function PreviewSlider({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+  const fillColor = getSliderColor(value);
+  return (
+    <div className="px-5 py-3">
+      <div className="flex items-baseline justify-between mb-0.5">
+        <p className="text-sm font-medium text-slate-800">{label}</p>
+        <span className="text-lg font-bold shrink-0 ml-3" style={{ color: COLORS.dark }}>{value}</span>
+      </div>
+      <div className="relative h-7 flex items-center">
+        <div className="absolute w-full h-3 rounded-full" style={{ backgroundColor: COLORS.lightest }} />
+        {value > 0 && (
+          <div
+            className="absolute h-3 rounded-full transition-all duration-150"
+            style={{ width: `${Math.max(value, 3)}%`, backgroundColor: fillColor }}
+          />
+        )}
+        <div
+          className="absolute w-5 h-5 rounded-full bg-white shadow-md transition-all duration-150 pointer-events-none"
+          style={{ left: `${value}%`, transform: 'translateX(-50%)', border: `2.5px solid ${fillColor}` }}
+        />
+        <input
+          type="range" min={0} max={100} step={5} value={value}
+          onChange={(e) => onChange(Math.round(parseInt(e.target.value) / 5) * 5)}
+          className="absolute w-full h-7 appearance-none bg-transparent cursor-pointer z-10
+            [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5
+            [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-transparent [&::-webkit-slider-thumb]:cursor-pointer
+            [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full
+            [&::-moz-range-thumb]:bg-transparent [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
+        />
+      </div>
+    </div>
+  );
+}
 
-  const handleChange = (key: string, raw: number) => {
-    const snapped = Math.round(raw / 5) * 5;
-    setLocalValues(prev => ({ ...prev, [key]: snapped }));
-  };
-
-  const handleCommit = (key: string) => {
-    const v = localValues[key];
-    if (v !== undefined) setValues(prev => ({ ...prev, [key]: v }));
-  };
-
-  const getVal = (key: string) => localValues[key] ?? values[key] ?? 50;
-
-  const getRatingLabel = (value: number): string => {
-    const thresholds = Object.keys(RATING_LABELS).map(Number).sort((a, b) => b - a);
-    for (const t of thresholds) {
-      if (value >= t) return RATING_LABELS[t];
+function SurveyPreviewTab({ survey }: { survey: SurveyData }) {
+  const [scores, setScores] = useState<Record<string, number>>(() => {
+    const init: Record<string, number> = {};
+    for (const sec of SURVEY_SECTIONS) {
+      for (const attr of sec.attributes) {
+        init[attr.key] = 50;
+      }
     }
-    return RATING_LABELS[0];
+    return init;
+  });
+
+  const handleChange = (key: string, value: number) => {
+    setScores(prev => ({ ...prev, [key]: value }));
   };
+
+  const getSectionAvg = (section: typeof SURVEY_SECTIONS[number]) => {
+    const vals = section.attributes.map(a => scores[a.key] ?? 50);
+    return Math.round(vals.reduce((s, v) => s + v, 0) / vals.length);
+  };
+
+  const overallAvg = SURVEY_SECTIONS.length > 0
+    ? Math.round(SURVEY_SECTIONS.reduce((s, sec) => s + getSectionAvg(sec), 0) / SURVEY_SECTIONS.length)
+    : 0;
+
+  const isLearnerType = survey.survey_type === 'learner_self_assessment';
+  const sampleName = isLearnerType ? 'Jane Doe' : 'John Smith, MD';
 
   return (
-    <div className="max-w-2xl mx-auto space-y-5">
-      <p className="text-sm text-slate-500 text-center">
-        Survey form preview — 15 attributes across 3 pillars, scored 0–100.
-      </p>
-      <div className="bg-white rounded-lg border px-3 py-2.5" style={{ borderColor: COLORS.light }}>
-        <p className="text-[11px] text-slate-500 text-center mb-1.5">Score meaning</p>
-        <ScoreRangeKey />
+    <div className="max-w-2xl mx-auto">
+      {/* Preview mode banner */}
+      <div className="mx-4 mt-1 mb-4 flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200">
+        <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
+        <p className="text-xs text-amber-700">
+          <strong>Preview Mode</strong> — This is how respondents will see the survey. Sliders are interactive but nothing is saved.
+        </p>
       </div>
 
-      {SURVEY_SECTIONS.map(section => {
-        const Icon = section.icon;
-        const sectionValues = section.attributes.map(a => getVal(a.key));
-        const sectionAvg = Math.round(sectionValues.reduce((s, v) => s + v, 0) / sectionValues.length);
+      {/* Phone-frame wrapper */}
+      <div className="mx-4 rounded-2xl border-2 border-slate-200 bg-slate-50 overflow-hidden shadow-sm">
+        <div className="max-w-2xl mx-auto pb-8">
 
-        return (
-          <div
-            key={section.id}
-            className="bg-white rounded-xl border overflow-hidden"
-            style={{ borderColor: COLORS.light }}
-          >
-            {/* Pillar header */}
-            <div className="px-5 py-3 flex items-center justify-between" style={{ backgroundColor: COLORS.lightest }}>
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/70">
-                  <Icon className="w-4 h-4" style={{ color: COLORS.dark }} />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm" style={{ color: COLORS.veryDark }}>{section.title}</h3>
-                  <p className="text-[11px] text-slate-500">{section.subtitle}</p>
-                </div>
+          {/* Header card — mirrors actual survey */}
+          <div className="mx-4 mt-4 bg-white rounded-lg border px-4 py-3" style={{ borderColor: COLORS.light }}>
+            <div className="mb-2">
+              <h1 className="text-sm font-bold text-center truncate" style={{ color: COLORS.veryDark }}>
+                {survey.title}
+              </h1>
+              <p className="text-xs text-slate-500 text-center truncate">
+                {isLearnerType ? sampleName : `Evaluating: ${sampleName}`}
+              </p>
+              <div className="flex items-center justify-center gap-1 text-xs text-slate-400 mt-0.5">
+                <Save className="w-3 h-3" /><span>Saved</span>
               </div>
-              <div className="text-xl font-bold" style={{ color: COLORS.dark }}>{sectionAvg}</div>
             </div>
 
-            {/* Compact attribute rows */}
-            <div>
-              {section.attributes.map((attr, idx) => {
-                const val = getVal(attr.key);
-                const fillColor = getSliderColor(val);
-
-                return (
-                  <div key={attr.key} className="px-5 py-3" style={idx > 0 ? { borderTop: `1px solid ${COLORS.lightest}` } : undefined}>
-                    {/* Row: label + score */}
-                    <div className="flex items-baseline justify-between mb-0.5">
-                      <p className="text-sm font-medium text-slate-800">{attr.label}</p>
-                      <span className="text-lg font-bold shrink-0 ml-3" style={{ color: COLORS.dark }}>{val}</span>
-                    </div>
-
-                    {/* Slider — compact height */}
-                    <div className="relative h-7 flex items-center">
-                      <div className="absolute w-full h-3 rounded-full" style={{ backgroundColor: COLORS.lightest }} />
-                      {val > 0 && (
-                        <div
-                          className="absolute h-3 rounded-full transition-all duration-150"
-                          style={{ width: `${Math.max(val, 3)}%`, backgroundColor: fillColor }}
-                        />
-                      )}
-                      <div
-                        className="absolute w-5 h-5 rounded-full bg-white shadow-md transition-all duration-150 pointer-events-none"
-                        style={{ left: `${val}%`, transform: 'translateX(-50%)', border: `2.5px solid ${fillColor}` }}
-                      />
-                      <input
-                        type="range"
-                        min={0}
-                        max={100}
-                        step={5}
-                        value={val}
-                        onChange={(e) => handleChange(attr.key, parseInt(e.target.value))}
-                        onMouseUp={() => handleCommit(attr.key)}
-                        onTouchEnd={() => handleCommit(attr.key)}
-                        onKeyUp={() => handleCommit(attr.key)}
-                        className="absolute w-full h-7 appearance-none bg-transparent cursor-pointer z-10
-                          [&::-webkit-slider-thumb]:appearance-none
-                          [&::-webkit-slider-thumb]:w-5
-                          [&::-webkit-slider-thumb]:h-5
-                          [&::-webkit-slider-thumb]:rounded-full
-                          [&::-webkit-slider-thumb]:bg-transparent
-                          [&::-webkit-slider-thumb]:cursor-pointer
-                          [&::-moz-range-thumb]:w-5
-                          [&::-moz-range-thumb]:h-5
-                          [&::-moz-range-thumb]:rounded-full
-                          [&::-moz-range-thumb]:bg-transparent
-                          [&::-moz-range-thumb]:border-0
-                          [&::-moz-range-thumb]:cursor-pointer"
-                      />
-                    </div>
-
-                  </div>
-                );
-              })}
+            <div className="pt-2" style={{ borderTop: `1px solid ${COLORS.lightest}` }}>
+              <p className="text-[11px] text-slate-500 text-center mb-1.5">Score meaning</p>
+              <ScoreRangeKey />
             </div>
           </div>
-        );
-      })}
 
-      {/* Comments */}
-      <div className="bg-white rounded-xl p-5 border" style={{ borderColor: COLORS.light }}>
-        <label className="block text-sm font-medium text-slate-700 mb-2">
-          Comments &amp; Observations
-        </label>
-        <textarea
-          className="w-full px-3 py-2.5 border rounded-lg bg-white text-sm text-slate-900 placeholder-slate-400 resize-none"
-          style={{ borderColor: COLORS.light }}
-          rows={3}
-          placeholder="Any thoughts or observations..."
-        />
+          {/* Pillar sections */}
+          <div className="px-4 mt-4 space-y-5">
+            {SURVEY_SECTIONS.map(section => {
+              const Icon = section.icon;
+              const sectionAvg = getSectionAvg(section);
+
+              return (
+                <div
+                  key={section.id}
+                  className="bg-white rounded-xl border overflow-hidden"
+                  style={{ borderColor: COLORS.light }}
+                >
+                  <div className="px-5 py-3 flex items-center justify-between" style={{ backgroundColor: COLORS.lightest }}>
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/70">
+                        <Icon className="w-4 h-4" style={{ color: COLORS.dark }} />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-sm" style={{ color: COLORS.veryDark }}>{section.title}</h3>
+                        <p className="text-[11px] text-slate-500">{section.subtitle}</p>
+                      </div>
+                    </div>
+                    <div className="text-xl font-bold" style={{ color: COLORS.dark }}>{sectionAvg}</div>
+                  </div>
+
+                  <div>
+                    {section.attributes.map((attr, idx) => (
+                      <div key={attr.key} style={idx > 0 ? { borderTop: `1px solid ${COLORS.lightest}` } : undefined}>
+                        <PreviewSlider
+                          label={attr.label}
+                          value={scores[attr.key] ?? 50}
+                          onChange={(v) => handleChange(attr.key, v)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Comments */}
+            <div className="bg-white rounded-xl border p-5" style={{ borderColor: COLORS.light }}>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                {isLearnerType ? 'Concerns & Goals' : 'Comments & Observations'}
+                <span className="text-slate-400 ml-1">(Optional)</span>
+              </label>
+              <textarea
+                className="w-full px-3 py-2.5 border rounded-lg bg-white text-sm text-slate-900 placeholder-slate-400 resize-none"
+                style={{ borderColor: COLORS.light }}
+                rows={3}
+                placeholder={isLearnerType ? 'What are your current concerns or goals?' : 'Any thoughts or observations...'}
+              />
+            </div>
+
+            {/* Score summary + disabled submit */}
+            <div className="rounded-xl border p-5" style={{ borderColor: COLORS.light, backgroundColor: COLORS.lightest + '40' }}>
+              <div className="grid grid-cols-3 gap-4 text-center mb-4">
+                {SURVEY_SECTIONS.map(section => (
+                  <div key={section.id}>
+                    <div className="text-xs text-slate-500 mb-1">{section.id.toUpperCase()}</div>
+                    <div className="text-xl font-bold" style={{ color: COLORS.dark }}>
+                      {getSectionAvg(section)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="text-center mb-4 pt-3" style={{ borderTop: `1px solid ${COLORS.light}` }}>
+                <div className="text-xs text-slate-500 mb-1">Overall Average</div>
+                <div className="text-3xl font-bold" style={{ color: COLORS.veryDark }}>
+                  {overallAvg}
+                </div>
+              </div>
+
+              <button
+                disabled
+                className="w-full flex items-center justify-center gap-2 px-5 py-3 text-white rounded-lg font-medium text-sm opacity-50 cursor-not-allowed"
+                style={{ backgroundColor: COLORS.dark }}
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                Submit
+              </button>
+              <p className="text-[11px] text-center text-slate-400 mt-2">Disabled in preview mode</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

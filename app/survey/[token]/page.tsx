@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
-import { CheckCircle, ChevronLeft, ChevronRight, Loader2, Save, AlertCircle, Heart, Award, Brain } from 'lucide-react';
+import { CheckCircle, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Loader2, Save, AlertCircle, Heart, Award, Brain, Edit2, RefreshCw, ArrowUpDown } from 'lucide-react';
 import ScoreRangeKey from '@/components/eqpqiq/analytics/ScoreRangeKey';
+import ScoreCard from '@/components/eqpqiq/analytics/ScoreCard';
 
 // ============================================================================
 // Types
@@ -68,6 +69,7 @@ interface ResidentInfo {
   assignment_status: string;
   full_name: string;
   email: string;
+  graduation_year: number | null;
 }
 
 interface ProgressData {
@@ -290,7 +292,7 @@ export default function SurveyPage() {
   // Form state
   const [scores, setScores] = useState<ScoreValues>({ ...DEFAULT_SCORES });
   const [comments, setComments] = useState('');
-  const [currentSection, setCurrentSection] = useState(0); // 0=EQ, 1=PQ, 2=IQ, 3=Review
+  const [currentSection, setCurrentSection] = useState(0);
   const [currentResidentIndex, setCurrentResidentIndex] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -301,9 +303,22 @@ export default function SurveyPage() {
   const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // Teaching faculty: open roster mode
+  // Faculty type detection
   const isTeachingFaculty = surveyData?.respondent.rater_type === 'teaching_faculty';
-  const [showRoster, setShowRoster] = useState(true);
+  const isCoreFaculty = surveyData?.respondent.rater_type === 'core_faculty';
+  const isFacultyMultiResident = isTeachingFaculty || isCoreFaculty;
+
+  // Multi-resident state (core + teaching faculty)
+  const [allScores, setAllScores] = useState<Record<string, ScoreValues>>({});
+  const [allComments, setAllComments] = useState<Record<string, string>>({});
+  const [showSummary, setShowSummary] = useState(false);
+  const [submittedResidents, setSubmittedResidents] = useState<Set<string>>(new Set());
+  const [expandedResident, setExpandedResident] = useState<string | null>(null);
+  const [initialSubmittedAll, setInitialSubmittedAll] = useState(false);
+  const [hasScoreChanges, setHasScoreChanges] = useState(false);
+  const [snapshotScores, setSnapshotScores] = useState<Record<string, ScoreValues>>({});
+  const [summarySortMode, setSummarySortMode] = useState<'original' | 'a-z' | 'z-a' | 'score-high' | 'score-low'>('original');
+  const [showWelcome, setShowWelcome] = useState(false);
 
   // Dynamic sections: use framework data if available, else fall back to hardcoded SECTIONS
   const PILLAR_COLORS: Record<string, { hex: string; hexText: string; hexBg: string }> = {
@@ -373,11 +388,11 @@ export default function SurveyPage() {
 
         // Pre-fill scores from existing ratings (post-submit editing)
         if (data.existing_scores) {
-          const residentId = data.survey.type === 'learner_self_assessment'
-            ? data.self_resident?.id
-            : data.residents[0]?.id;
-          if (residentId && data.existing_scores[residentId]) {
-            const existing = data.existing_scores[residentId];
+          // Populate allScores/allComments for all previously-submitted residents
+          const restoredAll: Record<string, ScoreValues> = {};
+          const restoredComments: Record<string, string> = {};
+          const restoredSubmitted = new Set<string>();
+          for (const [resId, existing] of Object.entries(data.existing_scores)) {
             const numericScores: Partial<ScoreValues> = {};
             for (const [key, val] of Object.entries(existing)) {
               if (key !== 'comments' && typeof val === 'number') {
@@ -385,17 +400,72 @@ export default function SurveyPage() {
               }
             }
             if (Object.keys(numericScores).length > 0) {
-              setScores(prev => ({ ...prev, ...numericScores }));
-              setTouchedFields(new Set(Object.keys(numericScores)));
+              restoredAll[resId] = { ...DEFAULT_SCORES, ...numericScores };
+              restoredSubmitted.add(resId);
             }
             if (typeof existing.comments === 'string') {
-              setComments(existing.comments);
+              restoredComments[resId] = existing.comments;
+            }
+          }
+          setAllScores(restoredAll);
+          setAllComments(restoredComments);
+          setSubmittedResidents(restoredSubmitted);
+
+          // Snapshot scores at load time for change detection
+          const snapshot: Record<string, ScoreValues> = {};
+          for (const [id, s] of Object.entries(restoredAll)) {
+            snapshot[id] = { ...s };
+          }
+          setSnapshotScores(snapshot);
+          if (restoredSubmitted.size === data.residents.length) {
+            setInitialSubmittedAll(true);
+          }
+
+          // For faculty multi-resident (core + teaching), set up navigation
+          const isFacMulti = (data.respondent.rater_type === 'core_faculty' || data.respondent.rater_type === 'teaching_faculty')
+            && data.residents.length > 1;
+          if (isFacMulti) {
+            const firstPending = data.residents.findIndex(r => r.assignment_status !== 'completed');
+            const startIdx = firstPending >= 0 ? firstPending : 0;
+            setCurrentResidentIndex(startIdx);
+            const startId = data.residents[startIdx]?.id;
+            if (startId && restoredAll[startId]) {
+              setScores({ ...restoredAll[startId] });
+              setTouchedFields(new Set(Object.keys(restoredAll[startId])));
+              setComments(restoredComments[startId] || '');
+            }
+            if (restoredSubmitted.size > 0 || firstPending < 0) {
+              // Returning user: go straight to summary
+              setShowSummary(true);
+            } else if (data.respondent.rater_type === 'teaching_faculty') {
+              // First-time teaching faculty: show welcome screen
+              setShowWelcome(true);
+              setShowSummary(true);
+            } else {
+              // First-time core faculty: start rating immediately
+            }
+          } else {
+            // Self-assessment or single-resident
+            const residentId = data.survey.type === 'learner_self_assessment'
+              ? data.self_resident?.id
+              : data.residents[0]?.id;
+            if (residentId && restoredAll[residentId]) {
+              setScores({ ...restoredAll[residentId] });
+              setTouchedFields(new Set(Object.keys(restoredAll[residentId])));
+              setComments(restoredComments[residentId] || '');
             }
           }
         }
 
         if (data.respondent.status === 'completed') {
-          setCompleted(true);
+          // Faculty multi-resident: show summary page so they can review/edit
+          const isFacMulti = (data.respondent.rater_type === 'core_faculty' || data.respondent.rater_type === 'teaching_faculty')
+            && data.residents.length > 1;
+          if (isFacMulti) {
+            setShowSummary(true);
+          } else {
+            setCompleted(true);
+          }
         }
       } catch {
         setError('Failed to connect to server');
@@ -414,12 +484,20 @@ export default function SurveyPage() {
 
     setSaving(true);
     try {
+      // Merge current scores into allScores for a complete snapshot
+      const currentId = getCurrentResidentId();
+      const mergedScores: Record<string, Record<string, number>> = {};
+      for (const [id, s] of Object.entries(allScores)) {
+        mergedScores[id] = s as unknown as Record<string, number>;
+      }
+      if (currentId) {
+        mergedScores[currentId] = scores as unknown as Record<string, number>;
+      }
+
       const progressData: ProgressData = {
         current_section: activeSections[currentSection]?.id || 'eq',
         current_resident_index: currentResidentIndex,
-        partial_scores: {
-          [getCurrentResidentId()]: scores as unknown as Record<string, number>,
-        },
+        partial_scores: mergedScores,
       };
 
       await fetch(`/api/surveys/respond/${token}`, {
@@ -435,7 +513,7 @@ export default function SurveyPage() {
       setSaving(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, currentSection, currentResidentIndex, scores, surveyData, completed]);
+  }, [token, currentSection, currentResidentIndex, scores, surveyData, completed, allScores]);
 
   // Auto-save on section change
   useEffect(() => {
@@ -481,6 +559,89 @@ export default function SurveyPage() {
       0
     );
     return sum / section.attributes.length;
+  }
+
+  function getSectionAverageForScores(sectionIndex: number, s: ScoreValues): number {
+    const section = activeSections[sectionIndex];
+    if (!section) return 0;
+    const sum = section.attributes.reduce(
+      (acc, attr) => acc + (s[attr.key as keyof ScoreValues] || 0),
+      0
+    );
+    return sum / section.attributes.length;
+  }
+
+  function getOverallForScores(s: ScoreValues): number {
+    if (activeSections.length === 0) return 0;
+    return activeSections.reduce((sum, _, idx) => sum + getSectionAverageForScores(idx, s), 0) / activeSections.length;
+  }
+
+  function formatResidentClass(graduationYear: number | null): string {
+    if (!graduationYear) return '';
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    // Graduated if graduation year is past (after June 30 of that year)
+    const hasGraduated = currentYear > graduationYear || (currentYear === graduationYear && currentMonth >= 6);
+    if (hasGraduated) return `Class of ${graduationYear}`;
+    // Active resident: compute PGY
+    const academicYear = currentMonth >= 6 ? currentYear : currentYear - 1;
+    const yearsUntilGrad = graduationYear - academicYear - 1;
+    const pgy = 3 - yearsUntilGrad;
+    return `PGY-${pgy} · Class of ${graduationYear}`;
+  }
+
+  function scoreToHeatColor(score: number): string {
+    const t = Math.max(0, Math.min(100, score)) / 100;
+    // Red (0) → Orange (25) → Yellow (50) → Light green (75) → Green (100)
+    const r = t < 0.5 ? 220 : Math.round(220 - (t - 0.5) * 2 * 180);
+    const g = t < 0.5 ? Math.round(60 + t * 2 * 140) : Math.round(200 + (t - 0.5) * 2 * 20);
+    const b = t < 0.5 ? 30 : Math.round(30 + (t - 0.5) * 2 * 40);
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+
+  // Save current scores to allScores map without submitting to API
+  function stashCurrentScores() {
+    const id = getCurrentResidentId();
+    if (!id) return;
+    setAllScores(prev => ({ ...prev, [id]: { ...scores } }));
+    setAllComments(prev => ({ ...prev, [id]: comments }));
+  }
+
+  // Load scores from allScores for a given resident
+  function loadResidentScores(residentId: string) {
+    if (allScores[residentId]) {
+      setScores({ ...allScores[residentId] });
+      setTouchedFields(new Set(Object.keys(allScores[residentId])));
+      setComments(allComments[residentId] || '');
+    } else if (surveyData?.existing_scores?.[residentId]) {
+      const existing = surveyData.existing_scores[residentId];
+      const restored: Partial<ScoreValues> = {};
+      for (const [key, val] of Object.entries(existing)) {
+        if (key !== 'comments' && typeof val === 'number') {
+          restored[key as keyof ScoreValues] = val;
+        }
+      }
+      setScores({ ...DEFAULT_SCORES, ...restored });
+      setTouchedFields(new Set(Object.keys(restored)));
+      setComments(typeof existing.comments === 'string' ? existing.comments : '');
+    } else {
+      setScores({ ...DEFAULT_SCORES });
+      setTouchedFields(new Set());
+      setComments('');
+    }
+  }
+
+  // Core faculty: navigate to a specific resident by index
+  function navigateToResident(index: number) {
+    if (!surveyData) return;
+    stashCurrentScores();
+    setCurrentResidentIndex(index);
+    loadResidentScores(surveyData.residents[index]?.id || '');
+    setCurrentSection(0);
+    setValidationErrors([]);
+    setError(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   // ========================================================================
@@ -557,31 +718,57 @@ export default function SurveyPage() {
         return;
       }
 
-      if (data.all_complete) {
+      // Stash submitted scores
+      const residentId = getCurrentResidentId();
+      const newScores = { ...scores };
+      setAllScores(prev => {
+        const updated = { ...prev, [residentId]: newScores };
+        // Detect changes from initial snapshot
+        if (initialSubmittedAll) {
+          const snap = snapshotScores[residentId];
+          if (snap) {
+            const changed = Object.keys(newScores).some(
+              k => newScores[k as keyof ScoreValues] !== snap[k as keyof ScoreValues]
+            );
+            if (changed) setHasScoreChanges(true);
+          } else {
+            setHasScoreChanges(true);
+          }
+        }
+        return updated;
+      });
+      setAllComments(prev => ({ ...prev, [residentId]: comments }));
+      setSubmittedResidents(prev => new Set(prev).add(residentId));
+
+      if (data.all_complete && !isFacultyMultiResident) {
         setCompleted(true);
         return;
       }
 
-      // Move to next resident or return to roster
+      // Move to next resident or return to summary
       if (!isLearner) {
         if (isTeachingFaculty) {
-          // Teaching faculty: return to roster after each submission
-          setScores({ ...DEFAULT_SCORES });
-          setComments('');
-          setCurrentSection(0);
-          setShowRoster(true);
-          // Refresh data to get updated assignment statuses
-          const refreshRes = await fetch(`/api/surveys/respond/${token}`);
-          if (refreshRes.ok) {
-            const refreshData: SurveyData = await refreshRes.json();
-            setSurveyData(refreshData);
-          }
+          // Teaching faculty: return to summary after each submission
+          setShowSummary(true);
           window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else if (isCoreFaculty) {
+          // Core faculty: advance to next resident or show summary
+          if (currentResidentIndex < surveyData.residents.length - 1) {
+            const nextIdx = currentResidentIndex + 1;
+            setCurrentResidentIndex(nextIdx);
+            loadResidentScores(surveyData.residents[nextIdx]?.id || '');
+            setCurrentSection(0);
+            setValidationErrors([]);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          } else {
+            // Last resident done — show summary
+            setShowSummary(true);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
         } else if (surveyData.residents.length > currentResidentIndex + 1) {
           const nextIdx = currentResidentIndex + 1;
           const nextResidentId = surveyData.residents[nextIdx]?.id;
           setCurrentResidentIndex(nextIdx);
-          // Pre-fill existing scores if available (post-submit editing)
           if (nextResidentId && surveyData.existing_scores?.[nextResidentId]) {
             const existing = surveyData.existing_scores[nextResidentId];
             const restored: Partial<ScoreValues> = {};
@@ -607,6 +794,35 @@ export default function SurveyPage() {
       }
     } catch {
       setError('Failed to submit. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  // Complete the entire survey from summary page (core + teaching faculty)
+  async function completeSurveyFromSummary() {
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/surveys/respond/${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'complete' }),
+      });
+      if (res.ok) {
+        // Take new snapshot so future edits are detected against this baseline
+        const newSnapshot: Record<string, ScoreValues> = {};
+        for (const [id, s] of Object.entries(allScores)) {
+          newSnapshot[id] = { ...s };
+        }
+        setSnapshotScores(newSnapshot);
+        setInitialSubmittedAll(true);
+        setHasScoreChanges(false);
+        // Stay on summary — user can still edit
+      } else {
+        setError('Failed to complete survey');
+      }
+    } catch {
+      setError('Failed to complete survey');
     } finally {
       setSubmitting(false);
     }
@@ -668,167 +884,273 @@ export default function SurveyPage() {
 
   if (!surveyData) return null;
 
-  // Teaching Faculty: open roster view
-  if (isTeachingFaculty && showRoster && surveyData.residents.length > 0) {
-    const ratedCount = surveyData.residents.filter(r => r.assignment_status === 'completed').length;
-    const guidanceMin = surveyData.respondent.guidance_min || 3;
-
-    const handleSelectResident = (index: number) => {
-      setCurrentResidentIndex(index);
-      const residentId = surveyData.residents[index]?.id;
-      if (residentId && surveyData.existing_scores?.[residentId]) {
-        const existing = surveyData.existing_scores[residentId];
-        const restored: Partial<ScoreValues> = {};
-        for (const [key, val] of Object.entries(existing)) {
-          if (key !== 'comments' && typeof val === 'number') {
-            restored[key as keyof ScoreValues] = val;
-          }
-        }
-        setScores({ ...DEFAULT_SCORES, ...restored });
-        setTouchedFields(new Set(Object.keys(restored)));
-        if (typeof existing.comments === 'string') setComments(existing.comments);
-        else setComments('');
-      } else {
-        setScores({ ...DEFAULT_SCORES });
-        setComments('');
-      }
-      setCurrentSection(0);
-      setShowRoster(false);
-    };
-
-    const handleCompleteAll = async () => {
-      setSubmitting(true);
-      try {
-        await fetch(`/api/surveys/respond/${token}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'complete' }),
-        });
-        setCompleted(true);
-      } catch {
-        setError('Failed to complete survey');
-      } finally {
-        setSubmitting(false);
-      }
-    };
-
-    return (
-      <div className="max-w-lg mx-auto pb-24">
-        <div className="px-4 pt-6 pb-4">
-          <h1 className="text-lg font-bold text-neutral-900">{surveyData.survey.title}</h1>
-          <p className="text-sm text-neutral-500 mt-1">
-            {surveyData.respondent.name || surveyData.respondent.email}
-          </p>
-        </div>
-
-        {/* Soft guidance banner */}
-        <div className="mx-4 mb-4 p-3 rounded-lg" style={{ backgroundColor: COLORS.lightest, border: `1px solid ${COLORS.light}` }}>
-          <p className="text-sm" style={{ color: COLORS.veryDark }}>
-            We recommend evaluating at least <strong>{guidanceMin} residents</strong> you&apos;ve worked with closely.
-            Rate as many as you&apos;d like — select any resident below to begin.
-          </p>
-        </div>
-
-        {/* Progress */}
-        <div className="mx-4 mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-neutral-600">{ratedCount} of {surveyData.residents.length} residents rated</span>
-            {ratedCount >= guidanceMin && (
-              <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-medium">
-                Minimum met
-              </span>
-            )}
-          </div>
-          <div className="w-full h-2 bg-neutral-200 rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-500"
-              style={{
-                width: `${Math.round((ratedCount / surveyData.residents.length) * 100)}%`,
-                backgroundColor: ratedCount >= guidanceMin ? '#22c55e' : COLORS.medium,
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Resident roster */}
-        <div className="mx-4 space-y-2">
-          {surveyData.residents.map((resident, idx) => {
-            const isRated = resident.assignment_status === 'completed';
-            return (
-              <button
-                key={resident.id}
-                onClick={() => !isRated && handleSelectResident(idx)}
-                disabled={isRated}
-                className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
-                  isRated
-                    ? 'bg-green-50 border-green-200 opacity-75'
-                    : 'bg-white border-neutral-200 hover:shadow-sm active:scale-[0.99]'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${
-                    isRated ? 'bg-green-100 text-green-700' : 'bg-neutral-100 text-neutral-500'
-                  }`}>
-                    {isRated ? <CheckCircle className="w-5 h-5" /> : resident.full_name.charAt(0)}
-                  </div>
-                  <div className="text-left">
-                    <p className={`text-sm font-medium ${isRated ? 'text-green-800' : 'text-neutral-900'}`}>
-                      {resident.full_name}
-                    </p>
-                    <p className="text-xs text-neutral-400">
-                      {isRated ? 'Completed' : 'Tap to evaluate'}
-                    </p>
-                  </div>
-                </div>
-                {!isRated && <ChevronRight className="w-4 h-4 text-neutral-400" />}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Complete button */}
-        {ratedCount > 0 && (
-          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 px-4 py-3 shadow-lg">
-            <div className="max-w-lg mx-auto">
-              <button
-                onClick={handleCompleteAll}
-                disabled={submitting}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 text-white rounded-lg 
-                           hover:opacity-90 transition-colors font-medium text-sm disabled:opacity-50"
-                style={{ backgroundColor: COLORS.darker }}
-              >
-                {submitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Completing...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="w-4 h-4" />
-                    Complete Survey ({ratedCount} resident{ratedCount !== 1 ? 's' : ''} rated)
-                  </>
-                )}
-              </button>
-              {ratedCount < guidanceMin && (
-                <p className="text-xs text-center text-neutral-400 mt-2">
-                  {guidanceMin - ratedCount} more recommended
-                </p>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-
   const isLearner = surveyData.survey.type === 'learner_self_assessment';
   const totalResidents = isLearner ? 1 : surveyData.residents.length;
   const completedResidents = isLearner
     ? 0
     : surveyData.residents.filter(r => r.assignment_status === 'completed').length;
+  const isMultiResident = isFacultyMultiResident && totalResidents > 1;
+  const guidanceMin = surveyData.respondent.guidance_min || 3;
 
+  // ========================================================================
+  // Teaching Faculty: Welcome Screen
+  // ========================================================================
+  if (isMultiResident && showWelcome) {
+    return (
+      <div className="max-w-lg mx-auto flex flex-col items-center justify-center min-h-screen px-6 text-center">
+        <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6" style={{ backgroundColor: COLORS.lightest }}>
+          <Heart className="w-8 h-8" style={{ color: COLORS.dark }} />
+        </div>
+        <h1 className="text-xl font-bold mb-3" style={{ color: COLORS.veryDark }}>
+          {surveyData.survey.title}
+        </h1>
+        <p className="text-sm text-slate-600 leading-relaxed mb-8 max-w-sm">
+          Thank you for taking the time to provide your input for the Emergency Medicine residency program.
+          On the following screen you can choose who you would like to provide input on.
+          Your feedback is invaluable in making our future attendings the best versions of themselves.
+        </p>
+        <button
+          onClick={() => setShowWelcome(false)}
+          className="px-8 py-3 text-white rounded-lg font-medium text-sm hover:opacity-90 transition-opacity"
+          style={{ backgroundColor: COLORS.dark }}
+        >
+          Get Started
+        </button>
+        <p className="text-xs text-slate-400 mt-4">
+          {totalResidents} residents to review
+          {guidanceMin > 0 && ` · minimum ${guidanceMin} recommended`}
+        </p>
+      </div>
+    );
+  }
+
+  // ========================================================================
+  // Multi-Resident Summary Page (Core + Teaching Faculty)
+  // ========================================================================
+  if (isMultiResident && showSummary) {
+    return (
+      <div className="max-w-2xl mx-auto pb-12">
+        <div className="px-4 pt-6 pb-2">
+          <h1 className="text-lg font-bold" style={{ color: COLORS.veryDark }}>
+            Review & Submit
+          </h1>
+          <p className="text-sm text-slate-500 mt-1">
+            {surveyData.survey.title} &middot; {submittedResidents.size} of {totalResidents} residents scored
+            {isTeachingFaculty && guidanceMin > 0 && (
+              <span> · min {guidanceMin} recommended</span>
+            )}
+          </p>
+        </div>
+
+        {error && (
+          <div className="mx-4 mt-2 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            {error}
+            <button onClick={() => setError(null)} className="ml-auto text-red-500 font-medium">Dismiss</button>
+          </div>
+        )}
+
+        {/* Sort controls */}
+        <div className="mx-4 mt-4 flex items-center gap-2 flex-wrap">
+          <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
+          {([
+            ['original', 'Original'],
+            ['a-z', 'A → Z'],
+            ['z-a', 'Z → A'],
+            ['score-high', 'Score ↓'],
+            ['score-low', 'Score ↑'],
+          ] as const).map(([mode, label]) => (
+            <button
+              key={mode}
+              onClick={() => setSummarySortMode(mode)}
+              className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                summarySortMode === mode
+                  ? 'text-white'
+                  : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+              }`}
+              style={summarySortMode === mode ? { backgroundColor: COLORS.dark } : undefined}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Resident list */}
+        <div className="mx-4 mt-3 bg-white rounded-xl border overflow-hidden" style={{ borderColor: COLORS.light }}>
+          {(() => {
+            const indexed = surveyData.residents.map((r, i) => ({ resident: r, originalIdx: i }));
+            const sorted = [...indexed].sort((a, b) => {
+              if (summarySortMode === 'a-z') return a.resident.full_name.localeCompare(b.resident.full_name);
+              if (summarySortMode === 'z-a') return b.resident.full_name.localeCompare(a.resident.full_name);
+              if (summarySortMode === 'score-high' || summarySortMode === 'score-low') {
+                const aScores = allScores[a.resident.id];
+                const bScores = allScores[b.resident.id];
+                const aAvg = aScores ? getOverallForScores(aScores) : -1;
+                const bAvg = bScores ? getOverallForScores(bScores) : -1;
+                return summarySortMode === 'score-high' ? bAvg - aAvg : aAvg - bAvg;
+              }
+              return 0;
+            });
+            return sorted.map(({ resident, originalIdx }, displayIdx) => {
+              const resScores = allScores[resident.id];
+              const isSubmitted = submittedResidents.has(resident.id);
+              const eqAvg = resScores ? Math.round(getSectionAverageForScores(0, resScores)) : 0;
+              const pqAvg = resScores ? Math.round(getSectionAverageForScores(1, resScores)) : 0;
+              const iqAvg = resScores ? Math.round(getSectionAverageForScores(2, resScores)) : 0;
+              const isExpanded = expandedResident === resident.id;
+              const overallAvg = resScores ? Math.round(getOverallForScores(resScores)) : 0;
+
+              return (
+                <div
+                  key={resident.id}
+                  style={displayIdx > 0 ? { borderTop: `1px solid ${COLORS.lightest}` } : undefined}
+                >
+                  <div
+                    className="p-3 sm:p-4 hover:bg-green-50/30 transition-colors cursor-pointer"
+                    onClick={() => { setShowSummary(false); navigateToResident(originalIdx); }}
+                  >
+                    {/* Top row: avatar + name + expand chevron */}
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold shrink-0 text-white"
+                        style={{ backgroundColor: resScores ? scoreToHeatColor(overallAvg) : '#d1d5db' }}>
+                        {resScores ? overallAvg : originalIdx + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-slate-900 text-sm sm:text-base truncate">{resident.full_name}</p>
+                        {resident.graduation_year && (
+                          <p className="text-[10px] sm:text-[11px] text-slate-400">{formatResidentClass(resident.graduation_year)}</p>
+                        )}
+                        <p className="text-[10px] sm:text-xs text-slate-400">
+                          {isSubmitted ? 'Tap to edit' : 'Not yet scored'}
+                        </p>
+                      </div>
+                      {resScores ? (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setExpandedResident(isExpanded ? null : resident.id); }}
+                          className="p-1 rounded-md hover:bg-slate-100 transition-colors shrink-0"
+                          aria-label={isExpanded ? 'Collapse breakdown' : 'Expand breakdown'}
+                        >
+                          {isExpanded
+                            ? <ChevronUp className="w-4 h-4 text-slate-400" />
+                            : <ChevronDown className="w-4 h-4 text-slate-400" />
+                          }
+                        </button>
+                      ) : (
+                        <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
+                      )}
+                    </div>
+                    {/* Score tiles below name on own row for mobile-friendly layout */}
+                    {resScores && (
+                      <div className="mt-2 ml-[2.875rem] sm:ml-[3.125rem]">
+                        <ScoreCard eq={eqAvg} pq={pqAvg} iq={iqAvg} size="sm" showOverall={false} />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Expanded attribute breakdown */}
+                  {isExpanded && resScores && (
+                    <div className="px-4 pb-4 pt-0">
+                      <div className="bg-slate-50 rounded-lg p-3 space-y-3">
+                        {SECTIONS.map((section) => (
+                          <div key={section.id}>
+                            <p className="text-xs font-semibold mb-1.5" style={{ color: section.hexText }}>
+                              {section.id.toUpperCase()}
+                            </p>
+                            <div className="space-y-1">
+                              {section.attributes.map((attr) => {
+                                const val = resScores[attr.key as keyof ScoreValues] ?? 50;
+                                return (
+                                  <div key={attr.key} className="flex items-center justify-between text-xs">
+                                    <span className="text-slate-600 truncate pr-2">{attr.label}</span>
+                                    <span className="font-mono font-medium tabular-nums shrink-0" style={{ color: section.hexText }}>
+                                      {val}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                        <div className="pt-2 border-t border-slate-200 flex items-center justify-between">
+                          <button
+                            onClick={() => { setShowSummary(false); navigateToResident(originalIdx); }}
+                            className="text-xs font-medium flex items-center gap-1 hover:underline"
+                            style={{ color: COLORS.dark }}
+                          >
+                            <Edit2 className="w-3 h-3" /> Edit scores
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            });
+          })()}
+        </div>
+
+        {/* Submit / Update */}
+        <div className="mx-4 mt-6">
+          {(() => {
+            const scoredCount = submittedResidents.size;
+            const allScored = scoredCount >= totalResidents;
+            const alreadySubmitted = initialSubmittedAll;
+            // Teaching faculty: can submit once they've scored at least 1 resident
+            // Core faculty: must score all residents
+            const meetsThreshold = isTeachingFaculty ? scoredCount > 0 : allScored;
+            const canSubmit = meetsThreshold && (!alreadySubmitted || hasScoreChanges);
+
+            return (
+              <>
+                <button
+                  onClick={completeSurveyFromSummary}
+                  disabled={submitting || !canSubmit}
+                  className="w-full flex items-center justify-center gap-2 px-5 py-3.5 text-white rounded-lg font-medium text-sm disabled:opacity-40 hover:opacity-90 transition-opacity"
+                  style={{ backgroundColor: COLORS.dark }}
+                >
+                  {submitting ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</>
+                  ) : alreadySubmitted && !hasScoreChanges ? (
+                    <><CheckCircle className="w-4 h-4" /> Submitted</>
+                  ) : alreadySubmitted && hasScoreChanges ? (
+                    <><RefreshCw className="w-4 h-4" /> Update Your Submission</>
+                  ) : (
+                    <><CheckCircle className="w-4 h-4" /> Submit!</>
+                  )}
+                </button>
+                {isCoreFaculty && !allScored && (
+                  <p className="text-xs text-center text-slate-400 mt-2">
+                    Score all {totalResidents} residents to submit
+                  </p>
+                )}
+                {isTeachingFaculty && scoredCount === 0 && (
+                  <p className="text-xs text-center text-slate-400 mt-2">
+                    Score at least one resident to submit
+                  </p>
+                )}
+                {isTeachingFaculty && scoredCount > 0 && scoredCount < guidanceMin && !alreadySubmitted && (
+                  <p className="text-xs text-center text-amber-500 mt-2">
+                    {guidanceMin - scoredCount} more recommended (minimum {guidanceMin})
+                  </p>
+                )}
+                {alreadySubmitted && !hasScoreChanges && (
+                  <p className="text-xs text-center text-slate-400 mt-2">
+                    Your evaluation has been submitted. Edit any resident&apos;s scores to update.
+                  </p>
+                )}
+              </>
+            );
+          })()}
+        </div>
+      </div>
+    );
+  }
+
+  // ========================================================================
+  // Rating Form (Self-Assessment, Teaching Faculty, Core Faculty per-resident)
+  // ========================================================================
   return (
-    <div className="max-w-2xl mx-auto pb-12">
+    <div className={`max-w-2xl mx-auto ${isMultiResident ? 'pt-0 pb-28' : 'pb-12'}`}>
       {/* Error banner */}
       {error && (
         <div className="mx-4 mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-center gap-2">
@@ -838,39 +1160,84 @@ export default function SurveyPage() {
         </div>
       )}
 
-      {/* Combined header + score legend */}
-      <div className="mx-4 mt-4 bg-white rounded-lg border px-4 py-3" style={{ borderColor: COLORS.light }}>
-        <div className="flex items-start justify-between mb-2">
-          <div className="flex-1 min-w-0">
-            {isTeachingFaculty && (
-              <button
-                onClick={() => { saveProgress(); setShowRoster(true); }}
-                className="flex items-center gap-1 text-xs mb-1"
-                style={{ color: COLORS.dark }}
-              >
-                <ChevronLeft className="w-3.5 h-3.5" /> Roster
-              </button>
-            )}
-            <h1 className="text-sm font-bold truncate" style={{ color: COLORS.veryDark }}>
-              {surveyData.survey.title}
-            </h1>
-            <p className="text-xs text-slate-500 truncate">
+      {/* Unified header card — sticky for multi-resident, static otherwise */}
+      <div className={`mx-4 bg-white rounded-lg border px-4 py-3 ${isMultiResident ? 'sticky top-0 z-30 mt-2 shadow-sm' : 'mt-4'}`} style={{ borderColor: COLORS.light }}>
+        <div className="mb-2">
+          <h1 className="text-sm font-bold text-center truncate" style={{ color: COLORS.veryDark }}>
+            {surveyData.survey.title}
+          </h1>
+          {!isMultiResident && (
+            <p className="text-xs text-slate-500 text-center truncate">
               {isLearner
                 ? getCurrentResidentName()
-                : `Evaluating: ${getCurrentResidentName()}${isTeachingFaculty ? '' : ` (${currentResidentIndex + 1} of ${totalResidents})`}`}
+                : `Evaluating: ${getCurrentResidentName()} (${currentResidentIndex + 1} of ${totalResidents})`}
             </p>
-          </div>
-          <div className="flex items-center gap-1 text-xs text-slate-400 shrink-0 ml-2 pt-0.5">
+          )}
+          <div className="flex items-center justify-center gap-1 text-xs text-slate-400 mt-0.5">
             {saving ? (
               <><Loader2 className="w-3 h-3 animate-spin" /><span>Saving...</span></>
             ) : lastSaved ? (
-              <><Save className="w-3 h-3" /><span>Saved</span></>
+              <><Save className="w-3 h-3" /><span>Saved {lastSaved.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span></>
             ) : null}
           </div>
         </div>
 
-        {/* Resident progress for faculty */}
-        {!isLearner && totalResidents > 1 && (
+        {/* Core faculty: pill stepper + resident name inside the card */}
+        {isMultiResident && (
+          <div className="mb-2 pt-2" style={{ borderTop: `1px solid ${COLORS.lightest}` }}>
+            <div className="flex items-center justify-center gap-1.5 mb-1.5">
+              {surveyData.residents.map((r, idx) => {
+                const isDone = submittedResidents.has(r.id) || r.assignment_status === 'completed';
+                const isCurrent = idx === currentResidentIndex;
+                return (
+                  <button
+                    key={r.id}
+                    onClick={() => navigateToResident(idx)}
+                    className="relative group"
+                    title={r.full_name}
+                  >
+                    <div
+                      className={`rounded-full transition-all duration-200 ${
+                        'w-3 h-3'
+                      }`}
+                      style={{
+                        backgroundColor: isCurrent
+                          ? COLORS.veryDark
+                          : isDone
+                            ? COLORS.medium
+                            : '#e2e8f0',
+                      }}
+                    />
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-center text-sm font-semibold" style={{ color: COLORS.veryDark }}>
+              {getCurrentResidentName()}
+            </p>
+            {surveyData.residents[currentResidentIndex]?.graduation_year && (
+              <p className="text-center text-[11px] text-slate-400">
+                {formatResidentClass(surveyData.residents[currentResidentIndex].graduation_year)}
+              </p>
+            )}
+            <div className="flex items-center justify-center gap-2 mt-0.5">
+              <p className="text-[11px] text-slate-400">
+                {currentResidentIndex + 1} of {totalResidents}
+              </p>
+              <span className="text-[11px] text-slate-300">|</span>
+              <button
+                onClick={() => { stashCurrentScores(); setShowSummary(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                className="text-[11px] font-medium underline"
+                style={{ color: COLORS.dark }}
+              >
+                Review All
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Resident progress for non-core faculty */}
+        {!isLearner && !isMultiResident && totalResidents > 1 && (
           <div className="mb-2">
             <div className="flex justify-between items-center mb-1">
               <span className="text-xs text-slate-500">{completedResidents} of {totalResidents} residents</span>
@@ -887,7 +1254,7 @@ export default function SurveyPage() {
           </div>
         )}
 
-        <div className="pt-2" style={{ borderTop: `1px solid ${COLORS.lightest}` }}>
+        <div className={`pt-2 ${isMultiResident ? '' : ''}`} style={{ borderTop: isMultiResident ? undefined : `1px solid ${COLORS.lightest}` }}>
           <p className="text-[11px] text-slate-500 text-center mb-1.5">Score meaning</p>
           <ScoreRangeKey />
         </div>
@@ -895,7 +1262,7 @@ export default function SurveyPage() {
 
       {/* All sections — scrollable */}
       <div className="px-4 mt-4 space-y-5">
-        {activeSections.map((section, sIdx) => {
+        {activeSections.map((section) => {
           const Icon = SECTION_ICONS[section.id] || Heart;
           const sectionValues = section.attributes.map(a => scores[a.key as keyof ScoreValues] || 0);
           const sectionAvg = Math.round(sectionValues.reduce((s, v) => s + v, 0) / sectionValues.length);
@@ -907,7 +1274,6 @@ export default function SurveyPage() {
               className="bg-white rounded-xl border overflow-hidden"
               style={{ borderColor: COLORS.light }}
             >
-              {/* Pillar header — green theme matching portal */}
               <div className="px-5 py-3 flex items-center justify-between" style={{ backgroundColor: COLORS.lightest }}>
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/70">
@@ -921,7 +1287,6 @@ export default function SurveyPage() {
                 <div className="text-xl font-bold" style={{ color: COLORS.dark }}>{sectionAvg}</div>
               </div>
 
-              {/* Compact attribute rows */}
               <div>
                 {section.attributes.map((attr, idx) => (
                   <div key={attr.key} style={idx > 0 ? { borderTop: `1px solid ${COLORS.lightest}` } : undefined}>
@@ -962,47 +1327,167 @@ export default function SurveyPage() {
           />
         </div>
 
-        {/* Submit */}
-        <div className="rounded-xl border p-5" style={{ borderColor: COLORS.light, backgroundColor: COLORS.lightest + '40' }}>
-          {/* Score summary */}
-          <div className="grid grid-cols-3 gap-4 text-center mb-4">
-            {activeSections.map((section, idx) => (
-              <div key={section.id}>
-                <div className="text-xs text-slate-500 mb-1">{section.id.toUpperCase()}</div>
-                <div className="text-xl font-bold" style={{ color: COLORS.dark }}>
-                  {getSectionAverage(idx).toFixed(0)}
+        {/* Submit section — only for non-core-faculty (core faculty uses sticky footer) */}
+        {!isMultiResident && (
+          <div className="rounded-xl border p-5" style={{ borderColor: COLORS.light, backgroundColor: COLORS.lightest + '40' }}>
+            <div className="grid grid-cols-3 gap-4 text-center mb-4">
+              {activeSections.map((section, idx) => (
+                <div key={section.id}>
+                  <div className="text-xs text-slate-500 mb-1">{section.id.toUpperCase()}</div>
+                  <div className="text-xl font-bold" style={{ color: COLORS.dark }}>
+                    {getSectionAverage(idx).toFixed(0)}
+                  </div>
                 </div>
+              ))}
+            </div>
+            <div className="text-center mb-4 pt-3" style={{ borderTop: `1px solid ${COLORS.light}` }}>
+              <div className="text-xs text-slate-500 mb-1">Overall Average</div>
+              <div className="text-3xl font-bold" style={{ color: COLORS.veryDark }}>
+                {activeSections.length > 0
+                  ? (activeSections.reduce((sum, _, idx) => sum + getSectionAverage(idx), 0) / activeSections.length).toFixed(0)
+                  : '0'}
               </div>
-            ))}
+            </div>
+
+            <button
+              onClick={submitCurrentRating}
+              disabled={submitting}
+              className="w-full flex items-center justify-center gap-2 px-5 py-3 text-white rounded-lg font-medium text-sm disabled:opacity-50 hover:opacity-90"
+              style={{ backgroundColor: COLORS.dark }}
+            >
+              {submitting ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</>
+              ) : (
+                <><CheckCircle className="w-4 h-4" /> Submit</>
+              )}
+            </button>
           </div>
-          <div className="text-center mb-4 pt-3" style={{ borderTop: `1px solid ${COLORS.light}` }}>
-            <div className="text-xs text-slate-500 mb-1">Overall Average</div>
-            <div className="text-3xl font-bold" style={{ color: COLORS.veryDark }}>
-              {activeSections.length > 0
-                ? (activeSections.reduce((sum, _, idx) => sum + getSectionAverage(idx), 0) / activeSections.length).toFixed(0)
-                : '0'}
+        )}
+      </div>
+
+      {/* Sticky bottom bar for multi-resident surveys */}
+      {isMultiResident && (
+        <div className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t shadow-lg" style={{ borderColor: COLORS.light }}>
+          <div className="max-w-2xl mx-auto px-4 py-3">
+            {/* Score + stepper card */}
+            <div className="rounded-lg border px-4 py-2.5 mb-2.5" style={{ borderColor: COLORS.light }}>
+              {/* EQ / PQ / IQ scores */}
+              <div className="flex items-center justify-center gap-4 mb-1">
+                {activeSections.map((sec, idx) => (
+                  <span key={sec.id} className="text-xs text-slate-500">
+                    {sec.id.toUpperCase()}{' '}
+                    <strong className="text-sm" style={{ color: COLORS.dark }}>
+                      {getSectionAverage(idx).toFixed(0)}
+                    </strong>
+                  </span>
+                ))}
+              </div>
+              {/* Overall average */}
+              <p className="text-center text-xs font-semibold mb-2" style={{ color: COLORS.veryDark }}>
+                Avg{' '}
+                <span className="text-base">
+                  {activeSections.length > 0
+                    ? (activeSections.reduce((sum, _, idx) => sum + getSectionAverage(idx), 0) / activeSections.length).toFixed(0)
+                    : '0'}
+                </span>
+              </p>
+              {/* Pill stepper */}
+              <div className="flex items-center justify-center gap-1.5 mb-1">
+                {surveyData.residents.map((r, idx) => {
+                  const isDone = submittedResidents.has(r.id) || r.assignment_status === 'completed';
+                  const isCurrent = idx === currentResidentIndex;
+                  return (
+                    <button
+                      key={r.id}
+                      onClick={() => navigateToResident(idx)}
+                      title={r.full_name}
+                    >
+                      <div
+                        className={`rounded-full transition-all duration-200 ${
+                          'w-3 h-3'
+                        }`}
+                        style={{
+                          backgroundColor: isCurrent
+                            ? COLORS.veryDark
+                            : isDone
+                              ? COLORS.medium
+                              : '#e2e8f0',
+                        }}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+              {/* Resident name */}
+              <p className="text-center text-sm font-semibold" style={{ color: COLORS.veryDark }}>
+                {getCurrentResidentName()}
+              </p>
+              {surveyData.residents[currentResidentIndex]?.graduation_year && (
+                <p className="text-center text-[11px] text-slate-400">
+                  {formatResidentClass(surveyData.residents[currentResidentIndex].graduation_year)}
+                </p>
+              )}
+              <div className="flex items-center justify-center gap-2 mt-0.5">
+                <p className="text-[11px] text-slate-400">
+                  {currentResidentIndex + 1} of {totalResidents}
+                </p>
+                <span className="text-[11px] text-slate-300">|</span>
+                <button
+                  onClick={() => { stashCurrentScores(); setShowSummary(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  className="text-[11px] font-medium underline"
+                  style={{ color: COLORS.dark }}
+                >
+                  Review All
+                </button>
+              </div>
+            </div>
+
+            {/* Navigation buttons */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  if (isTeachingFaculty) {
+                    stashCurrentScores();
+                    setShowSummary(true);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  } else if (currentResidentIndex > 0) {
+                    stashCurrentScores();
+                    const prevIdx = currentResidentIndex - 1;
+                    setCurrentResidentIndex(prevIdx);
+                    loadResidentScores(surveyData.residents[prevIdx]?.id || '');
+                    setCurrentSection(0);
+                    setValidationErrors([]);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }
+                }}
+                disabled={!isTeachingFaculty && currentResidentIndex === 0}
+                className="flex items-center justify-center gap-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-30"
+                style={{ color: COLORS.dark, border: `1px solid ${COLORS.light}` }}
+              >
+                <ChevronLeft className="w-4 h-4" />
+                {isTeachingFaculty ? 'Review All' : 'Back'}
+              </button>
+
+              <button
+                onClick={submitCurrentRating}
+                disabled={submitting}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-white rounded-lg font-medium text-sm disabled:opacity-50 hover:opacity-90"
+                style={{ backgroundColor: COLORS.dark }}
+              >
+                {submitting ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</>
+                ) : isTeachingFaculty ? (
+                  <>Save & Review <ChevronRight className="w-4 h-4" /></>
+                ) : currentResidentIndex < totalResidents - 1 ? (
+                  <>Next <ChevronRight className="w-4 h-4" /></>
+                ) : (
+                  <>Review All <ChevronRight className="w-4 h-4" /></>
+                )}
+              </button>
             </div>
           </div>
-
-          <button
-            onClick={submitCurrentRating}
-            disabled={submitting}
-            className="w-full flex items-center justify-center gap-2 px-5 py-3 text-white rounded-lg font-medium text-sm disabled:opacity-50 hover:opacity-90"
-            style={{ backgroundColor: COLORS.dark }}
-          >
-            {submitting ? (
-              <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</>
-            ) : (
-              <>
-                <CheckCircle className="w-4 h-4" />
-                {isLearner
-                  ? 'Submit'
-                  : `Submit`}
-              </>
-            )}
-          </button>
         </div>
-      </div>
+      )}
     </div>
   );
 }

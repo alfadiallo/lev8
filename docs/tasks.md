@@ -1,9 +1,9 @@
 # Tasks.md: Elevate Implementation Roadmap
 
-**Project:** Elevate (www.lev8.ai)  
-**Version:** 1.0 Production  
-**Last Updated:** December 2, 2025  
-**Status:** All Modules Complete - Analytics Engine & Expectations Module Operational  
+**Project:** Elevate (www.lev8.ai) + EQ·PQ·IQ (www.eqpqiq.com)  
+**Version:** 2.0 Production  
+**Last Updated:** February 17, 2026  
+**Status:** All Core Modules + EQ·PQ·IQ Product Suite Operational  
 
 ---
 
@@ -1285,6 +1285,111 @@ Build first multi-patient board configuration with dynamic patient progression, 
 
 ---
 
+## PHASE 5: EQ·PQ·IQ Product Suite (January-February 2026) ✅
+
+**Status:** Complete  
+**Theme:** Build the EQ·PQ·IQ evaluation product suite at eqpqiq.com
+
+### Epic 5.1: Interview Assessment Tool ✅
+
+**5.1.1** ✅ Full session lifecycle (create → rate → review → export)
+**5.1.2** ✅ 0-100 EQ/PQ/IQ rating with auto-save
+**5.1.3** ✅ Z-score normalization engine with toggle
+**5.1.4** ✅ Season-wide rank list with decile distribution
+**5.1.5** ✅ Interviewer statistics dashboard
+**5.1.6** ✅ Built-in interview question guide (15 sub-attributes, 50+ questions)
+**5.1.7** ✅ Stripe subscription integration for group sessions
+**5.1.8** ✅ Share token collaboration
+**5.1.9** ✅ Demo accounts with seeded data
+**5.1.10** ✅ CSV export (raw + normalized)
+
+### Epic 5.2: Pulse Check ✅
+
+**5.2.1** ✅ Provider evaluation: 13 EQ/PQ/IQ attributes (1-5 scale)
+**5.2.2** ✅ Operational metrics (LOS, Imaging CT/US/MRI, PPH)
+**5.2.3** ✅ Sparkline trend visualizations with bezier curves
+**5.2.4** ✅ Reports dashboard with site-level rollup
+**5.2.5** ✅ Provider Profile Modal (current scores + history)
+**5.2.6** ✅ Admin panel: sites, departments, directors, providers
+**5.2.7** ✅ CSV import for bulk provider onboarding
+**5.2.8** ✅ Frequency management with site-level overrides
+**5.2.9** ✅ Cycle management with auto-provisioning
+**5.2.10** ✅ Demo accounts with seeded historical data
+
+### Epic 5.3: EQ·PQ·IQ Brand Landing Page ✅
+
+**5.3.1** ✅ Philosophy, use cases, AI analytics, archetyping sections
+**5.3.2** ✅ Middleware rewrite: eqpqiq.com / → /eqpqiq-landing
+**5.3.3** ✅ Contact email: hello@eqpqiq.com (Google Workspace)
+
+### Epic 5.4: Progress Check Survey System ✅
+
+**5.4.1** ✅ Survey creation (educator assessment / learner self-assessment)
+**5.4.2** ✅ Audience targeting: class filter, faculty type filter
+**5.4.3** ✅ Token-based email distribution via Resend (48-char hex tokens)
+**5.4.4** ✅ Public survey form (`/survey/[token]`) — compact slider design, auto-save, scrollable layout
+**5.4.5** ✅ Respondent status tracking (pending / started / completed)
+**5.4.6** ✅ Toggle recipients on/off during distribution
+**5.4.7** ✅ Add respondents to active surveys after initial distribution
+**5.4.8** ✅ View respondent results inline (EQ/PQ/IQ averages with expandable scores)
+**5.4.9** ✅ Demo accounts for PD, Faculty, and Resident roles
+
+### Epic 5.5: CCC → Progress Check Rename ✅
+
+**5.5.1** ✅ Database migration: rename tables, columns, session types
+**5.5.2** ✅ API route rename: `/api/ccc-sessions` → `/api/progress-check-sessions`
+**5.5.3** ✅ API route rename: `/api/v2/sessions/ccc` → `/api/v2/sessions/progress-check`
+**5.5.4** ✅ UI references updated across all components
+
+### Epic 5.6: Terminology & Cleanup ✅
+
+**5.6.1** ✅ "Intelligence" → "Quotient" in framework pillar names (database migration)
+**5.6.2** ✅ ESLint technical debt cleanup (~300 warnings across 64 files)
+**5.6.3** ✅ Warning noise cleanup pass (top-noise files targeted)
+**5.6.4** ✅ 0-100 scale migration (from 1.0-5.0 for structured_ratings)
+**5.6.5** ✅ Rater type refinement (core_faculty, teaching_faculty, self)
+
+---
+
+## PHASE 6: Enhancements & Integrations (Upcoming)
+
+**Status:** Not Started  
+**Theme:** Deepen integrations, automate workflows, expand analytics
+
+### Epic 6.1: Progress Check Integrations
+
+**6.1.1** Survey comments → AI SWOT generation pipeline
+**6.1.2** Survey ratings → period_scores aggregation
+**6.1.3** Automated survey reminders on configurable cadence
+**6.1.4** Read-only survey view for respondents post-submission
+- **Estimated:** 15-20 hours
+
+### Epic 6.2: Pulse Check Enhancements
+
+**6.2.1** Voice memo recording + Whisper transcription
+**6.2.2** Email reminder automation (connect API to Resend)
+**6.2.3** PDF/Presentation export for provider profiles
+**6.2.4** Provider self-assessment with gap analysis
+- **Estimated:** 20-25 hours
+
+### Epic 6.3: Interview Enhancements
+
+**6.3.1** AI-powered scoring from interview notes
+**6.3.2** Season management (activate season_id FK)
+**6.3.3** Guest interviewer role
+**6.3.4** ERAS/NRMP integration for candidate data import
+- **Estimated:** 25-30 hours
+
+### Epic 6.4: Platform-Wide
+
+**6.4.1** Privacy Framework & Data Consent (Epic 2.10 — 4-tier system)
+**6.4.2** Credit system for Claude API usage (Stripe billing for Elevate)
+**6.4.3** Sentry error monitoring
+**6.4.4** Expectations: Action Items and Site Visits full CRUD
+- **Estimated:** 30-40 hours
+
+---
+
 ## Quick Start Commands
 
 ```bash
@@ -1307,15 +1412,11 @@ git push origin main
 
 # 6. Check deployment
 # Monitor at: vercel.com dashboard
-# Live at: www.lev8.ai
+# Live at: www.lev8.ai + www.eqpqiq.com
 ```
 
 ---
 
-**Last Updated:** December 2, 2025  
-**Status:** Phase 4 (Expectations) Core Complete  
-**Next Steps:** 
-- Complete Action Items full CRUD
-- Complete Site Visits full CRUD
-- Evidence Management (Phase 2)
-- ILP Module (under consideration - see `docs/_guidance/ILP/`)
+**Last Updated:** February 17, 2026  
+**Status:** Phase 5 (EQ·PQ·IQ Product Suite) Complete  
+**Next Steps:** See Phase 5+ below for current priorities

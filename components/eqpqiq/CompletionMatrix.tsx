@@ -288,7 +288,7 @@ export default function CompletionMatrix({ surveyId, onRemindAll, onRemindOne }:
       <RespondentGroup
         title="Teaching Faculty"
         icon={<Users className="w-4 h-4" />}
-        description="Open roster (min 3 recommended)"
+        description="Choose which residents to evaluate (min 3 recommended)"
         respondents={teachingGroup}
         onRemindAll={() => handleRemindAll('teaching_faculty')}
         onRemindOne={onRemindOne}

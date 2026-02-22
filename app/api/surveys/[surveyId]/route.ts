@@ -71,11 +71,42 @@ export async function GET(
         : 0,
     };
 
+    // Fetch scores for completed respondents
+    const completedIds = (respondents || [])
+      .filter(r => r.status === 'completed')
+      .map(r => r.id);
+
+    let respondentScores: Record<string, { eq_avg: number; pq_avg: number; iq_avg: number; overall: number }> = {};
+    if (completedIds.length > 0) {
+      const { data: ratings } = await supabase
+        .from('structured_ratings')
+        .select('form_submission_id, eq_avg, pq_avg, iq_avg')
+        .in('form_submission_id', completedIds);
+
+      if (ratings) {
+        for (const r of ratings) {
+          const eq = Number(r.eq_avg) || 0;
+          const pq = Number(r.pq_avg) || 0;
+          const iq = Number(r.iq_avg) || 0;
+          const existing = respondentScores[r.form_submission_id];
+          if (!existing || (eq + pq + iq) > (existing.eq_avg + existing.pq_avg + existing.iq_avg)) {
+            respondentScores[r.form_submission_id] = {
+              eq_avg: Math.round(eq * 10) / 10,
+              pq_avg: Math.round(pq * 10) / 10,
+              iq_avg: Math.round(iq * 10) / 10,
+              overall: Math.round(((eq + pq + iq) / 3) * 10) / 10,
+            };
+          }
+        }
+      }
+    }
+
     return NextResponse.json({
       survey,
       respondents: respondents || [],
       respondent_details: respondentDetails || [],
       faculty_progress: facultyProgress,
+      respondent_scores: respondentScores,
       stats,
     });
   } catch (error) {

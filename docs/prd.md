@@ -1,19 +1,25 @@
 # Product Requirements Document (PRD)
 ## Elevate: Medical Education Portal Platform
 
-**Project Name:** Elevate (www.lev8.ai)  
-**Version:** 1.0 MVP  
-**Last Updated:** October 20, 2025  
-**Status:** PRD Definition Phase  
-**Institution:** Memorial Hospital West Emergency Medicine Residency Program
+**Project Name:** Elevate (www.lev8.ai) + EQ·PQ·IQ (www.eqpqiq.com)  
+**Version:** 2.0 Production  
+**Last Updated:** February 17, 2026  
+**Status:** Production (all core modules operational)  
+**Institution:** Memorial Healthcare System Emergency Medicine Residency Program
 
 ---
 
 ## 1. Executive Summary
 
-Elevate is a secure, role-based web platform designed to support medical education and resident training, starting with Emergency Medicine residency at Memorial Hospital West. The MVP establishes a unified platform foundation with modular architecture that allows residents to access personalized learning experiences, private reflection tools, and program-level insights. Learn and Understand modules are structured as empty containers ready for content integration; the Voice Journal (Grow module) is fully functional for resident reflection and Claude-powered summarization.
+Elevate is a secure, role-based web platform designed to support medical education and resident training, starting with Emergency Medicine residency at Memorial Healthcare System. The platform has grown beyond its MVP into a full production system with two product suites:
 
-Future phases will integrate sophisticated clinical case content from VirtualSIM (federated architecture), implement credit-based Claude API access, and expand to additional institutions and specialties.
+- **Elevate (lev8.ai):** Resident learning platform with AI-powered conversations, clinical cases, ACLS simulations, running board scenarios, voice journaling, and comprehensive analytics (SWOT analysis, EQ+PQ+IQ tracking, ITE archetype classification).
+- **EQ·PQ·IQ (eqpqiq.com):** Three evaluation tools built on the EQ/PQ/IQ framework:
+  - **Interview Assessment** — Structured candidate evaluation with z-score normalization for residency interviews.
+  - **Pulse Check** — Provider performance evaluation for health systems with sparkline trends and cycle management.
+  - **Progress Check** — Survey-based resident evaluation system replacing the traditional CCC workflow, with tokenized survey distribution, AI SWOT analysis, and longitudinal analytics.
+
+All modules are operational in production as of February 2026.
 
 ---
 
@@ -336,42 +342,46 @@ Users control 5 independent privacy toggles:
 ## 7. Technical Stack
 
 **Frontend**
-- React 18+ with TypeScript
-- Next.js 14+ (App Router)
-- Tailwind CSS for styling
+- React 19.1.0 with TypeScript 5 (Strict Mode)
+- Next.js 15.5.9 (App Router with Turbopack)
+- Tailwind CSS 4 for styling
 - Shadcn/ui for components
+- Recharts 3.4.1 and D3 7.9.0 for charts
 - Web Audio API for voice recording
-- Zustand or React Context for state
 
 **Backend**
-- Next.js API routes (deployed on Vercel Edge Functions)
+- Next.js API routes (~200 endpoints across 28+ route groups)
 - TypeScript for type safety
 - Environment variables for API key management
 
 **Database & Storage**
-- Supabase PostgreSQL (primary database)
+- Supabase PostgreSQL (primary database) with Row-Level Security (RLS)
 - Supabase Storage (encrypted audio files)
-- Row-Level Security (RLS) policies for data isolation
+- Supabase Realtime for session collaboration
 
 **Authentication**
-- Supabase Auth with email/password
-- TOTP-based 2FA (via Supabase or third-party library)
-- JWT sessions with refresh tokens
+- Supabase Auth with email/password + RBAC + 2FA (TOTP) for Elevate
+- Email-based context auth for eqpqiq.com products (Interview, Pulse Check, Progress Check)
+- Token-based passwordless access for survey respondents
 
-**External APIs**
+**AI Services**
+- Anthropic Claude v0.68.0 (conversations, SWOT analysis, summarization)
+- Google Generative AI v0.24.1 (alternative conversation provider)
 - OpenAI Whisper (voice transcription)
-- Claude API (voice memo summarization)
-- (Future) Stripe for payment processing
+
+**Payments**
+- Stripe v20.1.2 (Interview Assessment subscription billing)
+
+**Email**
+- Resend (survey distribution, visitor tracking, notifications)
 
 **Hosting & Deployment**
-- Frontend: Vercel (auto-deploy from GitHub on main branch push)
-- Backend: Vercel (Next.js API routes)
+- Frontend + Backend: Vercel (auto-deploy from GitHub on main branch push)
 - Database: Supabase (managed PostgreSQL)
-- Domain: www.lev8.ai (GoDaddy → Vercel DNS)
+- Domains: www.lev8.ai + www.eqpqiq.com (Vercel DNS)
 
 **CI/CD & Version Control**
 - GitHub for source code management
-- GitHub Actions for automated testing and linting
 - Vercel for continuous deployment
 - Environment-specific secrets (dev, staging, production)
 
@@ -643,33 +653,73 @@ Local Development (laptop)
 
 ---
 
-## 14. Future Roadmap
+## 14. Completed Milestones
 
-### Phase 2: Credit System & Analytics (Q1 2026)
-- Implement user credit system (free monthly credits + paid top-ups)
-- Stripe integration for payments
-- Claude API call metering and billing
-- Basic resident analytics dashboard
-- Error monitoring (Sentry)
+The following phases from the original roadmap have been completed:
 
-### Phase 3: Learning Modules (Q2 2026)
-- Integrate VirtualSIM clinical cases (federated architecture)
-- Implement Learn bucket: Clinical Cases module
-- Implement Learn bucket: Difficult Conversations module
-- User progress tracking across modules
-- Module completion certificates
+| Original Phase | Target | Actual | Status |
+|----------------|--------|--------|--------|
+| Phase 1: Core Platform & Voice Journal | Weeks 1-3 (Oct 2025) | October 2025 | ✅ Complete |
+| Phase 2: Module Content & First Use Cases | Weeks 4-6 (Nov 2025) | Nov-Dec 2025 | ✅ Complete |
+| Phase 3: Understand Module (Analytics) | Q1 2026 | January 2026 | ✅ Complete |
+| EQ·PQ·IQ Interview Assessment | Q1 2026 | January 2026 | ✅ Complete |
+| EQ·PQ·IQ Pulse Check | Q1 2026 | January-February 2026 | ✅ Complete |
+| EQ·PQ·IQ Brand Landing Page | Q1 2026 | February 2026 | ✅ Complete |
+| Progress Check Survey System | Q1 2026 | February 2026 | ✅ Complete |
+| CCC → Progress Check Rename | Q1 2026 | February 2026 | ✅ Complete |
+| "Intelligence" → "Quotient" Terminology | Q1 2026 | February 2026 | ✅ Complete |
+| ESLint Technical Debt Cleanup | Q1 2026 | January-February 2026 | ✅ Complete |
 
-### Phase 4: Advanced Analytics (Q3 2026)
-- Implement Understand bucket: Progress Check competency framework
-- Program Director analytics dashboard
-- Comparative benchmarking (anonymized)
-- Resident performance reports
+### What Was Delivered Beyond the Original Roadmap
 
-### Phase 5: Multi-Tenancy & Mobile (Q4 2026)
-- Support multiple institutions
-- iOS app with Voice Journal integration
-- Advanced RBAC and custom roles
-- API for third-party integrations
+The original PRD (October 2025) scoped only the Elevate platform. Since then, the project expanded to include the entire **EQ·PQ·IQ product suite** — three standalone evaluation tools at eqpqiq.com — plus a comprehensive analytics engine with real data for 50 residents.
+
+---
+
+## 15. Current Roadmap (February 2026 → Forward)
+
+### Near-Term (Q1-Q2 2026)
+
+**Progress Check Enhancements**
+- [ ] AI-generated SWOT from survey comments (pipeline exists, needs survey integration)
+- [ ] Automated survey reminders on configurable cadence
+- [ ] Survey results aggregation into period_scores
+- [ ] Respondent view of submitted survey (read-only confirmation)
+
+**Pulse Check Enhancements**
+- [ ] Voice memo recording with Whisper transcription for evaluations
+- [ ] Email reminder automation (API built, email service pending)
+- [ ] PDF/Presentation export for provider profiles
+- [ ] Provider self-assessment with gap analysis
+
+**Interview Assessment Enhancements**
+- [ ] AI-powered scoring from interview notes
+- [ ] Season management (season_id FK exists, unused)
+- [ ] ERAS/NRMP integration for candidate data import
+- [ ] Guest interviewer role (marked "Coming Soon" in UI)
+
+### Mid-Term (Q2-Q3 2026)
+
+**Platform-Wide**
+- [ ] Privacy framework & data consent (Epic 2.10 — 4-tier system with granular toggles)
+- [ ] Credit system for Claude API usage (Stripe billing for Elevate)
+- [ ] Sentry error monitoring
+- [ ] Expectations module: Action Items and Site Visits full CRUD
+
+**Analytics Expansion**
+- [ ] Program-wide SWOT aggregation
+- [ ] Cross-tool analytics (correlate Interview scores with Progress Check performance)
+- [ ] Multi-cycle trend analysis with statistical significance
+- [ ] Benchmarking across programs (anonymized aggregates)
+
+### Long-Term (Q3-Q4 2026)
+
+- [ ] Multi-institution expansion (consortium model)
+- [ ] Mobile app (iOS) with Voice Journal and survey access
+- [ ] ILP (Individualized Learning Plan) module
+- [ ] Graph RAG for connecting evaluation sources to learner journey
+- [ ] Advanced RBAC with custom roles
+- [ ] API for third-party integrations (EHR, LMS)
 
 ---
 
@@ -833,8 +883,46 @@ A `seed.sql` script will be created to populate:
 
 ## 20. Sign-Off
 
-**PRD Owner:** [Your Name]  
-**Last Reviewed:** October 20, 2025  
-**Status:** Awaiting Approval
+**PRD Owner:** Alfa Diallo  
+**Last Reviewed:** February 17, 2026  
+**Status:** Production
 
-**Approval:** _____________________ (Sign-off before proceeding to Claude.md, Planning.md, Tasks.md)
+---
+
+## Appendix A: Original MVP Roadmap (October 2025)
+
+*Preserved for historical reference. These were the original phase plans from the October 2025 PRD. All have been superseded by actual delivery — see Section 14 for completed milestones and Section 15 for the current roadmap.*
+
+### Phase 2: Credit System & Analytics (Originally Q1 2026)
+- Implement user credit system (free monthly credits + paid top-ups)
+- Stripe integration for payments
+- Claude API call metering and billing
+- Basic resident analytics dashboard
+- Error monitoring (Sentry)
+
+**Outcome:** Analytics dashboard was fully built (January 2026). Credit system and Sentry deferred to mid-2026.
+
+### Phase 3: Learning Modules (Originally Q2 2026)
+- Integrate VirtualSIM clinical cases (federated architecture)
+- Implement Learn bucket: Clinical Cases module
+- Implement Learn bucket: Difficult Conversations module
+- User progress tracking across modules
+- Module completion certificates
+
+**Outcome:** All learning modules completed ahead of schedule (November-December 2025). Running the Board, ACLS Simulations, and Clinical Cases all delivered.
+
+### Phase 4: Advanced Analytics (Originally Q3 2026)
+- Implement Understand bucket: Progress Check competency framework
+- Program Director analytics dashboard
+- Comparative benchmarking (anonymized)
+- Resident performance reports
+
+**Outcome:** Understand module with full analytics engine delivered January 2026. Progress Check survey system delivered February 2026. Benchmarking deferred.
+
+### Phase 5: Multi-Tenancy & Mobile (Originally Q4 2026)
+- Support multiple institutions
+- iOS app with Voice Journal integration
+- Advanced RBAC and custom roles
+- API for third-party integrations
+
+**Outcome:** Multi-tenant routing ([org]/[dept]) partially implemented. Mobile app and third-party APIs deferred to late 2026.

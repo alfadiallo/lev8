@@ -1,9 +1,9 @@
 # Planning.md: Elevate Architecture & Implementation Strategy
 
-**Project:** Elevate (www.lev8.ai)  
-**Version:** 1.0 Production  
-**Last Updated:** December 26, 2025  
-**Current Phase:** Six Modules Operational + Admin Portal (Learn, Grow, Understand, Truths, Expectations, Admin Portal)
+**Project:** Elevate (www.lev8.ai) + EQ·PQ·IQ (www.eqpqiq.com)  
+**Version:** 2.0 Production  
+**Last Updated:** February 17, 2026  
+**Current Phase:** All Modules Operational + EQ·PQ·IQ Product Suite (Interview, Pulse Check, Progress Check)
 
 ---
 
@@ -1088,17 +1088,28 @@ test('Complete voice journal flow', async ({ page }) => {
 
 ---
 
-## 15. Module Status Summary
+## 15. Module & Product Status Summary
+
+### Elevate Platform (lev8.ai)
 
 | Module | Status | Key Features |
 |--------|--------|--------------|
 | **Learn** | ✅ Complete | Clinical cases, modules, progress tracking |
 | **Grow** | ✅ Complete | Voice journal, Whisper transcription, Claude summarization |
 | **Running the Board** | ✅ Complete | Multi-patient simulation, sticky headers, educator controls, iPad optimization |
-| **Understand** | ✅ Complete | SWOT analysis, EQ/PQ/IQ scores, trendlines, class analytics |
+| **Understand** | ✅ Complete | SWOT analysis, EQ/PQ/IQ scores, trendlines, class analytics, Progress Check sessions |
 | **Truths** | ✅ Complete | Document repository, PDF/MD storage, category filtering |
 | **Expectations** | ✅ Phase 1 | ACGME compliance, requirements browser, status tracking |
 | **Admin Portal** | ✅ Complete | User management, access requests, role-based permissions |
+
+### EQ·PQ·IQ Product Suite (eqpqiq.com)
+
+| Product | Status | Key Features |
+|---------|--------|--------------|
+| **Brand Landing Page** | ✅ Complete | Philosophy, use cases, AI analytics, archetyping, longitudinal value (eqpqiq.com root) |
+| **Interview Assessment** | ✅ Complete | Candidate evaluation, z-score normalization, season rank lists, interviewer stats, Stripe billing |
+| **Pulse Check** | ✅ Complete | Provider evaluation, 13 EQ/PQ/IQ attributes, sparkline trends, cycle management, CSV import |
+| **Progress Check** | ✅ Complete | Survey-based resident evaluation, tokenized email distribution, compact slider forms, respondent results viewing, add respondents to active surveys |
 
 ### Admin Portal & User Access Management (Completed Dec 23, 2025)
 
@@ -1142,20 +1153,36 @@ test('Complete voice journal flow', async ({ page }) => {
 
 ### Upcoming Features
 
-**To-Do:**
+**Near-Term:**
 - [ ] **Overview API Route**: Create `/api/analytics/overview/resident/[id]` that fetches ITE, ROSH, and summary data in parallel using service client. Will replace direct client-side Supabase calls in `OverviewPane.tsx`.
+- [ ] **Survey SWOT Integration**: Connect Progress Check survey comments to AI SWOT generation pipeline
+- [ ] **Automated Survey Reminders**: Configurable cadence for incomplete survey responses
+- [ ] **Survey → Period Scores**: Aggregate survey ratings into period_scores table
+- [ ] **Pulse Check Email Reminders**: Connect existing API to Resend email service
+- [ ] **Pulse Check Voice Memos**: Whisper transcription for evaluation voice notes
+- [ ] **Interview AI Scoring**: Generate AI scores from interview notes
+- [ ] **Expectations CRUD**: Full Action Items and Site Visits management
+
+**Mid-Term:**
+- [ ] **Privacy Framework (Epic 2.10)**: 4-tier data consent system with granular toggles
+- [ ] **Credit System**: Claude API usage billing via Stripe for Elevate
+- [ ] **Error Monitoring**: Sentry integration
+- [ ] **PDF/Presentation Export**: Provider profiles (Pulse Check), survey results (Progress Check)
 
 **Future Considerations:**
 - **ILP (Individualized Learning Plan)**: Under consideration - see `docs/_guidance/ILP/`
 - **Evidence Management**: Attach documents to ACGME requirements
 - **Graph RAG**: Visualize connections between sources of truth and learner journey
+- **Multi-Institution Expansion**: Consortium model for specialty-wide benchmarking
+- **Mobile App (iOS)**: Voice Journal, survey access
+- **ERAS/NRMP Integration**: Candidate data import for Interview tool
 
 ---
 
 ## 16. This Document
 
-**Last Reviewed:** December 23, 2025  
-**Maintainer:** You  
+**Last Reviewed:** February 17, 2026  
+**Maintainer:** Alfa Diallo  
 **Review Frequency:** After each phase completion
 
 Update this document when:
@@ -1168,6 +1195,13 @@ Update this document when:
 
 | Date | Changes |
 |------|---------|
+| Feb 17, 2026 | Added EQ·PQ·IQ Product Suite status table, updated upcoming features, added Progress Check and survey system |
+| Feb 2026 | Progress Check survey system built: tokenized distribution, compact slider forms, respondent results |
+| Feb 2026 | CCC → Progress Check rename across codebase and database |
+| Feb 2026 | "Intelligence" → "Quotient" terminology update in framework pillars |
+| Feb 2026 | EQ·PQ·IQ brand landing page at eqpqiq.com |
+| Jan 2026 | ESLint technical debt cleanup (~300 warnings across 64 files) |
+| Jan 2026 | Interview Assessment and Pulse Check tools launched at eqpqiq.com |
 | Dec 26, 2025 | Fixed service key env var mismatch (SUPABASE_SERVICE_KEY). Reordered Residents tabs. Overview tab marked Under Construction. |
 | Dec 23, 2025 | Added Admin Portal & User Access Management System |
 | Dec 22, 2025 | Running the Board module completed with iPad optimization |

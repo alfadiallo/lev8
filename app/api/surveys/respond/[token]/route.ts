@@ -11,6 +11,7 @@ interface ResidentInfo {
   assignment_status: string;
   full_name: string;
   email: string;
+  graduation_year: number | null;
 }
 
 /**
@@ -91,7 +92,7 @@ export async function GET(
           status,
           display_order,
           structured_rating_id,
-          residents:resident_id (id, user_id)
+          residents:resident_id (id, user_id, class_id)
         `)
         .eq('respondent_id', respondent.id)
         .order('display_order', { ascending: true });
@@ -116,9 +117,28 @@ export async function GET(
           }
         }
 
+        // Fetch graduation years from classes table
+        const classIds = assignments
+          .map(a => {
+            const r = a.residents as unknown as { class_id: string } | null;
+            return r?.class_id;
+          })
+          .filter(Boolean) as string[];
+        const classMap = new Map<string, number>();
+        if (classIds.length > 0) {
+          const { data: classes } = await supabase
+            .from('classes')
+            .select('id, graduation_year')
+            .in('id', [...new Set(classIds)]);
+          for (const c of classes || []) {
+            classMap.set(c.id, c.graduation_year);
+          }
+        }
+
         residents = assignments.map(a => {
-          const resident = a.residents as unknown as { id: string; user_id: string } | null;
+          const resident = a.residents as unknown as { id: string; user_id: string; class_id: string | null } | null;
           const profile = resident?.user_id ? profileMap.get(resident.user_id) : null;
+          const gradYear = resident?.class_id ? classMap.get(resident.class_id) ?? null : null;
           return {
             id: resident?.id || a.resident_id,
             display_order: a.display_order,
@@ -126,6 +146,7 @@ export async function GET(
             assignment_status: a.status,
             full_name: profile?.full_name || 'Unknown',
             email: profile?.email || '',
+            graduation_year: gradYear,
           };
         });
       }
@@ -463,11 +484,13 @@ export async function POST(
         const { data: remaining } = await remainingQuery;
         const allComplete = !remaining || remaining.length === 0;
 
-        // Update respondent progress
+        // Faculty with multi-resident summary pages submit explicitly via the "complete" action
+        const usesExplicitComplete = respondent.rater_type === 'core_faculty' || respondent.rater_type === 'teaching_faculty';
+        const autoComplete = allComplete && !usesExplicitComplete;
         const progressUpdate: Record<string, unknown> = {
-          status: allComplete ? 'completed' : 'started',
+          status: autoComplete ? 'completed' : 'started',
         };
-        if (allComplete) {
+        if (autoComplete) {
           progressUpdate.completed_at = new Date().toISOString();
         }
         await supabase

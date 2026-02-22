@@ -183,25 +183,6 @@ const DEFAULT_SCORES: ScoreValues = {
   iq_performance_for_level: 50,
 };
 
-const RATING_LABEL_STOPS = [
-  { max: 7, label: 'Well Below' },
-  { max: 20, label: 'Below' },
-  { max: 30, label: 'Slightly Below' },
-  { max: 42, label: 'Approaching' },
-  { max: 57, label: 'At Expected' },
-  { max: 70, label: 'Above' },
-  { max: 80, label: 'Well Above' },
-  { max: 92, label: 'Outstanding' },
-  { max: 100, label: 'Exceptional' },
-];
-
-function getRatingLabel(value: number): string {
-  for (const stop of RATING_LABEL_STOPS) {
-    if (value <= stop.max) return stop.label;
-  }
-  return 'Exceptional';
-}
-
 // ============================================================================
 // Custom Filled-Bar Slider (matches portal design)
 // ============================================================================
@@ -655,7 +636,6 @@ export default function SurveyPage() {
 
   const requireAllRatings = settings?.require_all_ratings ?? false;
   const requireComments = settings?.require_comments ?? false;
-  const allowEditAfterSubmit = settings?.allow_edit_after_submit ?? false;
 
   function handleScoreChange(key: string, value: number) {
     setScores(prev => ({ ...prev, [key]: value }));

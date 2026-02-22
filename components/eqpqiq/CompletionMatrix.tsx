@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   CheckCircle2, Clock, Mail, AlertCircle, Bell,
-  ChevronDown, ChevronRight, Users, UserCheck, GraduationCap,
+  ChevronDown, Users, UserCheck, GraduationCap,
   Loader2, Send
 } from 'lucide-react';
 

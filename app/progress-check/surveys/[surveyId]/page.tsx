@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
-  ArrowLeft, Calendar, Bell, Settings2, Users, UserCheck, GraduationCap,
+  ArrowLeft, Bell, Settings2, Users, UserCheck, GraduationCap,
   Send, Loader2, AlertCircle, X, CheckCircle2, Clock, FileText,
   ChevronRight, Mail, Edit3, Save, Heart, Award, Brain, ClipboardList
 } from 'lucide-react';
@@ -135,7 +135,7 @@ export default function SurveyDetailPage() {
   const params = useParams();
   const router = useRouter();
   const surveyId = params.surveyId as string;
-  const { user } = useRequireProgressCheckAuth();
+  useRequireProgressCheckAuth();
   const { can } = useProgressCheckUserContext();
 
   const [survey, setSurvey] = useState<SurveyData | null>(null);
@@ -499,7 +499,7 @@ export default function SurveyDetailPage() {
       </div>
 
       {/* Tab Content */}
-      {tab === 'survey' && survey && <SurveyPreviewTab survey={survey} residents={residents} populateLoading={populateLoading} />}
+      {tab === 'survey' && survey && <SurveyPreviewTab survey={survey} />}
 
       {tab === 'overview' && (
         <OverviewTab

@@ -963,8 +963,8 @@ export default function SurveyPage() {
               if (summarySortMode === 'a-z') return a.resident.full_name.localeCompare(b.resident.full_name);
               if (summarySortMode === 'z-a') return b.resident.full_name.localeCompare(a.resident.full_name);
               if (summarySortMode === 'score-high' || summarySortMode === 'score-low') {
-                const aScores = allScores[a.resident.id];
-                const bScores = allScores[b.resident.id];
+                const aScores = submittedResidents.has(a.resident.id) ? allScores[a.resident.id] : undefined;
+                const bScores = submittedResidents.has(b.resident.id) ? allScores[b.resident.id] : undefined;
                 const aAvg = aScores ? getOverallForScores(aScores) : -1;
                 const bAvg = bScores ? getOverallForScores(bScores) : -1;
                 return summarySortMode === 'score-high' ? bAvg - aAvg : aAvg - bAvg;
@@ -972,8 +972,9 @@ export default function SurveyPage() {
               return 0;
             });
             return sorted.map(({ resident, originalIdx }, displayIdx) => {
-              const resScores = allScores[resident.id];
               const isSubmitted = submittedResidents.has(resident.id);
+              const hasDraftScores = !!allScores[resident.id] && !isSubmitted;
+              const resScores = isSubmitted ? allScores[resident.id] : undefined;
               const eqAvg = resScores ? Math.round(getSectionAverageForScores(0, resScores)) : 0;
               const pqAvg = resScores ? Math.round(getSectionAverageForScores(1, resScores)) : 0;
               const iqAvg = resScores ? Math.round(getSectionAverageForScores(2, resScores)) : 0;
@@ -1001,7 +1002,7 @@ export default function SurveyPage() {
                           <p className="text-[10px] sm:text-[11px] text-slate-400">{formatResidentClass(resident.graduation_year)}</p>
                         )}
                         <p className="text-[10px] sm:text-xs text-slate-400">
-                          {isSubmitted ? 'Tap to edit' : 'Not yet scored'}
+                          {isSubmitted ? 'Tap to edit' : hasDraftScores ? 'Draft saved (not submitted)' : 'Not yet scored'}
                         </p>
                       </div>
                       {resScores ? (

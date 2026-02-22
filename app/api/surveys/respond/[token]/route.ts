@@ -487,11 +487,16 @@ export async function POST(
         // Faculty with multi-resident summary pages submit explicitly via the "complete" action
         const usesExplicitComplete = respondent.rater_type === 'core_faculty' || respondent.rater_type === 'teaching_faculty';
         const autoComplete = allComplete && !usesExplicitComplete;
+        const preserveCompletedStatusOnEdit = usesExplicitComplete && respondent.status === 'completed';
         const progressUpdate: Record<string, unknown> = {
-          status: autoComplete ? 'completed' : 'started',
+          status: (autoComplete || preserveCompletedStatusOnEdit) ? 'completed' : 'started',
         };
         if (autoComplete) {
           progressUpdate.completed_at = new Date().toISOString();
+        } else if (preserveCompletedStatusOnEdit) {
+          progressUpdate.completed_at = respondent.completed_at || new Date().toISOString();
+        } else {
+          progressUpdate.completed_at = null;
         }
         await supabase
           .from('survey_respondents')

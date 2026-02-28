@@ -87,6 +87,7 @@ function getSubdomain(request: NextRequest): string | null {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const host = request.headers.get('host') || '';
   const subdomain = getSubdomain(request);
   const isStudio = subdomain === 'studio';
   const isEqpqiq = isEqpqiqDomain(request);
@@ -96,6 +97,14 @@ export async function middleware(request: NextRequest) {
   // When accessed via eqpqiq.com, route all traffic to /interview/*
   // ============================================================================
   if (isEqpqiq) {
+    // Canonicalize production survey/tool links to www.eqpqiq.com
+    // so email links and browser URL stay consistent.
+    if (host === 'eqpqiq.com') {
+      const canonicalUrl = new URL(request.url);
+      canonicalUrl.host = 'www.eqpqiq.com';
+      return NextResponse.redirect(canonicalUrl, 308);
+    }
+
     // Allow API routes, static files, and interview/pulsecheck routes to pass through
     if (
       pathname.startsWith('/api') ||

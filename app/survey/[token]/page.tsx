@@ -1131,7 +1131,7 @@ export default function SurveyPage() {
   // Rating Form (Self-Assessment, Teaching Faculty, Core Faculty per-resident)
   // ========================================================================
   return (
-    <div className={`max-w-2xl mx-auto ${isMultiResident ? 'pt-0 pb-28' : 'pb-12'}`}>
+    <div className={`max-w-2xl mx-auto ${isMultiResident ? 'pt-0 pb-72' : 'pb-12'}`}>
       {/* Error banner */}
       {error && (
         <div className="mx-4 mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-center gap-2">
@@ -1203,7 +1203,7 @@ export default function SurveyPage() {
             )}
             <div className="flex items-center justify-center gap-2 mt-0.5">
               <p className="text-[11px] text-slate-400">
-                {currentResidentIndex + 1} of {totalResidents}
+                Resident {currentResidentIndex + 1} of {totalResidents} · {submittedResidents.size} submitted
               </p>
               <span className="text-[11px] text-slate-300">|</span>
               <button
@@ -1297,8 +1297,11 @@ export default function SurveyPage() {
           <textarea
             value={comments}
             onChange={(e) => { setComments(e.target.value); setError(null); }}
+            onFocus={(e) => {
+              e.currentTarget.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            }}
             rows={3}
-            className="w-full px-3 py-2.5 border rounded-lg bg-white text-sm text-slate-900 placeholder-slate-400 resize-none"
+            className="w-full px-3 py-2.5 border rounded-lg bg-white text-sm text-slate-900 placeholder-slate-400 resize-none scroll-mb-72"
             style={{ borderColor: COLORS.light }}
             placeholder={
               isLearner
@@ -1410,7 +1413,7 @@ export default function SurveyPage() {
               )}
               <div className="flex items-center justify-center gap-2 mt-0.5">
                 <p className="text-[11px] text-slate-400">
-                  {currentResidentIndex + 1} of {totalResidents}
+                  Resident {currentResidentIndex + 1} of {totalResidents} · {submittedResidents.size} submitted
                 </p>
                 <span className="text-[11px] text-slate-300">|</span>
                 <button

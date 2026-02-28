@@ -5,7 +5,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY!;
 
 const EQPQIQ_FROM_EMAIL = process.env.PULSECHECK_FROM_EMAIL || 'EQ·PQ·IQ <noreply@eqpqiq.com>';
-const EQPQIQ_BASE_URL = process.env.EQPQIQ_BASE_URL || 'https://eqpqiq.com';
+const EQPQIQ_BASE_URL = process.env.EQPQIQ_BASE_URL || 'https://www.eqpqiq.com';
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
 interface Respondent {

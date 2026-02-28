@@ -20,8 +20,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get the redirect URL from environment or use default
-    const redirectTo = `${process.env.NEXT_PUBLIC_APP_URL || 'https://lev8.ai'}/update-password`;
+    // Use request domain so reset links stay on the same product surface.
+    const originHeader = req.headers.get('origin');
+    const hostHeader = req.headers.get('host');
+    const requestOrigin =
+      originHeader ||
+      (hostHeader ? `${req.nextUrl.protocol}//${hostHeader}` : null) ||
+      req.nextUrl.origin;
+
+    let appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.lev8.ai';
+    if (requestOrigin.includes('eqpqiq.com')) {
+      appBaseUrl = 'https://www.eqpqiq.com';
+    } else if (requestOrigin.includes('lev8.ai')) {
+      appBaseUrl = 'https://www.lev8.ai';
+    } else if (requestOrigin.includes('localhost')) {
+      appBaseUrl = requestOrigin;
+    }
+
+    const redirectTo = `${appBaseUrl}/update-password`;
 
     // Use Supabase's built-in password reset
     const { error } = await supabase.auth.resetPasswordForEmail(email, {

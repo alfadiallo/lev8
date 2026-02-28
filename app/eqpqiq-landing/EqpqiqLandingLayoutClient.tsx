@@ -63,6 +63,13 @@ export default function EqpqiqLandingLayoutClient({ children }: EqpqiqLandingLay
               >
                 Contact Us
               </a>
+              <Link
+                href="/login"
+                className="text-sm font-semibold px-3 py-1.5 rounded-md border transition-colors hover:opacity-90"
+                style={{ color: COLORS.dark, borderColor: COLORS.medium }}
+              >
+                Login
+              </Link>
             </nav>
           </div>
         </div>

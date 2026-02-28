@@ -123,7 +123,11 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith('/pulsecheck') || 
       pathname.startsWith('/progress-check') ||
       pathname.startsWith('/survey') ||
-      pathname.startsWith('/eqpqiq-landing')
+      pathname.startsWith('/eqpqiq-landing') ||
+      pathname.startsWith('/login') ||
+      pathname.startsWith('/register') ||
+      pathname.startsWith('/forgot-password') ||
+      pathname.startsWith('/request-access')
     ) {
       const response = NextResponse.next();
       response.headers.set('x-lev8-context', 'eqpqiq');

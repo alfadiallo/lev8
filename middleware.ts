@@ -127,7 +127,8 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith('/login') ||
       pathname.startsWith('/register') ||
       pathname.startsWith('/forgot-password') ||
-      pathname.startsWith('/request-access')
+      pathname.startsWith('/request-access') ||
+      pathname.startsWith('/update-password')
     ) {
       const response = NextResponse.next();
       response.headers.set('x-lev8-context', 'eqpqiq');

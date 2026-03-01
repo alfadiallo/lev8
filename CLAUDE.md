@@ -114,17 +114,21 @@ lev8/
 - **Progress Check Sessions:** Faculty-led evaluation meetings (renamed from CCC)
 
 ### Progress Check (Survey System)
-- **Survey Campaigns:** Program Directors create evaluation surveys targeting residents by class
+- **Survey Campaigns:** Program Directors create evaluation surveys targeting residents by class and period
+- **Campaign Wizard:** Single-page form — select class, period (Orientation/Fall/Spring/Custom), survey types (Self-Assessment, Core Faculty, Teaching Faculty), deadline, and form settings; creates drafts only
+- **Multi-Resident Survey Flow:** Core Faculty and Teaching Faculty share a unified UI — welcome screen, dot/pill stepper, sticky header/footer with PGY level, and "Review All" summary page
+- **Review All Summary:** Expandable attribute breakdowns, heatmap score circles (red→green), sort by name/score/original order, smart submit button (greyed "Submitted" vs active "Update Your Submission")
 - **EQ/PQ/IQ Ratings:** Emotional Quotient, Professional Quotient, Intellectual Quotient scoring (0-100 scale)
 - **Evaluation Frameworks:** Configurable per-program attribute sets (e.g., ACGME milestones)
-- **Faculty & Self-Assessment:** Surveys distributed to faculty evaluators and residents for self-evaluation
-- **Token-Based Access:** Public survey form at `/survey/[token]` - no login required for respondents
-- **Recipient Toggles:** Toggle individual recipients on/off before distributing
-- **Email Distribution:** Automated survey invitations with personalized tokens
+- **Faculty & Self-Assessment:** Surveys distributed to core faculty, teaching faculty, and residents
+- **Token-Based Access:** Public survey form at `/survey/[token]` — no login required for respondents
+- **Recipient Toggles:** Toggle individual recipients on/off with Select All / Deselect All before distributing
+- **Email Distribution:** Automated survey invitations with personalized tokens and green-themed email template
 - **Cron Reminders:** Scheduled reminder emails for incomplete surveys (`/api/cron/survey-reminders`)
 - **Results Aggregation:** Per-resident score rollups with faculty vs self-assessment breakdown
 - **Demo Accounts:** Program Director, Faculty, and Resident test accounts
 - **Green Theme:** Consistent green (#16A34A / #15803D) UI chrome with red/blue/purple pillar accents
+- **Domain Support:** Canonical `www.eqpqiq.com` with 308 redirect from bare domain; auth routes and `/update-password` pass through middleware
 
 ### Interview Assessment Tool
 - Candidate evaluation for residency interviews
@@ -182,7 +186,18 @@ lev8/
 ## Recent Changes
 
 From git history:
-1. **Progress Check Survey System (February 2026)**
+1. **Progress Check Survey Enhancements (February 2026)**
+   - Multi-resident survey flow: unified Core Faculty & Teaching Faculty experience with welcome screen, dot/pill stepper, sticky header/footer, and Review All summary page
+   - Campaign Wizard redesigned: single-page form (class, period radio, survey type checkboxes); creates drafts only; deploy from survey detail page
+   - Review All page: expandable attribute breakdowns, heatmap score circles, sort modes (A-Z, Z-A, score, original), smart submit button
+   - Select All / Deselect All on Recipients tab; email template updated (green button, expanded text)
+   - Password reset domain-aware: `redirect_to` matches requesting domain (eqpqiq.com / lev8.ai / localhost)
+   - Middleware: canonical 308 `eqpqiq.com` → `www.eqpqiq.com`; auth routes + `/update-password` allowed on eqpqiq domain
+   - Login button added to EQ·PQ·IQ landing page header
+   - Database migrations: `faculty_type`/`site` columns on `faculty`, unique constraint on `(form_submission_id, resident_id)` in `structured_ratings`
+   - Respondent status preserved as `completed` when editing already-submitted faculty evaluations
+
+2. **Progress Check Survey System (February 2026)**
    - Full survey campaign lifecycle: create → configure → distribute → collect → aggregate results
    - New page routes: `/progress-check/*` (admin), `/survey/[token]` (public respondent form)
    - New API routes: 15+ endpoints across `/api/progress-check/`, `/api/surveys/`, `/api/cron/`

@@ -8,6 +8,40 @@ All notable deployments and changes to this project.
 
 <!-- Cursor: Always add new entries directly below this line -->
 
+## 2026-02-17
+
+### Added
+- **Multi-resident survey flow** — Core Faculty and Teaching Faculty now share a unified evaluation UI with welcome screen, dot/pill stepper, sticky header & footer with resident class info (PGY-X | Class of YYYY), and a "Review All" summary page with expandable attribute breakdowns per resident
+- **Score heatmap circles** — Summary page shows each resident's average score (0–100) with red-to-green gradient instead of a plain index number
+- **Summary sort modes** — A-Z, Z-A, by score (high→low), and original survey order on the Review All page
+- **Smart submit button** — Greyed-out "Submitted" when no changes; active "Update Your Submission" when scores are modified after initial submission
+- **Teaching Faculty welcome screen** — Intro screen before choosing which residents to evaluate
+- **Select All / Deselect All** buttons on the Recipients tab of the survey detail page
+- **Login button** on the EQ·PQ·IQ landing page header (top-right, next to Contact Us)
+- **Campaign Wizard redesign** — Single-page form: select class, period (radio buttons: Orientation / Fall / Spring / Custom), survey type checkboxes (Self-Assessment, Core Faculty Eval, Teaching Faculty Eval), form settings, and deadline. Creates surveys as **draft** only; deploy from the surveys list page
+- Database migration: `20260221000001_faculty_type_and_site.sql` — adds `faculty_type` and `site` columns to `faculty` table
+- Database migration: `20260222000001_unique_form_submission_resident.sql` — unique constraint on `(form_submission_id, resident_id)` in `structured_ratings`
+
+### Changed
+- **Email invitations** — Button color changed from blue to green (#40916C); expanded "EQ, PQ, IQ" to full names; added recommendation and thank-you text per rater type
+- **Campaign Wizard** no longer deploys surveys — it only creates drafts; distribution happens from the survey detail page
+- Removed old Teaching Faculty roster code; unified under Core Faculty multi-resident UI
+- Progress text updated to "Resident X of Y · Z submitted" in survey header and footer
+- Form Settings labels reworded for clarity (e.g., "Respondents must rate every attribute (no skipping)")
+- Campaign populate API now reads `faculty_type` from `faculty` table instead of `user_profiles`
+
+### Fixed
+- **Password reset on eqpqiq.com** — `redirect_to` URL now dynamically matches the requesting domain (eqpqiq.com, lev8.ai, or localhost)
+- **Middleware** — `/update-password` added to eqpqiq allow-list so Supabase recovery redirects reach the reset form instead of the landing page
+- **Middleware** — Canonical 308 redirect from `eqpqiq.com` to `www.eqpqiq.com`
+- **Middleware** — Auth routes (`/login`, `/register`, `/forgot-password`, `/request-access`) now pass through on eqpqiq.com domain
+- Comments textarea no longer obscured by sticky bottom bar (increased padding + `onFocus` scroll)
+- Review All page now correctly shows scores only for submitted residents, with "Draft saved (not submitted)" for in-progress items
+- Respondent status preserved as `completed` when editing an already-submitted Core/Teaching Faculty evaluation
+- Vercel build fixes: removed unused imports (`Calendar`, `ChevronRight`), unused variables, and mismatched component props
+
+---
+
 ## 2026-02-14
 
 ### Added

@@ -22,9 +22,8 @@ function LoginForm() {
       console.log('[Login] User detected, redirecting...');
       const redirectParam = searchParams.get('redirect');
       const context = searchParams.get('context');
-      // For studio context, default to '/' (middleware rewrites to /studio)
-      // For regular context, default to '/dashboard'
-      const defaultRedirect = context === 'studio' ? '/' : '/dashboard';
+      const isEqpqiq = window.location.hostname.includes('eqpqiq');
+      const defaultRedirect = context === 'studio' ? '/' : isEqpqiq ? '/progress-check/surveys' : '/dashboard';
       const redirectTo = redirectParam || defaultRedirect;
       window.location.href = redirectTo;
     }
@@ -46,12 +45,10 @@ function LoginForm() {
 
     try {
       await login(email, password);
-      // Check for redirect parameter, otherwise go to appropriate dashboard
       const redirectParam = searchParams.get('redirect');
       const context = searchParams.get('context');
-      // For studio context, default to '/' (middleware rewrites to /studio)
-      // For regular context, default to '/dashboard'
-      const defaultRedirect = context === 'studio' ? '/' : '/dashboard';
+      const isEqpqiq = window.location.hostname.includes('eqpqiq');
+      const defaultRedirect = context === 'studio' ? '/' : isEqpqiq ? '/progress-check/surveys' : '/dashboard';
       const redirectTo = redirectParam || defaultRedirect;
       console.log('[Login] Redirecting to:', redirectTo);
       // Force a full page navigation instead of client-side routing

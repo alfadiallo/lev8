@@ -18,17 +18,55 @@ function UpdatePasswordForm() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const { data: { subscription } } = supabaseClient.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
+    let cancelled = false;
+
+    async function establishSession() {
+      // 1. PKCE flow — code arrives as a query parameter
+      const code = new URLSearchParams(window.location.search).get('code');
+      if (code) {
+        const { data, error: codeErr } = await supabaseClient.auth.exchangeCodeForSession(code);
+        if (!cancelled && data.session && !codeErr) {
           setReady(true);
           setError('');
-        } else if (event === 'INITIAL_SESSION' && !session) {
-          setError('Invalid or expired reset link. Please request a new one.');
+          return;
         }
       }
-    );
-    return () => subscription.unsubscribe();
+
+      // 2. Implicit flow — tokens arrive in the hash fragment
+      const hash = window.location.hash;
+      if (hash && hash.includes('access_token')) {
+        const params = new URLSearchParams(hash.substring(1));
+        const accessToken = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
+        if (accessToken && refreshToken) {
+          const { data, error: sessErr } = await supabaseClient.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (!cancelled && data.session && !sessErr) {
+            setReady(true);
+            setError('');
+            window.history.replaceState(null, '', window.location.pathname);
+            return;
+          }
+        }
+      }
+
+      // 3. Maybe the client already processed the token automatically
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!cancelled && session) {
+        setReady(true);
+        setError('');
+        return;
+      }
+
+      if (!cancelled) {
+        setError('Invalid or expired reset link. Please request a new one.');
+      }
+    }
+
+    establishSession();
+    return () => { cancelled = true; };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {

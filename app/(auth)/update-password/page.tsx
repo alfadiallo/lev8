@@ -15,16 +15,20 @@ function UpdatePasswordForm() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
-  // Check if we have a valid session from the reset link
+  const [ready, setReady] = useState(false);
+
   useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabaseClient.auth.getSession();
-      if (!session) {
-        // No session means the reset link is invalid or expired
-        setError('Invalid or expired reset link. Please request a new one.');
+    const { data: { subscription } } = supabaseClient.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
+          setReady(true);
+          setError('');
+        } else if (event === 'INITIAL_SESSION' && !session) {
+          setError('Invalid or expired reset link. Please request a new one.');
+        }
       }
-    };
-    checkSession();
+    );
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -152,7 +156,7 @@ function UpdatePasswordForm() {
           <Button
             type="submit"
             className="w-full"
-            disabled={loading || !password || !confirmPassword || error.includes('expired')}
+            disabled={loading || !password || !confirmPassword || !ready}
           >
             {loading ? 'Updating...' : 'Update Password'}
           </Button>

@@ -243,23 +243,49 @@ export async function POST(
       for (const resp of insertedRespondents) {
         if (resp.role === 'resident') {
           // Look up resident by email -> profile -> resident record
+          let profileId: string | null = null;
+
+          // Try exact email match first
           const { data: profile } = await supabase
             .from('user_profiles')
             .select('id')
             .or(`email.eq.${resp.email},personal_email.eq.${resp.email}`)
             .limit(1)
             .maybeSingle();
+          profileId = profile?.id || null;
 
-          const { data: resident } = profile?.id
+          // Fallback: case-insensitive match
+          if (!profileId) {
+            const { data: profileIlike } = await supabase
+              .from('user_profiles')
+              .select('id')
+              .or(`email.ilike.${resp.email},personal_email.ilike.${resp.email}`)
+              .limit(1)
+              .maybeSingle();
+            profileId = profileIlike?.id || null;
+          }
+
+          // Fallback: match by name within the same institution
+          if (!profileId && resp.name) {
+            const { data: profileByName } = await supabase
+              .from('user_profiles')
+              .select('id')
+              .ilike('full_name', resp.name)
+              .eq('role', 'resident')
+              .limit(1)
+              .maybeSingle();
+            profileId = profileByName?.id || null;
+          }
+
+          const { data: resident } = profileId
             ? await supabase
                 .from('residents')
                 .select('id, user_id')
-                .eq('user_id', profile.id)
+                .eq('user_id', profileId)
                 .maybeSingle()
             : { data: null };
 
           if (resident) {
-            // Create a self-assignment for tracking
             await supabase
               .from('survey_resident_assignments')
               .upsert({
@@ -269,6 +295,8 @@ export async function POST(
                 status: 'pending',
                 display_order: 0,
               }, { onConflict: 'survey_id,respondent_id,resident_id' });
+          } else {
+            console.error('[survey-distribute] Could not find resident record for self-assessment respondent:', resp.email, resp.name);
           }
         }
       }

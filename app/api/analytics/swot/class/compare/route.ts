@@ -2,6 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { checkApiPermission } from '@/lib/auth/checkApiPermission';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -10,6 +11,9 @@ const supabase = createClient(
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = await checkApiPermission(request, { minimumRole: 'faculty' });
+    if (!auth.authorized) return auth.response!;
+
     const searchParams = request.nextUrl.searchParams;
     const periodLabel = searchParams.get('period_label');
     const swotType = searchParams.get('swot_type');

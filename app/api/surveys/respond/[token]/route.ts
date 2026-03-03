@@ -526,12 +526,13 @@ export async function POST(
             .from('survey_resident_assignments')
             .select('resident_id')
             .eq('id', assignment_id)
+            .eq('respondent_id', respondent.id)
             .single();
           residentId = assignment?.resident_id || null;
         }
 
         if (!residentId) {
-          // Try to find resident by email
+          // Fallback 1: exact email match
           const { data: userProfile } = await supabase
             .from('user_profiles')
             .select('id')
@@ -544,6 +545,45 @@ export async function POST(
               .from('residents')
               .select('id')
               .eq('user_id', userProfile.id)
+              .single();
+            residentId = resident?.id || null;
+          }
+        }
+
+        if (!residentId) {
+          // Fallback 2: case-insensitive email match
+          const { data: userProfileIlike } = await supabase
+            .from('user_profiles')
+            .select('id')
+            .or(`email.ilike.${respondent.email},personal_email.ilike.${respondent.email}`)
+            .limit(1)
+            .maybeSingle();
+
+          if (userProfileIlike) {
+            const { data: resident } = await supabase
+              .from('residents')
+              .select('id')
+              .eq('user_id', userProfileIlike.id)
+              .single();
+            residentId = resident?.id || null;
+          }
+        }
+
+        if (!residentId && respondent.name) {
+          // Fallback 3: match by respondent name
+          const { data: userProfileByName } = await supabase
+            .from('user_profiles')
+            .select('id')
+            .ilike('full_name', respondent.name)
+            .eq('role', 'resident')
+            .limit(1)
+            .maybeSingle();
+
+          if (userProfileByName) {
+            const { data: resident } = await supabase
+              .from('residents')
+              .select('id')
+              .eq('user_id', userProfileByName.id)
               .single();
             residentId = resident?.id || null;
           }

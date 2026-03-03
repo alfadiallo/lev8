@@ -682,4 +682,144 @@ Log in to the admin panel to approve or reject this request.
 }
 
 
+/**
+ * Notify the survey creator when a respondent completes their survey.
+ * Includes a completion summary and links to view results or send reminders.
+ */
+export async function notifySurveyCompletion(details: {
+  adminEmail: string;
+  respondentName: string;
+  respondentType: 'self' | 'core_faculty' | 'teaching_faculty' | string;
+  surveyTitle: string;
+  surveyId: string;
+  completedCount: number;
+  totalCount: number;
+  respondentsList: Array<{ name: string; status: string; email: string }>;
+}): Promise<boolean> {
+  const {
+    adminEmail,
+    respondentName,
+    respondentType,
+    surveyTitle,
+    surveyId,
+    completedCount,
+    totalCount,
+    respondentsList,
+  } = details;
 
+  const EQPQIQ_BASE_URL = process.env.EQPQIQ_BASE_URL || 'https://www.eqpqiq.com';
+  const pct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+  const remaining = totalCount - completedCount;
+
+  const raterLabel: Record<string, string> = {
+    self: 'Self-Assessment',
+    core_faculty: 'Core Faculty',
+    teaching_faculty: 'Teaching Faculty',
+  };
+  const typeLabel = raterLabel[respondentType] || respondentType;
+
+  const statusBadge = (status: string) => {
+    if (status === 'completed') return '<span style="color:#16a34a;font-weight:600;">Completed</span>';
+    if (status === 'started') return '<span style="color:#d97706;font-weight:600;">In Progress</span>';
+    return '<span style="color:#6b7280;">Pending</span>';
+  };
+
+  const respondentRows = respondentsList
+    .map(r => `
+      <tr>
+        <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;font-size:14px;">${r.name}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;font-size:14px;text-align:center;">${statusBadge(r.status)}</td>
+      </tr>
+    `)
+    .join('');
+
+  const surveyUrl = `${EQPQIQ_BASE_URL}/progress-check/surveys/${surveyId}`;
+  const remindUrl = `${EQPQIQ_BASE_URL}/progress-check/surveys/${surveyId}?action=remind`;
+
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
+      <div style="background: linear-gradient(135deg, #2D6A4F 0%, #40916C 100%); color: white; padding: 24px; border-radius: 12px 12px 0 0; text-align: center;">
+        <h2 style="margin: 0; font-size: 20px;">Survey Response Received</h2>
+        <p style="margin: 8px 0 0; opacity: 0.9; font-size: 14px;">${surveyTitle}</p>
+      </div>
+
+      <div style="background: #f9fafb; padding: 24px; border: 1px solid #e5e7eb; border-top: none;">
+        <p style="color: #333; font-size: 15px; margin: 0 0 16px;">
+          <strong>${respondentName}</strong> just completed their <strong>${typeLabel}</strong> evaluation.
+        </p>
+
+        <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-size: 32px; font-weight: 700; color: #2D6A4F;">${completedCount} <span style="font-size: 16px; color: #6b7280; font-weight: 400;">of ${totalCount}</span></div>
+              <div style="font-size: 13px; color: #6b7280;">responses received (${pct}%)</div>
+            </div>
+            ${remaining > 0
+              ? `<div style="font-size: 13px; color: #d97706; font-weight: 600;">${remaining} remaining</div>`
+              : '<div style="font-size: 13px; color: #16a34a; font-weight: 600;">All complete!</div>'
+            }
+          </div>
+
+          <div style="background: #e5e7eb; border-radius: 4px; height: 8px; margin-top: 12px; overflow: hidden;">
+            <div style="background: #40916C; height: 100%; width: ${pct}%; border-radius: 4px; transition: width 0.3s;"></div>
+          </div>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          <thead>
+            <tr style="background: #f3f4f6;">
+              <th style="padding: 8px 12px; text-align: left; font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">Respondent</th>
+              <th style="padding: 8px 12px; text-align: center; font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${respondentRows}
+          </tbody>
+        </table>
+
+        <div style="text-align: center;">
+          <a href="${surveyUrl}"
+             style="display: inline-block; padding: 12px 24px; background: #40916C; color: white;
+                    text-decoration: none; border-radius: 8px; font-size: 14px; font-weight: 600; margin-right: 8px;">
+            View Survey Details
+          </a>
+          ${remaining > 0 ? `
+          <a href="${remindUrl}"
+             style="display: inline-block; padding: 12px 24px; background: white; color: #40916C;
+                    text-decoration: none; border-radius: 8px; font-size: 14px; font-weight: 600;
+                    border: 2px solid #40916C;">
+            Send Reminders (${remaining})
+          </a>
+          ` : ''}
+        </div>
+      </div>
+
+      <div style="text-align: center; padding: 16px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
+        <p style="color: #999; font-size: 12px; margin: 0;">
+          EQ·PQ·IQ by <a href="https://eqpqiq.com" style="color: #999;">eqpqiq.com</a>
+        </p>
+      </div>
+    </div>
+  `;
+
+  const text = `
+Survey Response Received — ${surveyTitle}
+
+${respondentName} completed their ${typeLabel} evaluation.
+
+Progress: ${completedCount} of ${totalCount} (${pct}%)${remaining > 0 ? ` — ${remaining} remaining` : ' — All complete!'}
+
+Respondents:
+${respondentsList.map(r => `  ${r.name}: ${r.status}`).join('\n')}
+
+View details: ${surveyUrl}
+  `.trim();
+
+  return sendEmail({
+    to: adminEmail,
+    subject: `[EQ·PQ·IQ] ${respondentName} completed ${typeLabel} — ${completedCount}/${totalCount} responses`,
+    html,
+    text,
+    from: PULSECHECK_FROM_EMAIL,
+  });
+}

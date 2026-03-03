@@ -1,8 +1,57 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { notifySurveyCompletion } from '@/lib/email/notifications';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY!;
+
+/**
+ * Fire-and-forget notification to survey creator when a respondent completes.
+ * Never throws — failures are logged but don't block the response.
+ */
+async function sendCompletionNotification(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  surveyId: string,
+  respondentName: string,
+  respondentType: string,
+) {
+  try {
+    const { data: survey } = await supabase
+      .from('surveys')
+      .select('title, created_by_email')
+      .eq('id', surveyId)
+      .single() as { data: { title: string; created_by_email: string } | null };
+
+    if (!survey?.created_by_email) return;
+
+    const { data: allRespondents } = await supabase
+      .from('survey_respondents')
+      .select('name, status, email')
+      .eq('survey_id', surveyId)
+      .order('name') as { data: Array<{ name: string | null; status: string; email: string }> | null };
+
+    const list = (allRespondents || []).map(r => ({
+      name: r.name || r.email,
+      status: r.status,
+      email: r.email,
+    }));
+    const completedCount = list.filter(r => r.status === 'completed').length;
+
+    await notifySurveyCompletion({
+      adminEmail: survey.created_by_email,
+      respondentName,
+      respondentType,
+      surveyTitle: survey.title,
+      surveyId,
+      completedCount,
+      totalCount: list.length,
+      respondentsList: list,
+    });
+  } catch (err) {
+    console.error('[survey-respond] Notification error (non-blocking):', err);
+  }
+}
 
 interface ResidentInfo {
   id: string;
@@ -503,6 +552,10 @@ export async function POST(
           .update(progressUpdate)
           .eq('id', respondent.id);
 
+        if (autoComplete) {
+          sendCompletionNotification(supabase, respondent.survey_id, respondent.name || respondent.email, respondent.rater_type || 'faculty');
+        }
+
         return NextResponse.json({
           success: true,
           rating_id: rating.id,
@@ -693,6 +746,9 @@ export async function POST(
           })
           .eq('id', respondent.id);
 
+        // Notify survey creator (fire-and-forget)
+        sendCompletionNotification(supabase, respondent.survey_id, respondent.name || respondent.email, 'self');
+
         return NextResponse.json({
           success: true,
           rating_id: rating.id,
@@ -709,6 +765,9 @@ export async function POST(
             completed_at: new Date().toISOString(),
           })
           .eq('id', respondent.id);
+
+        // Notify survey creator (fire-and-forget)
+        sendCompletionNotification(supabase, respondent.survey_id, respondent.name || respondent.email, respondent.rater_type || 'faculty');
 
         return NextResponse.json({ success: true, message: 'Survey completed' });
       }

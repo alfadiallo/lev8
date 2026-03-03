@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft, Bell, Settings2, Users, UserCheck, GraduationCap,
   Send, Loader2, AlertCircle, X, CheckCircle2, Clock, FileText,
@@ -134,6 +134,7 @@ const SURVEY_SECTIONS = [
 export default function SurveyDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const surveyId = params.surveyId as string;
   useRequireProgressCheckAuth();
   const { can } = useProgressCheckUserContext();
@@ -357,6 +358,15 @@ export default function SurveyDetailPage() {
       setError('Failed to send reminders');
     }
   };
+
+  // Auto-trigger reminders if opened via ?action=remind from email
+  useEffect(() => {
+    if (searchParams.get('action') === 'remind' && survey?.status === 'active') {
+      handleSendReminders();
+      router.replace(`/progress-check/surveys/${surveyId}`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [survey?.id]);
 
   if (!can('canManageSurveys')) {
     return (

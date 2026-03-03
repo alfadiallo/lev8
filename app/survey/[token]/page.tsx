@@ -863,6 +863,30 @@ export default function SurveyPage() {
     );
   }
 
+  if (completed && isEditable) {
+    return (
+      <div className="flex items-center justify-center min-h-screen p-4">
+        <div className="text-center max-w-md">
+          <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-neutral-900 mb-2">Submitted!</h2>
+          <p className="text-neutral-600 mb-4">
+            Your {surveyData?.survey.type === 'learner_self_assessment' ? 'self-assessment' : 'evaluation'} has been recorded successfully.
+          </p>
+          <p className="text-sm text-neutral-500 mb-6">
+            You can revisit this link to make changes until the deadline.
+          </p>
+          <button
+            onClick={() => setCompleted(false)}
+            className="px-6 py-2.5 rounded-lg text-sm font-medium text-white hover:opacity-90 transition-opacity"
+            style={{ backgroundColor: COLORS.dark }}
+          >
+            Review My Responses
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!surveyData) return null;
 
   const isLearner = surveyData.survey.type === 'learner_self_assessment';

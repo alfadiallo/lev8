@@ -262,20 +262,27 @@ export async function GET(
     const periodScores = periodScoresRes.data || [];
 
     const periodSortKey = (label: string): number => {
-      const match = label.match(/PGY\s*(\d+)\s*(Start|Fall|Spring)/i);
+      const match = label.match(/PGY\s*(\d+)\s*(Orientation|Start|Fall|Spring)/i);
       if (!match) return 999;
       const pgy = parseInt(match[1]);
-      const seasonMap: Record<string, number> = { start: 0, fall: 1, spring: 2 };
+      const seasonMap: Record<string, number> = { orientation: 0, start: 0, fall: 1, spring: 2 };
       const season = seasonMap[match[2].toLowerCase()] ?? 3;
       return pgy * 10 + season;
+    };
+
+    // Normalize period labels — strip trailing qualifiers like "CCC" for consistent grouping
+    const normalizePeriodLabel = (label: string): string => {
+      const match = label.match(/^(PGY\s*\d+\s*(?:Orientation|Start|Fall|Spring))/i);
+      return match ? match[1] : label;
     };
 
     // Group ratings by period_label and rater_type, compute averages
     // Faculty = combined core_faculty + teaching_faculty
     const trendMap = new Map<string, { facultyEq: number[]; facultyPq: number[]; facultyIq: number[]; selfEq: number[]; selfPq: number[]; selfIq: number[] }>();
     for (const r of ratings) {
-      const period = r.period_label as string | null;
-      if (!period) continue;
+      const rawPeriod = r.period_label as string | null;
+      if (!rawPeriod) continue;
+      const period = normalizePeriodLabel(rawPeriod);
       if (!trendMap.has(period)) {
         trendMap.set(period, { facultyEq: [], facultyPq: [], facultyIq: [], selfEq: [], selfPq: [], selfIq: [] });
       }

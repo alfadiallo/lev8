@@ -590,6 +590,21 @@ export async function POST(
         }
 
         if (!residentId) {
+          // Safety net: persist the submitted scores in progress_data so nothing is lost
+          await supabase
+            .from('survey_respondents')
+            .update({
+              progress_data: {
+                _unlinked_submission: true,
+                submitted_at: new Date().toISOString(),
+                scores,
+                concerns_goals: concerns_goals || null,
+              },
+            })
+            .eq('id', respondent.id);
+
+          console.error('[survey-respond] Could not determine resident for self-assessment. Scores saved to progress_data. Respondent:', respondent.id, respondent.email, respondent.name);
+
           return NextResponse.json(
             { error: 'Could not determine resident for self-assessment' },
             { status: 400 }

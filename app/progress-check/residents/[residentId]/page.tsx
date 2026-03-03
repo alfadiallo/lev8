@@ -290,7 +290,7 @@ export default function ResidentDetailPage() {
   }
   if (selfAverages) {
     radarSeries.push({
-      label: 'Self-Assessment',
+      label: `Self-Assessment (n=${selfAverages.count})`,
       data: averagesToRadarData(selfAverages),
       color: '#6366f1',
     });
@@ -314,7 +314,7 @@ export default function ResidentDetailPage() {
   }
   if (selfAverages) {
     breakoutRadarSeries.push({
-      label: 'Self-Assessment',
+      label: `Self-Assessment (n=${selfAverages.count})`,
       data: averagesToRadarData(selfAverages),
       color: '#6366f1',
     });

@@ -553,7 +553,7 @@ export async function POST(
           .eq('id', respondent.id);
 
         if (autoComplete) {
-          sendCompletionNotification(supabase, respondent.survey_id, respondent.name || respondent.email, respondent.rater_type || 'faculty');
+          await sendCompletionNotification(supabase, respondent.survey_id, respondent.name || respondent.email, respondent.rater_type || 'faculty');
         }
 
         return NextResponse.json({
@@ -746,8 +746,8 @@ export async function POST(
           })
           .eq('id', respondent.id);
 
-        // Notify survey creator (fire-and-forget)
-        sendCompletionNotification(supabase, respondent.survey_id, respondent.name || respondent.email, 'self');
+        // Notify survey creator (awaited so Vercel doesn't kill the process before email sends)
+        await sendCompletionNotification(supabase, respondent.survey_id, respondent.name || respondent.email, 'self');
 
         return NextResponse.json({
           success: true,
@@ -766,8 +766,8 @@ export async function POST(
           })
           .eq('id', respondent.id);
 
-        // Notify survey creator (fire-and-forget)
-        sendCompletionNotification(supabase, respondent.survey_id, respondent.name || respondent.email, respondent.rater_type || 'faculty');
+        // Notify survey creator (awaited so Vercel doesn't kill the process before email sends)
+        await sendCompletionNotification(supabase, respondent.survey_id, respondent.name || respondent.email, respondent.rater_type || 'faculty');
 
         return NextResponse.json({ success: true, message: 'Survey completed' });
       }

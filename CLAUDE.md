@@ -124,6 +124,7 @@ lev8/
 - **Token-Based Access:** Public survey form at `/survey/[token]` — no login required for respondents
 - **Recipient Toggles:** Toggle individual recipients on/off with Select All / Deselect All before distributing
 - **Email Distribution:** Automated survey invitations with personalized tokens and green-themed email template
+- **Completion Notifications:** Survey creator receives email on each respondent completion — includes progress bar, respondent list with status badges, and one-click "Send Reminders" button
 - **Cron Reminders:** Scheduled reminder emails for incomplete surveys (`/api/cron/survey-reminders`)
 - **Results Aggregation:** Per-resident score rollups with faculty vs self-assessment breakdown
 - **Demo Accounts:** Program Director, Faculty, and Resident test accounts
@@ -186,7 +187,14 @@ lev8/
 ## Recent Changes
 
 From git history:
-1. **Progress Check Survey Enhancements (February 2026)**
+1. **Survey Completion Notifications & Profile Fixes (March 2026)**
+   - Admin notification email on each survey completion: respondent name, rater type, progress bar (X/Y), full respondent list with status badges, "View Survey Details" and "Send Reminders" action buttons
+   - One-click reminder link: `?action=remind` on survey detail page auto-triggers reminders to incomplete respondents
+   - Resident profile: Self-Assessment now shows `(n=X)` count in radar legend and summary table
+   - Period label normalization: API strips trailing qualifiers (e.g., "PGY 3 Spring CCC" → "PGY 3 Spring") for correct trend chart grouping
+   - Added `Orientation` as a valid period in the trend data sort key
+
+2. **Progress Check Survey Enhancements (February 2026)**
    - Multi-resident survey flow: unified Core Faculty & Teaching Faculty experience with welcome screen, dot/pill stepper, sticky header/footer, and Review All summary page
    - Campaign Wizard redesigned: single-page form (class, period radio, survey type checkboxes); creates drafts only; deploy from survey detail page
    - Review All page: expandable attribute breakdowns, heatmap score circles, sort modes (A-Z, Z-A, score, original), smart submit button

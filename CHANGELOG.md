@@ -8,6 +8,18 @@ All notable deployments and changes to this project.
 
 <!-- Cursor: Always add new entries directly below this line -->
 
+## 2026-03-03
+
+### Added
+- **Survey completion notifications** — When a respondent finishes their survey, the survey creator (`created_by_email`) receives an email with: who completed, their rater type (Self-Assessment / Core Faculty / Teaching Faculty), a progress bar (X of Y completed with %), a full respondent list with status badges, and action buttons ("View Survey Details" and "Send Reminders (N)")
+- **One-click reminder from email** — The "Send Reminders" button in the completion notification email links to the survey detail page with `?action=remind`, which auto-triggers reminders to all incomplete respondents
+- **Self-Assessment count display** — Resident profile page now shows `Self-Assessment (n=X)` in both the radar chart legend and summary table, matching the existing Faculty Avg count display
+
+### Fixed
+- **Period label normalization** — The trend chart API now strips trailing qualifiers from period labels (e.g., "PGY 3 Spring CCC" → "PGY 3 Spring") so data groups correctly in the score trends chart. Added `Orientation` as a valid period in the sort key.
+
+---
+
 ## 2026-02-17
 
 ### Added

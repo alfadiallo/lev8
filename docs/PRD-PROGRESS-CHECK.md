@@ -90,9 +90,10 @@ flowchart TD
 2. **Distribution** — Faculty receive tokenized email links (no login required). Residents receive self-assessment links.
 3. **Rating** — Respondents score each assigned resident on all 15 attributes (0–100) and optionally add free-text comments.
 4. **Storage** — Each submission creates a row in `structured_ratings` with `rater_type` of `core_faculty`, `teaching_faculty`, or `self`.
-5. **Aggregation** — Scores are aggregated per resident per period into `period_scores`. Database triggers compute `eq_avg`, `pq_avg`, `iq_avg` on each rating.
-6. **AI analysis** — Claude generates SWOT summaries from faculty comments, stored in `swot_summaries`.
-7. **Review** — Faculty and PDs browse resident analytics: radar charts, trend lines, gap analysis, and SWOT insights.
+5. **Notification** — On each completion, the survey creator receives an email with the respondent's name, rater type, progress summary (X of Y with %), full respondent list with statuses, and action buttons to view details or send reminders.
+6. **Aggregation** — Scores are aggregated per resident per period into `period_scores`. Database triggers compute `eq_avg`, `pq_avg`, `iq_avg` on each rating.
+7. **AI analysis** — Claude generates SWOT summaries from faculty comments, stored in `swot_summaries`.
+8. **Review** — Faculty and PDs browse resident analytics: radar charts, trend lines, gap analysis, and SWOT insights.
 
 ---
 
@@ -126,7 +127,7 @@ Browsable list of all program residents:
 
 Individual resident analytics page:
 
-- **Radar chart** — 15-point smooth blob chart with Faculty Avg vs Self-Assessment. Faculty Avg row expands to show Core Faculty and Teaching Faculty breakdown (em-dash shown when no data exists for a sub-type).
+- **Radar chart** — 15-point smooth blob chart with Faculty Avg (n=X) vs Self-Assessment (n=X). Faculty Avg row expands to show Core Faculty and Teaching Faculty breakdown (em-dash shown when no data exists for a sub-type).
 - **Breakout toggle** — Switch between combined view and Core Faculty vs Teaching Faculty vs Self radar overlay.
 - **Comparison chart** — Side-by-side bar chart with faculty vs self scores, gap analysis cards, and class average reference lines.
 - **Trend lines** — Longitudinal EQ/PQ/IQ across periods. Faculty lines are solid, self-assessment lines are dashed. Toggle between faculty/self/both views.
@@ -143,6 +144,7 @@ Survey lifecycle management (PD/Admin only):
 - Distribute via email with auto-generated token links
 - Track respondent status (pending / started / completed)
 - Send reminder emails to non-completers
+- Completion notifications emailed to survey creator on each respondent submission (progress bar, respondent status list, action buttons)
 - View completion progress bars
 
 ### Raw Data (`/progress-check/data`)
@@ -333,7 +335,8 @@ Cross-tool role assignments for eqpqiq.com products. Keyed on `(user_email, tool
 5. **Program-scoped** — All data isolated to the user's residency program via Supabase RLS.
 6. **AI-powered insights** — SWOT analysis generated from qualitative comments.
 7. **Zero-friction surveys** — Token links, auto-save progress, automated reminders, no login required for respondents.
-8. **Export-ready** — Full raw data table with CSV export for accreditation reporting.
+8. **Real-time admin visibility** — Survey creator receives email on each completion with progress summary, respondent statuses, and one-click reminder buttons.
+9. **Export-ready** — Full raw data table with CSV export for accreditation reporting.
 
 ---
 

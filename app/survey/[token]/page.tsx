@@ -231,15 +231,16 @@ function CompactSlider({
           step={5}
           value={value}
           onChange={(e) => onChange(parseInt(e.target.value))}
-          className="absolute w-full h-7 appearance-none bg-transparent cursor-pointer z-10
+          style={{ touchAction: 'none' }}
+          className="absolute w-full h-10 appearance-none bg-transparent cursor-pointer z-10
             [&::-webkit-slider-thumb]:appearance-none
-            [&::-webkit-slider-thumb]:w-5
-            [&::-webkit-slider-thumb]:h-5
+            [&::-webkit-slider-thumb]:w-10
+            [&::-webkit-slider-thumb]:h-10
             [&::-webkit-slider-thumb]:rounded-full
             [&::-webkit-slider-thumb]:bg-transparent
             [&::-webkit-slider-thumb]:cursor-pointer
-            [&::-moz-range-thumb]:w-5
-            [&::-moz-range-thumb]:h-5
+            [&::-moz-range-thumb]:w-10
+            [&::-moz-range-thumb]:h-10
             [&::-moz-range-thumb]:rounded-full
             [&::-moz-range-thumb]:bg-transparent
             [&::-moz-range-thumb]:border-0

@@ -176,6 +176,8 @@ function SummaryRow({
   hasChildren: boolean;
   onToggle: () => void;
 }) {
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
+
   return (
     <>
       <tr
@@ -210,27 +212,96 @@ function SummaryRow({
           </td>
         ))}
       </tr>
-      {isExpanded && s.children?.map(child => (
-        <tr key={child.label} className="bg-gray-50/40" style={{ borderTop: '1px solid #e5e7eb' }}>
-          <td className="py-2.5 pr-4 sm:pr-6 text-xs text-neutral-400" style={{ paddingLeft: 54 }}>
-            <span className="flex items-center gap-2">
-              <span className="inline-block w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: child.color }} />
-              {child.label}
-            </span>
+      {isExpanded && s.children?.map((child, childIdx) => {
+        const childKey = `${s.label}-${childIdx}`;
+        const childHasChildren = child.children && child.children.length > 0;
+        return (
+          <NestedChildRow
+            key={childKey}
+            child={child}
+            sections={sections}
+            sectionKeys={sectionKeys}
+            depth={1}
+            expandedKeys={expandedKeys}
+            toggleKey={(key: string) => setExpandedKeys(prev => {
+              const next = new Set(prev);
+              next.has(key) ? next.delete(key) : next.add(key);
+              return next;
+            })}
+            parentKey={childKey}
+          />
+        );
+      })}
+    </>
+  );
+}
+
+function NestedChildRow({
+  child,
+  sections,
+  sectionKeys,
+  depth,
+  expandedKeys,
+  toggleKey,
+  parentKey,
+}: {
+  child: DataSeries;
+  sections: readonly ('EQ' | 'PQ' | 'IQ')[];
+  sectionKeys: Record<string, string[]>;
+  depth: number;
+  expandedKeys: Set<string>;
+  toggleKey: (key: string) => void;
+  parentKey: string;
+}) {
+  const hasChildren = child.children && child.children.length > 0;
+  const isExpanded = expandedKeys.has(parentKey);
+  const paddingLeft = 54 + depth * 20;
+
+  return (
+    <>
+      <tr
+        className={`bg-gray-50/${depth === 1 ? '40' : '20'} ${hasChildren ? 'cursor-pointer hover:bg-gray-100/40 transition-colors' : ''}`}
+        style={{ borderTop: '1px solid #e5e7eb' }}
+        onClick={hasChildren ? () => toggleKey(parentKey) : undefined}
+      >
+        <td className="py-2.5 pr-4 sm:pr-6 text-xs text-neutral-400" style={{ paddingLeft }}>
+          <span className="flex items-center gap-2">
+            {hasChildren ? (
+              <ChevronRight className={`w-3 h-3 text-neutral-300 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+            ) : (
+              <span className="w-3 h-3 flex-shrink-0" />
+            )}
+            <span className={`inline-block ${depth > 1 ? 'w-1.5 h-1.5' : 'w-2 h-2'} rounded-full flex-shrink-0`} style={{ backgroundColor: child.color }} />
+            {child.label}
+          </span>
+        </td>
+        {sections.map(section => (
+          <td key={section} className="py-2.5 px-2 sm:px-4 text-center">
+            {child.data ? (
+              <span className={`${depth > 1 ? 'text-sm sm:text-base' : 'text-base sm:text-lg'} font-semibold`} style={{ color: SECTION_COLORS[section] }}>
+                {Math.round(calcAvg(child.data, sectionKeys[section]))}
+              </span>
+            ) : (
+              <span className={`${depth > 1 ? 'text-sm sm:text-base' : 'text-base sm:text-lg'} text-neutral-300`}>—</span>
+            )}
           </td>
-          {sections.map(section => (
-            <td key={section} className="py-2.5 px-2 sm:px-4 text-center">
-              {child.data ? (
-                <span className="text-base sm:text-lg font-semibold" style={{ color: SECTION_COLORS[section] }}>
-                  {Math.round(calcAvg(child.data, sectionKeys[section]))}
-                </span>
-              ) : (
-                <span className="text-base sm:text-lg text-neutral-300">—</span>
-              )}
-            </td>
-          ))}
-        </tr>
-      ))}
+        ))}
+      </tr>
+      {isExpanded && child.children?.map((grandchild, gIdx) => {
+        const gKey = `${parentKey}-${gIdx}`;
+        return (
+          <NestedChildRow
+            key={gKey}
+            child={grandchild}
+            sections={sections}
+            sectionKeys={sectionKeys}
+            depth={depth + 1}
+            expandedKeys={expandedKeys}
+            toggleKey={toggleKey}
+            parentKey={gKey}
+          />
+        );
+      })}
     </>
   );
 }

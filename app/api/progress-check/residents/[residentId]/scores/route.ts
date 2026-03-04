@@ -474,6 +474,25 @@ export async function GET(
       }
     }
 
+    // Per-respondent breakdowns for Core Faculty and Teaching Faculty
+    const groupByRespondent = (list: typeof ratings) => {
+      const byFaculty = new Map<string, typeof ratings>();
+      for (const r of list) {
+        const fid = r.faculty_id as string | null;
+        const key = fid || 'unknown';
+        if (!byFaculty.has(key)) byFaculty.set(key, []);
+        byFaculty.get(key)!.push(r);
+      }
+      return Array.from(byFaculty.entries()).map(([fid, fRatings]) => ({
+        faculty_id: fid,
+        faculty_name: fid !== 'unknown' ? (facultyNameMap.get(fid) || 'Faculty') : 'Unknown',
+        count: fRatings.length,
+        averages: computeAverages(fRatings),
+      }));
+    };
+    const coreFacultyRespondents = groupByRespondent(coreFacultyRatings);
+    const teachingFacultyRespondents = groupByRespondent(teachingFacultyRatings);
+
     return NextResponse.json({
       resident: {
         id: resident.id,
@@ -490,6 +509,8 @@ export async function GET(
       facultyAverages,
       coreFacultyAverages,
       teachingFacultyAverages,
+      coreFacultyRespondents,
+      teachingFacultyRespondents,
       selfAverages,
       gapAnalysis,
       classAverages,

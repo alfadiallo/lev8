@@ -51,6 +51,8 @@ interface ResidentData {
   facultyAverages: ScoreAverages | null;
   coreFacultyAverages: ScoreAverages | null;
   teachingFacultyAverages: ScoreAverages | null;
+  coreFacultyRespondents?: Array<{ faculty_id: string; faculty_name: string; count: number; averages: ScoreAverages | null }>;
+  teachingFacultyRespondents?: Array<{ faculty_id: string; faculty_name: string; count: number; averages: ScoreAverages | null }>;
   selfAverages: ScoreAverages | null;
   gapAnalysis: { eq: number | null; pq: number | null; iq: number | null; overall: number | null } | null;
   classAverages: { eq: number | null; pq: number | null; iq: number | null } | null;
@@ -260,6 +262,7 @@ export default function ResidentDetailPage() {
 
   const {
     resident, facultyAverages, coreFacultyAverages, teachingFacultyAverages,
+    coreFacultyRespondents, teachingFacultyRespondents,
     selfAverages, gapAnalysis, classAverages, swot, iteScores, trendData, ratings,
   } = data;
 
@@ -267,15 +270,33 @@ export default function ResidentDetailPage() {
   // Always show both Core Faculty and Teaching Faculty as children
   const facultyChildren = [];
   if (facultyAverages) {
+    const coreRespondentChildren = (coreFacultyRespondents || [])
+      .filter(r => r.averages)
+      .map(r => ({
+        label: `${r.faculty_name} (n=${r.count})`,
+        data: averagesToRadarData(r.averages!),
+        color: '#6b7280',
+      }));
+
+    const teachingRespondentChildren = (teachingFacultyRespondents || [])
+      .filter(r => r.averages)
+      .map(r => ({
+        label: `${r.faculty_name} (n=${r.count})`,
+        data: averagesToRadarData(r.averages!),
+        color: '#92400e',
+      }));
+
     facultyChildren.push({
       label: coreFacultyAverages ? `Core Faculty (n=${coreFacultyAverages.count})` : 'Core Faculty',
       data: coreFacultyAverages ? averagesToRadarData(coreFacultyAverages) : null,
       color: COLORS.dark,
+      children: coreRespondentChildren,
     });
     facultyChildren.push({
       label: teachingFacultyAverages ? `Teaching Faculty (n=${teachingFacultyAverages.count})` : 'Teaching Faculty',
       data: teachingFacultyAverages ? averagesToRadarData(teachingFacultyAverages) : null,
       color: '#F59E0B',
+      children: teachingRespondentChildren,
     });
   }
 

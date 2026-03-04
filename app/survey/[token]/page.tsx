@@ -206,13 +206,15 @@ function CompactSlider({
 }) {
   const fillColor = getSliderColor(value);
 
+  const suppressClipboard = (e: React.ClipboardEvent) => e.preventDefault();
+
   return (
     <div className={`px-5 py-3 ${hasError ? 'bg-red-50/50' : ''}`}>
       <div className="flex items-baseline justify-between mb-0.5">
         <p className="text-sm font-medium text-slate-800">{label}</p>
         <span className="text-lg font-bold shrink-0 ml-3" style={{ color: COLORS.dark }}>{value}</span>
       </div>
-      <div className="relative h-7 flex items-center">
+      <div className="relative h-10 flex items-center">
         <div className="absolute w-full h-3 rounded-full" style={{ backgroundColor: COLORS.lightest }} />
         {value > 0 && (
           <div
@@ -221,8 +223,8 @@ function CompactSlider({
           />
         )}
         <div
-          className="absolute w-5 h-5 rounded-full bg-white shadow-md transition-all duration-150 pointer-events-none"
-          style={{ left: `${value}%`, transform: 'translateX(-50%)', border: `2.5px solid ${fillColor}` }}
+          className="absolute w-7 h-7 rounded-full bg-white shadow-md transition-all duration-150 pointer-events-none"
+          style={{ left: `${value}%`, transform: 'translateX(-50%)', border: `3px solid ${fillColor}` }}
         />
         <input
           type="range"
@@ -231,16 +233,19 @@ function CompactSlider({
           step={5}
           value={value}
           onChange={(e) => onChange(parseInt(e.target.value))}
+          onCopy={suppressClipboard}
+          onCut={suppressClipboard}
+          onPaste={suppressClipboard}
           style={{ touchAction: 'none' }}
-          className="absolute w-full h-10 appearance-none bg-transparent cursor-pointer z-10
+          className="absolute w-full h-12 appearance-none bg-transparent cursor-pointer z-10
             [&::-webkit-slider-thumb]:appearance-none
-            [&::-webkit-slider-thumb]:w-10
-            [&::-webkit-slider-thumb]:h-10
+            [&::-webkit-slider-thumb]:w-12
+            [&::-webkit-slider-thumb]:h-12
             [&::-webkit-slider-thumb]:rounded-full
             [&::-webkit-slider-thumb]:bg-transparent
             [&::-webkit-slider-thumb]:cursor-pointer
-            [&::-moz-range-thumb]:w-10
-            [&::-moz-range-thumb]:h-10
+            [&::-moz-range-thumb]:w-12
+            [&::-moz-range-thumb]:h-12
             [&::-moz-range-thumb]:rounded-full
             [&::-moz-range-thumb]:bg-transparent
             [&::-moz-range-thumb]:border-0

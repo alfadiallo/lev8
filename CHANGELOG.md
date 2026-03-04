@@ -8,6 +8,24 @@ All notable deployments and changes to this project.
 
 <!-- Cursor: Always add new entries directly below this line -->
 
+## 2026-03-04
+
+### Added
+- **Daily database backup cron** — New cron job at `/api/cron/daily-backup` runs daily at 6 AM EST. Dumps 13 critical tables (structured_ratings, surveys, survey_respondents, survey_resident_assignments, residents, user_profiles, faculty, period_scores, classes, swot_summaries, ite_scores, imported_comments, eqpqiq_user_roles) to CSV and emails them as attachments via Resend. Subject: "Daily lev8 | EQ·PQ·IQ Supabase Data — YYYY-MM-DD". Recipient: `BACKUP_EMAIL` env var (default: findme@alfadiallo.com)
+- **Per-respondent faculty breakdowns** — Core Faculty and Teaching Faculty rows in the resident profile summary table now have a second-level dropdown showing each individual faculty member's name, submission count (n=X), and their EQ/PQ/IQ scores
+- **Resend Link button** — Each non-completed respondent on the Respondents tab has a "Resend" button that re-sends their unique survey link email. Manual resends bypass max_reminders limits and completion status filters
+
+### Changed
+- **Slider hit targets enlarged** — Visible thumb: 20px → 28px; invisible input thumb: 40px → 48px; track height: h-10 → h-12 for easier desktop and mobile interaction
+- **Clipboard event suppression** — Added onCopy/onCut/onPaste suppression on survey sliders to prevent Proofpoint URL isolation proxy warnings on hospital networks
+- **Completion notifications awaited** — Changed from fire-and-forget to awaited calls so Vercel serverless doesn't kill the process before the email sends
+
+### Fixed
+- **Period label normalization** — Cleaned up "PGY-3 Spring" (hyphen) → "PGY 3 Spring" (space) for consistent data grouping
+- **Removed orphaned test data** — Deleted phantom teaching faculty ratings from non-existent faculty account, and removed Alfa Test Resident from residents table
+
+---
+
 ## 2026-03-03
 
 ### Added

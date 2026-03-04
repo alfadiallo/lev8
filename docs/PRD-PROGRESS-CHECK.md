@@ -337,6 +337,8 @@ Cross-tool role assignments for eqpqiq.com products. Keyed on `(user_email, tool
 7. **Zero-friction surveys** — Token links, auto-save progress, automated reminders, no login required for respondents.
 8. **Real-time admin visibility** — Survey creator receives email on each completion with progress summary, respondent statuses, and one-click reminder buttons.
 9. **Export-ready** — Full raw data table with CSV export for accreditation reporting.
+10. **Daily off-site backup** — Cron job dumps all critical tables to CSV and emails them daily at 6 AM EST as a disaster-recovery measure.
+11. **Per-respondent transparency** — Core Faculty and Teaching Faculty summary rows expand to show individual faculty members' scores and submission counts.
 
 ---
 
@@ -367,6 +369,8 @@ Cross-tool role assignments for eqpqiq.com products. Keyed on `(user_email, tool
 | Auth | Email-based context (`ProgressCheckUserContext`) + localStorage |
 | AI | Anthropic Claude for SWOT generation |
 | Surveys | Token-based access (48-char hex), auto-save, email distribution |
+| Email | Resend API for invitations, reminders, completion notifications, daily backups |
+| Cron | Vercel Cron: daily backup (6 AM EST), weekly reminders (9 AM EST Mon) |
 | Realtime | Supabase Realtime for session notes |
 
 ---
@@ -393,6 +397,10 @@ app/api/progress-check/
 │   ├── route.ts                        # List residents
 │   └── [residentId]/scores/route.ts    # Resident analytics
 └── data/route.ts                       # Raw data export
+
+app/api/cron/
+├── daily-backup/route.ts               # Daily DB dump → CSV → email (6 AM EST)
+└── survey-reminders/route.ts           # Weekly automated reminders (9 AM EST Mon)
 
 components/eqpqiq/analytics/
 ├── EqpqiqRadarChart.tsx                # 15-point radar with summary table

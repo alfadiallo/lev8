@@ -101,12 +101,14 @@ async function sendSurveyInviteEmail(
 
     if (!response.ok) {
       const error = await response.json();
-      console.error('[survey-distribute] Email failed:', error);
+      console.error(`[survey-distribute] Email FAILED for ${to}:`, JSON.stringify(error));
       return false;
     }
+    const result = await response.json();
+    console.log(`[survey-distribute] Email SENT to ${to} (Resend ID: ${result.id})`);
     return true;
   } catch (error) {
-    console.error('[survey-distribute] Email error:', error);
+    console.error(`[survey-distribute] Email ERROR for ${to}:`, error);
     return false;
   }
 }
@@ -188,6 +190,11 @@ export async function POST(
       console.error('[survey-distribute] Insert error:', insertError);
       return NextResponse.json({ error: 'Failed to create respondents' }, { status: 500 });
     }
+
+    console.log(
+      `[survey-distribute] Upsert: ${respondentRows.length} in payload, ${insertedRespondents?.length ?? 0} returned from DB`,
+      insertedRespondents?.map(r => r.email) || []
+    );
 
     // For educator surveys: create resident assignments
     if (survey.survey_type === 'educator_assessment' && survey.class_id) {
@@ -307,6 +314,7 @@ export async function POST(
     let emailsFailed = 0;
 
     if (send_emails && insertedRespondents) {
+      console.log(`[survey-distribute] Starting email send for ${insertedRespondents.length} respondents`);
       for (const resp of insertedRespondents) {
         let extraContext: string | undefined;
         if (resp.rater_type === 'self') {

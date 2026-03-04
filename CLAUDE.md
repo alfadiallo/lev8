@@ -126,6 +126,7 @@ lev8/
 - **Email Distribution:** Automated survey invitations with personalized tokens and green-themed email template
 - **Completion Notifications:** Survey creator receives email on each respondent completion — includes progress bar, respondent list with status badges, and one-click "Send Reminders" button
 - **Cron Reminders:** Scheduled reminder emails for incomplete surveys (`/api/cron/survey-reminders`)
+- **Daily Database Backup:** Cron job at `/api/cron/daily-backup` dumps 13 critical tables to CSV, emails as attachments daily at 6 AM EST. Configurable via `BACKUP_EMAIL` env var
 - **Results Aggregation:** Per-resident score rollups with faculty vs self-assessment breakdown
 - **Demo Accounts:** Program Director, Faculty, and Resident test accounts
 - **Green Theme:** Consistent green (#16A34A / #15803D) UI chrome with red/blue/purple pillar accents
@@ -181,20 +182,29 @@ lev8/
 - `/api/surveys/[surveyId]/results` - Aggregated results per resident
 - `/api/surveys/respond/[token]` - Public survey form data (GET) and submission (POST)
 - `/api/cron/survey-reminders` - Cron endpoint for automated reminder emails
+- `/api/cron/daily-backup` - Daily database dump to CSV emailed as attachments (requires `CRON_SECRET` header)
 - `/api/progress-check-sessions` - Progress Check meeting sessions (renamed from CCC)
 - `/api/v2/sessions/progress-check` - V2 session endpoints (renamed from CCC)
 
 ## Recent Changes
 
 From git history:
-1. **Survey Completion Notifications & Profile Fixes (March 2026)**
+1. **Daily Database Backup & Admin Enhancements (March 2026)**
+   - Daily cron job (`/api/cron/daily-backup`) dumps 13 critical tables to CSV, emails as attachments via Resend to `BACKUP_EMAIL` env var (6 AM EST daily)
+   - Per-respondent faculty breakdowns on resident profile: nested dropdowns under Core Faculty / Teaching Faculty showing individual faculty scores and counts
+   - Resend Link button on survey detail Respondents tab for individual re-sends (bypasses max_reminders)
+   - Slider hit targets enlarged (28px thumb, 48px input), clipboard event suppression for hospital network Proofpoint proxies
+   - Completion notifications awaited (not fire-and-forget) to prevent Vercel serverless silent failures
+   - Cleaned up orphaned teaching faculty test data and period label format inconsistencies
+
+2. **Survey Completion Notifications & Profile Fixes (March 2026)**
    - Admin notification email on each survey completion: respondent name, rater type, progress bar (X/Y), full respondent list with status badges, "View Survey Details" and "Send Reminders" action buttons
    - One-click reminder link: `?action=remind` on survey detail page auto-triggers reminders to incomplete respondents
    - Resident profile: Self-Assessment now shows `(n=X)` count in radar legend and summary table
    - Period label normalization: API strips trailing qualifiers (e.g., "PGY 3 Spring CCC" → "PGY 3 Spring") for correct trend chart grouping
    - Added `Orientation` as a valid period in the trend data sort key
 
-2. **Progress Check Survey Enhancements (February 2026)**
+3. **Progress Check Survey Enhancements (February 2026)**
    - Multi-resident survey flow: unified Core Faculty & Teaching Faculty experience with welcome screen, dot/pill stepper, sticky header/footer, and Review All summary page
    - Campaign Wizard redesigned: single-page form (class, period radio, survey type checkboxes); creates drafts only; deploy from survey detail page
    - Review All page: expandable attribute breakdowns, heatmap score circles, sort modes (A-Z, Z-A, score, original), smart submit button
@@ -277,6 +287,33 @@ npm run audit:auth       # Check authentication patterns
 npm run audit:bundle     # Analyze bundle size
 npm run audit:all        # Run all architecture audits
 ```
+
+## Cron Jobs (vercel.json)
+
+| Schedule | Endpoint | Description |
+|----------|----------|-------------|
+| `0 11 * * *` (6 AM EST) | `/api/cron/daily-backup` | Dumps 13 tables to CSV, emails via Resend |
+| `0 14 * * 1` (9 AM EST Mon) | `/api/cron/survey-reminders` | Sends reminders for incomplete surveys |
+
+Both cron endpoints require `Authorization: Bearer <CRON_SECRET>` header (Vercel sends this automatically).
+
+## Required Environment Variables (Vercel)
+
+| Variable | Purpose |
+|----------|---------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anonymous key |
+| `SUPABASE_SERVICE_KEY` | Supabase service role key |
+| `ANTHROPIC_API_KEY` | Claude AI conversations |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Gemini AI alternative |
+| `OPENAI_API_KEY` | Whisper transcription |
+| `RESEND_API_KEY` | Transactional emails |
+| `CRON_SECRET` | Auth token for cron endpoints |
+| `BACKUP_EMAIL` | Daily backup recipient (default: findme@alfadiallo.com) |
+| `NEXT_PUBLIC_APP_URL` | Primary app URL |
+| `SUPABASE_JWT_SECRET` | JWT verification |
+| `ELEVENLABS_API_KEY` | Voice synthesis |
+| `FROM_EMAIL` | Default sender email |
 
 ## Data Status (February 2026)
 

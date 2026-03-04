@@ -236,7 +236,7 @@ function CompactSlider({
           onCopy={suppressClipboard}
           onCut={suppressClipboard}
           onPaste={suppressClipboard}
-          style={{ touchAction: 'none' }}
+          style={{ touchAction: 'manipulation' }}
           className="absolute w-full h-12 appearance-none bg-transparent cursor-pointer z-10
             [&::-webkit-slider-thumb]:appearance-none
             [&::-webkit-slider-thumb]:w-12

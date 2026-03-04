@@ -44,7 +44,7 @@ async function sendReminderEmail(
       
       <div style="text-align: center; margin: 32px 0;">
         <a href="${surveyUrl}" 
-           style="display: inline-block; padding: 14px 32px; background: #2563eb; color: white; 
+           style="display: inline-block; padding: 14px 32px; background: #40916C; color: white; 
                   text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 600;">
           Continue Survey
         </a>
@@ -85,12 +85,14 @@ async function sendReminderEmail(
 
     if (!response.ok) {
       const error = await response.json();
-      console.error('[survey-remind] Email failed:', error);
+      console.error(`[survey-remind] Email FAILED for ${to}:`, JSON.stringify(error));
       return false;
     }
+    const result = await response.json();
+    console.log(`[survey-remind] Email SENT to ${to} (Resend ID: ${result.id})`);
     return true;
   } catch (error) {
-    console.error('[survey-remind] Email error:', error);
+    console.error(`[survey-remind] Email ERROR for ${to}:`, error);
     return false;
   }
 }

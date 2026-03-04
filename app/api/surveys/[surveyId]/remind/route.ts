@@ -129,20 +129,21 @@ export async function POST(
       );
     }
 
-    // Fetch non-complete respondents
+    // Fetch respondents to remind
     let query = supabase
       .from('survey_respondents')
       .select('*')
-      .eq('survey_id', surveyId)
-      .neq('status', 'completed');
+      .eq('survey_id', surveyId);
 
     if (respondent_id) {
+      // Manual single-respondent resend — no status or reminder-count filter
       query = query.eq('id', respondent_id);
-    }
-
-    // Check max_reminders limit
-    if (survey.max_reminders) {
-      query = query.lt('reminder_count', survey.max_reminders);
+    } else {
+      // Bulk remind — only non-complete, within reminder limits
+      query = query.neq('status', 'completed');
+      if (survey.max_reminders) {
+        query = query.lt('reminder_count', survey.max_reminders);
+      }
     }
 
     const { data: respondents, error: respondentsError } = await query;

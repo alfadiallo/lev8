@@ -571,6 +571,7 @@ export default function SurveyDetailPage() {
             setAddingRespondents(false);
             setExcludedEmails(new Set());
           }}
+          onRefresh={fetchSurvey}
         />
       )}
 
@@ -779,7 +780,7 @@ function RecipientsTab({
   survey, respondents, faculty, residents, populateLoading, distributing,
   excludedEmails, addingRespondents, respondentScores, onToggleRecipient,
   onSelectAll, onDeselectAll,
-  onStartAddRespondents, onCancelAddRespondents, onDistribute,
+  onStartAddRespondents, onCancelAddRespondents, onDistribute, onRefresh,
 }: {
   survey: SurveyData;
   respondents: RespondentData[];
@@ -796,6 +797,7 @@ function RecipientsTab({
   onStartAddRespondents: () => void;
   onCancelAddRespondents: () => void;
   onDistribute: () => void;
+  onRefresh: () => void;
 }) {
   const isDraft = survey.status === 'draft';
   const isActive = survey.status === 'active';
@@ -1000,10 +1002,10 @@ function RecipientsTab({
           </div>
         )}
 
-        {grouped.self.length > 0 && <RespondentGroup title="Residents (Self)" icon={<GraduationCap className="w-4 h-4" />} list={grouped.self} scores={respondentScores} />}
-        {grouped.core.length > 0 && <RespondentGroup title="Core Faculty" icon={<UserCheck className="w-4 h-4" />} list={grouped.core} scores={respondentScores} />}
-        {grouped.teaching.length > 0 && <RespondentGroup title="Teaching Faculty" icon={<Users className="w-4 h-4" />} list={grouped.teaching} scores={respondentScores} />}
-        {grouped.other.length > 0 && <RespondentGroup title="Other" icon={<Users className="w-4 h-4" />} list={grouped.other} scores={respondentScores} />}
+        {grouped.self.length > 0 && <RespondentGroup title="Residents (Self)" icon={<GraduationCap className="w-4 h-4" />} list={grouped.self} scores={respondentScores} surveyId={survey.id} onResent={onRefresh} />}
+        {grouped.core.length > 0 && <RespondentGroup title="Core Faculty" icon={<UserCheck className="w-4 h-4" />} list={grouped.core} scores={respondentScores} surveyId={survey.id} onResent={onRefresh} />}
+        {grouped.teaching.length > 0 && <RespondentGroup title="Teaching Faculty" icon={<Users className="w-4 h-4" />} list={grouped.teaching} scores={respondentScores} surveyId={survey.id} onResent={onRefresh} />}
+        {grouped.other.length > 0 && <RespondentGroup title="Other" icon={<Users className="w-4 h-4" />} list={grouped.other} scores={respondentScores} surveyId={survey.id} onResent={onRefresh} />}
       </div>
     );
   }
@@ -1141,15 +1143,36 @@ function RecipientsTab({
   );
 }
 
-function RespondentGroup({ title, icon, list, scores }: {
+function RespondentGroup({ title, icon, list, scores, surveyId, onResent }: {
   title: string;
   icon: React.ReactNode;
   list: RespondentData[];
   scores: Record<string, { eq_avg: number; pq_avg: number; iq_avg: number; overall: number }>;
+  surveyId: string;
+  onResent: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [expandedRespondent, setExpandedRespondent] = useState<string | null>(null);
+  const [resending, setResending] = useState<string | null>(null);
+  const [resent, setResent] = useState<Set<string>>(new Set());
   const completed = list.filter(r => r.status === 'completed').length;
+
+  const handleResendLink = async (respondentId: string) => {
+    setResending(respondentId);
+    try {
+      await fetch(`/api/surveys/${surveyId}/remind`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ respondent_id: respondentId }),
+      });
+      setResent(prev => new Set(prev).add(respondentId));
+      onResent();
+    } catch {
+      // silent
+    } finally {
+      setResending(null);
+    }
+  };
 
   return (
     <div className="bg-white rounded-xl border" style={{ borderColor: COLORS.light }}>
@@ -1179,7 +1202,26 @@ function RespondentGroup({ title, icon, list, scores }: {
                     <p className="text-xs text-slate-400 truncate">{r.email}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0 ml-2">
+                    {r.status !== 'completed' && (
+                      resent.has(r.id) ? (
+                        <span className="text-[11px] text-green-600 font-medium">Sent!</span>
+                      ) : (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleResendLink(r.id); }}
+                          disabled={resending === r.id}
+                          className="flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md hover:bg-green-50 transition-colors"
+                          style={{ color: COLORS.dark }}
+                          title="Resend survey link"
+                        >
+                          {resending === r.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Mail className="w-3 h-3" />}
+                          Resend
+                        </button>
+                      )
+                    )}
                     <StatusBadge status={r.status} />
+                    {r.reminder_count > 0 && (
+                      <span className="text-[10px] text-slate-400">{r.reminder_count}x reminded</span>
+                    )}
                     {hasScores && (
                       <ChevronRight className={`w-3.5 h-3.5 text-slate-300 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
                     )}

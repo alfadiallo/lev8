@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { CheckCircle, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Loader2, Save, AlertCircle, Heart, Award, Brain, Edit2, RefreshCw, ArrowUpDown } from 'lucide-react';
 import ScoreRangeKey from '@/components/eqpqiq/analytics/ScoreRangeKey';
 import ScoreCard from '@/components/eqpqiq/analytics/ScoreCard';
+import { formatResidentClass } from '@/lib/utils/pgy-calculator';
 
 // ============================================================================
 // Types
@@ -360,8 +361,30 @@ export default function SurveyPage() {
           if (progress.current_resident_index !== undefined) {
             setCurrentResidentIndex(progress.current_resident_index);
           }
-          // Restore partial scores for the current resident
+          // Restore partial scores for ALL residents (not just current) so
+          // navigating back to a previously-scored resident shows their scores
           if (progress.partial_scores) {
+            const partialAll: Record<string, ScoreValues> = {};
+            for (const [resId, partialScores] of Object.entries(progress.partial_scores)) {
+              const numericScores: Partial<ScoreValues> = {};
+              for (const [key, val] of Object.entries(partialScores)) {
+                if (typeof val === 'number') {
+                  numericScores[key as keyof ScoreValues] = val;
+                }
+              }
+              if (Object.keys(numericScores).length > 0) {
+                partialAll[resId] = { ...DEFAULT_SCORES, ...numericScores };
+              }
+            }
+            setAllScores(prev => {
+              const merged = { ...prev };
+              for (const [resId, s] of Object.entries(partialAll)) {
+                if (!merged[resId]) merged[resId] = s;
+              }
+              return merged;
+            });
+
+            // Load current resident's partial scores into the active form
             const residentId = data.survey.type === 'learner_self_assessment'
               ? data.self_resident?.id
               : data.residents[progress.current_resident_index ?? 0]?.id;
@@ -394,7 +417,15 @@ export default function SurveyPage() {
               restoredComments[resId] = existing.comments;
             }
           }
-          setAllScores(restoredAll);
+          // Merge submitted scores into allScores (submitted scores take priority
+          // over partial/auto-saved scores from progress_data)
+          setAllScores(prev => {
+            const merged = { ...prev };
+            for (const [resId, s] of Object.entries(restoredAll)) {
+              merged[resId] = s;
+            }
+            return merged;
+          });
           setAllComments(restoredComments);
           setSubmittedResidents(restoredSubmitted);
 
@@ -412,13 +443,32 @@ export default function SurveyPage() {
           const isFacMulti = (data.respondent.rater_type === 'core_faculty' || data.respondent.rater_type === 'teaching_faculty')
             && data.residents.length > 1;
           if (isFacMulti) {
+            // Build a combined map: partial_scores (auto-saved) + existing_scores (submitted, takes priority)
+            const combinedScores: Record<string, ScoreValues> = {};
+            if (data.respondent.progress_data?.partial_scores) {
+              for (const [resId, partialScores] of Object.entries(data.respondent.progress_data.partial_scores)) {
+                const numericScores: Partial<ScoreValues> = {};
+                for (const [key, val] of Object.entries(partialScores)) {
+                  if (typeof val === 'number') {
+                    numericScores[key as keyof ScoreValues] = val;
+                  }
+                }
+                if (Object.keys(numericScores).length > 0) {
+                  combinedScores[resId] = { ...DEFAULT_SCORES, ...numericScores };
+                }
+              }
+            }
+            for (const [resId, s] of Object.entries(restoredAll)) {
+              combinedScores[resId] = s;
+            }
+
             const firstPending = data.residents.findIndex(r => r.assignment_status !== 'completed');
             const startIdx = firstPending >= 0 ? firstPending : 0;
             setCurrentResidentIndex(startIdx);
             const startId = data.residents[startIdx]?.id;
-            if (startId && restoredAll[startId]) {
-              setScores({ ...restoredAll[startId] });
-              setTouchedFields(new Set(Object.keys(restoredAll[startId])));
+            if (startId && combinedScores[startId]) {
+              setScores({ ...combinedScores[startId] });
+              setTouchedFields(new Set(Object.keys(combinedScores[startId])));
               setComments(restoredComments[startId] || '');
             }
             if (restoredSubmitted.size > 0 || firstPending < 0) {
@@ -561,21 +611,6 @@ export default function SurveyPage() {
   function getOverallForScores(s: ScoreValues): number {
     if (activeSections.length === 0) return 0;
     return activeSections.reduce((sum, _, idx) => sum + getSectionAverageForScores(idx, s), 0) / activeSections.length;
-  }
-
-  function formatResidentClass(graduationYear: number | null): string {
-    if (!graduationYear) return '';
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-    // Graduated if graduation year is past (after June 30 of that year)
-    const hasGraduated = currentYear > graduationYear || (currentYear === graduationYear && currentMonth >= 6);
-    if (hasGraduated) return `Class of ${graduationYear}`;
-    // Active resident: compute PGY
-    const academicYear = currentMonth >= 6 ? currentYear : currentYear - 1;
-    const yearsUntilGrad = graduationYear - academicYear - 1;
-    const pgy = 3 - yearsUntilGrad;
-    return `PGY-${pgy} · Class of ${graduationYear}`;
   }
 
   function scoreToHeatColor(score: number): string {

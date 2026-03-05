@@ -201,9 +201,12 @@ export async function GET(
       }
     }
 
-    // Fetch existing scores for completed assignments (for post-submit editing)
+    // Fetch existing scores for any previously submitted ratings.
+    // For multi-resident faculty surveys, individual residents may be submitted
+    // while the overall respondent status is still 'started', so we always load
+    // existing ratings when any structured_ratings exist for this respondent.
     const existingScores: Record<string, Record<string, number | string | null>> = {};
-    if (respondent.status === 'completed' && allowEditAfterSubmit) {
+    {
       const { data: ratings } = await supabase
         .from('structured_ratings')
         .select('*')

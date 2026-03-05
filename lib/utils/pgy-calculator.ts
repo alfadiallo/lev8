@@ -53,7 +53,8 @@ export function calculatePGYLevel(
   // PGY level = program length - years remaining
   const pgyLevel = programLengthYears - yearsUntilGraduation;
   
-  return pgyLevel;
+  // Clamp: graduated residents cap at programLength, future residents floor at 0
+  return Math.max(0, Math.min(programLengthYears, pgyLevel));
 }
 
 /**
@@ -139,6 +140,25 @@ export function formatAcademicYear(academicYear: number): string {
  */
 export function getAcademicYearString(date: Date = new Date()): string {
   return formatAcademicYear(getAcademicYear(date));
+}
+
+/**
+ * Format a resident's class info for display.
+ * Active residents: "PGY-X | Class of YYYY"
+ * Graduated residents: "Class of YYYY"
+ */
+export function formatResidentClass(
+  graduationYear: number | null,
+  referenceDate: Date = new Date(),
+  programLengthYears: number = 3
+): string {
+  if (!graduationYear) return '';
+  if (!isResidentActive(graduationYear, referenceDate)) {
+    return `Class of ${graduationYear}`;
+  }
+  const pgy = calculatePGYLevel(graduationYear, referenceDate, programLengthYears);
+  if (pgy < 1) return `Class of ${graduationYear}`;
+  return `PGY-${pgy} | Class of ${graduationYear}`;
 }
 
 

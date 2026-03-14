@@ -156,7 +156,13 @@ export default function TrajectoryLens({ profiles }: LensProps) {
   const { trajectories, periodStats } = useMemo(() => {
     const trajs = profiles
       .filter(p => p.history.length > 0)
-      .map(p => ({ name: p.name, points: p.history }));
+      .map((p) => ({
+        name: p.name,
+        points: p.history.map((h) => ({
+          period: h.period,
+          score: h.composite,
+        })),
+      }));
 
     const statsMap: Record<string, number[]> = {};
     for (const p of profiles) {

@@ -141,16 +141,16 @@ export async function GET(request: NextRequest) {
     let query = supabase.from('epiq_profiles').select(extendedFields).order('created_at', { ascending: true });
     if (cohort) query = query.eq('cohort_label', cohort);
 
-    let { data, error } = await query;
+    let result = await query;
 
-    if (error?.message?.includes('institution_name') || error?.message?.includes('program_name')) {
+    if (result.error?.message?.includes('institution_name') || result.error?.message?.includes('program_name')) {
       console.log('[epiquotient/profiles] New columns not yet available, falling back');
       let fallbackQuery = supabase.from('epiq_profiles').select(baseFields).order('created_at', { ascending: true });
       if (cohort) fallbackQuery = fallbackQuery.eq('cohort_label', cohort);
-      const fallback = await fallbackQuery;
-      data = fallback.data;
-      error = fallback.error;
+      result = await fallbackQuery as typeof result;
     }
+
+    const { data, error } = result;
 
     if (error) {
       console.error('[epiquotient/profiles] Query error:', error);

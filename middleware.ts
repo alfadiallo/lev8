@@ -19,6 +19,7 @@ const NON_TENANT_PREFIXES = [
   'progress-check', // Progress Check tool (eqpqiq.com) - publicly accessible
   'survey',     // Survey forms (eqpqiq.com) - token-based public access
   'eqpqiq-landing', // EQ·PQ·IQ brand landing page
+  'epiquotient',    // EPI·Q Performance Fingerprint page
   '_next',
   'favicon.ico',
   'public'
@@ -61,6 +62,12 @@ function isEqpqiqDomain(request: NextRequest): boolean {
   return host.includes('eqpqiq.com') || host.includes('eqpqiq.localhost');
 }
 
+// Check if this is an epiquotient.com domain request
+function isEpiquotientDomain(request: NextRequest): boolean {
+  const host = request.headers.get('host') || '';
+  return host.includes('epiquotient.com') || host.includes('epiquotient.localhost');
+}
+
 // Get the subdomain from the request
 function getSubdomain(request: NextRequest): string | null {
   const host = request.headers.get('host') || '';
@@ -91,6 +98,47 @@ export async function middleware(request: NextRequest) {
   const subdomain = getSubdomain(request);
   const isStudio = subdomain === 'studio';
   const isEqpqiq = isEqpqiqDomain(request);
+  const isEpiquotient = isEpiquotientDomain(request);
+
+  // ============================================================================
+  // EPIQUOTIENT.COM DOMAIN HANDLING
+  // When accessed via epiquotient.com, route to /epiquotient (Performance Fingerprint)
+  // ============================================================================
+  if (isEpiquotient) {
+    if (host === 'epiquotient.com') {
+      const canonicalUrl = new URL(request.url);
+      canonicalUrl.host = 'www.epiquotient.com';
+      return NextResponse.redirect(canonicalUrl, 308);
+    }
+
+    if (
+      pathname.startsWith('/api') ||
+      pathname.startsWith('/_next') ||
+      pathname.startsWith('/favicon.ico') ||
+      pathname.match(/\.(ico|png|jpg|jpeg|svg|gif|webp|woff|woff2|ttf|eot)$/)
+    ) {
+      const response = NextResponse.next();
+      response.headers.set('x-lev8-context', 'epiquotient');
+      return response;
+    }
+
+    if (pathname.startsWith('/epiquotient')) {
+      const response = NextResponse.next();
+      response.headers.set('x-lev8-context', 'epiquotient');
+      return response;
+    }
+
+    if (pathname === '/') {
+      const landingUrl = new URL('/epiquotient', request.url);
+      landingUrl.search = request.nextUrl.search;
+      const response = NextResponse.rewrite(landingUrl);
+      response.headers.set('x-lev8-context', 'epiquotient');
+      return response;
+    }
+
+    const redirectUrl = new URL('/', request.url);
+    return NextResponse.redirect(redirectUrl);
+  }
 
   // ============================================================================
   // EQPQIQ.COM DOMAIN HANDLING

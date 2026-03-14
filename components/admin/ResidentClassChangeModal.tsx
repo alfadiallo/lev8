@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabaseClient } from '@/lib/supabase-client';
 import { X, AlertTriangle, User, Calendar, FileText } from 'lucide-react';
-import { formatPGYLevel, calculatePGYLevel } from '@/lib/utils/pgy-calculator';
+import { formatPGYLevel, calculatePGYLevel, isResidentActive } from '@/lib/utils/pgy-calculator';
 
 interface ResidentClassChangeModalProps {
   residentId: string;
@@ -155,7 +155,7 @@ export default function ResidentClassChangeModal({
               <div>
                 <p className="font-medium text-neutral-800">{residentName}</p>
                 <p className="text-sm text-neutral-500">
-                  Class of {currentGraduationYear} • {formatPGYLevel(currentPGY)}
+                  Class of {currentGraduationYear} • {isResidentActive(currentGraduationYear) ? formatPGYLevel(currentPGY) : 'Graduated'}
                 </p>
               </div>
             </div>
@@ -180,7 +180,7 @@ export default function ResidentClassChangeModal({
                   .filter(c => c.id !== currentClassId)
                   .map(c => (
                     <option key={c.id} value={c.id}>
-                      {c.name} ({formatPGYLevel(calculatePGYLevel(c.graduation_year))})
+                      {c.name} ({isResidentActive(c.graduation_year) ? formatPGYLevel(calculatePGYLevel(c.graduation_year)) : 'Graduated'})
                       {!c.is_active && ' - Graduated'}
                     </option>
                   ))}

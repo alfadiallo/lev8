@@ -9,6 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { calculatePGYLevel as calculatePGYLevelNum, isResidentActive } from '@/lib/utils/pgy-calculator';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -50,15 +51,12 @@ function isValidScore(value: unknown): boolean {
   return value % 5 === 0;
 }
 
-// Calculate PGY level from graduation year
+// Calculate PGY level label from graduation year
 function calculatePGYLevel(graduationYear: number, referenceDate: Date = new Date()): string {
-  const month = referenceDate.getMonth() + 1; // 0-indexed
-  const academicYear = month >= 7 ? referenceDate.getFullYear() : referenceDate.getFullYear() - 1;
-  const yearsToGraduation = graduationYear - academicYear;
-  const pgyLevel = 4 - yearsToGraduation; // For 3-year program
-  
-  if (pgyLevel < 1 || pgyLevel > 4) return '';
-  return `PGY-${pgyLevel}`;
+  if (!isResidentActive(graduationYear, referenceDate)) return '';
+  const pgy = calculatePGYLevelNum(graduationYear, referenceDate);
+  if (pgy < 1 || pgy > 3) return '';
+  return `PGY-${pgy}`;
 }
 
 // Determine period (Fall/Spring) based on date

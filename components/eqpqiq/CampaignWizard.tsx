@@ -6,6 +6,7 @@ import {
   Bell, Loader2, AlertCircle, Send,
   Settings2, FileText
 } from 'lucide-react';
+import { calculatePGYLevel, isResidentActive } from '@/lib/utils/pgy-calculator';
 
 const COLORS = {
   lightest: '#D8F3DC',
@@ -59,13 +60,9 @@ const PERIOD_SURVEY_DEFAULTS: Record<PeriodOption, { self: boolean; core: boolea
 };
 
 function getPgyLevel(graduationYear: number): string {
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const month = now.getMonth() + 1;
-  const academicYear = month >= 7 ? currentYear : currentYear - 1;
-  const yearsToGrad = graduationYear - academicYear;
-  const pgy = 4 - yearsToGrad;
-  if (pgy < 1 || pgy > 7) return '';
+  if (!isResidentActive(graduationYear)) return '';
+  const pgy = calculatePGYLevel(graduationYear);
+  if (pgy < 1) return '';
   return `PGY-${pgy}`;
 }
 

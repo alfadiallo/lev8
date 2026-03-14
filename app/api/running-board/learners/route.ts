@@ -5,22 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { getServiceSupabaseClient } from '@/lib/supabase/server';
-
-// Helper to calculate PGY level from graduation year
-function calculatePGYLevel(graduationYear: number): number {
-  const today = new Date();
-  const currentYear = today.getFullYear();
-  const currentMonth = today.getMonth() + 1;
-  
-  // Academic year starts in July
-  const academicYear = currentMonth >= 7 ? currentYear : currentYear - 1;
-  
-  // PGY level = graduation year - academic year
-  const pgyLevel = graduationYear - academicYear;
-  
-  // Clamp between 1 and 5
-  return Math.max(1, Math.min(5, pgyLevel));
-}
+import { calculatePGYLevel } from '@/lib/utils/pgy-calculator';
 
 export async function GET(request: NextRequest) {
   try {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useEffect } from 'react';
+import { useMemo, useRef, useEffect, useState } from 'react';
 import type { LensProps } from './types';
 import { PILLAR_COLORS, PILLAR_LABELS, ATTR_LABELS } from './types';
 
@@ -10,22 +10,36 @@ function avg(arr: number[]): number {
 
 function RadarCanvas({ data, size }: { data: { label: string; value: number; color: string }[]; size: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [resolvedSize, setResolvedSize] = useState(size);
+
+  useEffect(() => {
+    function measure() {
+      if (containerRef.current) {
+        const w = containerRef.current.clientWidth;
+        setResolvedSize(Math.min(size, w));
+      }
+    }
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [size]);
 
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d')!;
     const dpr = window.devicePixelRatio || 1;
-    canvas.width = size * dpr;
-    canvas.height = size * dpr;
-    canvas.style.width = `${size}px`;
-    canvas.style.height = `${size}px`;
+    canvas.width = resolvedSize * dpr;
+    canvas.height = resolvedSize * dpr;
+    canvas.style.width = `${resolvedSize}px`;
+    canvas.style.height = `${resolvedSize}px`;
     ctx.scale(dpr, dpr);
-    ctx.clearRect(0, 0, size, size);
+    ctx.clearRect(0, 0, resolvedSize, resolvedSize);
 
-    const cx = size / 2;
-    const cy = size / 2;
-    const maxR = size * 0.38;
+    const cx = resolvedSize / 2;
+    const cy = resolvedSize / 2;
+    const maxR = resolvedSize * 0.38;
     const n = data.length;
     const angleStep = (Math.PI * 2) / n;
     const offset = -Math.PI / 2;
@@ -84,30 +98,37 @@ function RadarCanvas({ data, size }: { data: { label: string; value: number; col
     }
 
     // Labels
-    ctx.font = '500 9px "Space Mono", monospace';
+    ctx.font = `500 ${resolvedSize < 240 ? 7 : 9}px "Space Mono", monospace`;
     ctx.textAlign = 'center';
     for (let i = 0; i < n; i++) {
       const angle = offset + i * angleStep;
-      const lr = maxR + 18;
+      const lr = maxR + (resolvedSize < 240 ? 14 : 18);
       const x = cx + lr * Math.cos(angle);
       const y = cy + lr * Math.sin(angle);
       ctx.fillStyle = data[i].color;
       ctx.fillText(data[i].label, x, y + 3);
     }
-  }, [data, size]);
+  }, [data, resolvedSize]);
 
-  return <canvas ref={ref} style={{ display: 'block' }} />;
+  return (
+    <div ref={containerRef} style={{ width: '100%', maxWidth: size, display: 'flex', justifyContent: 'center' }}>
+      <canvas ref={ref} style={{ display: 'block' }} />
+    </div>
+  );
 }
 
 function AttrBar({ label, value, color }: { label: string; value: number; color: string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
       <div style={{
-        width: 80,
+        width: 70,
         fontSize: 10,
         color: '#c8e0ee',
         textAlign: 'right' as const,
         flexShrink: 0,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap' as const,
       }}>{label}</div>
       <div style={{
         flex: 1,
@@ -175,10 +196,11 @@ export default function EqPqIqLens({ profiles }: LensProps) {
       maxWidth: 960,
       display: 'flex',
       flexDirection: 'column',
-      gap: 28,
+      gap: 20,
+      overflow: 'hidden',
     }}>
       {/* Radar + Pillar rings */}
-      <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }}>
         <RadarCanvas data={radarData} size={320} />
 
         <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
@@ -227,10 +249,11 @@ export default function EqPqIqLens({ profiles }: LensProps) {
       </div>
 
       {/* Attribute breakdown per pillar */}
-      <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
         {pillarSections.map(s => (
           <div key={s.pillar} style={{
-            flex: '1 1 280px',
+            flex: '1 1 220px',
+            minWidth: 0,
             background: 'rgba(22,39,55,0.4)',
             border: '0.5px solid rgba(47,230,222,0.08)',
             borderRadius: 12,

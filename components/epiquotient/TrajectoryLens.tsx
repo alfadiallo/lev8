@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useEffect } from 'react';
+import { useMemo, useRef, useEffect, useState } from 'react';
 import type { LensProps } from './types';
 
 function avg(arr: number[]): number {
@@ -11,22 +11,37 @@ const PERIOD_ORDER = ['MS3', 'MS4', 'PGY 1', 'PGY 2', 'PGY 3', 'PGY 4'];
 
 function TrajectoryChart({ trajectories, size }: { trajectories: { name: string; points: { period: string; score: number }[] }[]; size: { w: number; h: number } }) {
   const ref = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [measuredW, setMeasuredW] = useState(size.w);
+
+  useEffect(() => {
+    function measure() {
+      if (containerRef.current) {
+        setMeasuredW(Math.min(size.w, containerRef.current.clientWidth));
+      }
+    }
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [size.w]);
+
+  const resolvedH = Math.max(180, Math.round(measuredW * (size.h / size.w)));
 
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d')!;
     const dpr = window.devicePixelRatio || 1;
-    canvas.width = size.w * dpr;
-    canvas.height = size.h * dpr;
-    canvas.style.width = `${size.w}px`;
-    canvas.style.height = `${size.h}px`;
+    canvas.width = measuredW * dpr;
+    canvas.height = resolvedH * dpr;
+    canvas.style.width = `${measuredW}px`;
+    canvas.style.height = `${resolvedH}px`;
     ctx.scale(dpr, dpr);
-    ctx.clearRect(0, 0, size.w, size.h);
+    ctx.clearRect(0, 0, measuredW, resolvedH);
 
     const padL = 40, padR = 20, padT = 20, padB = 30;
-    const drawW = size.w - padL - padR;
-    const drawH = size.h - padT - padB;
+    const drawW = measuredW - padL - padR;
+    const drawH = resolvedH - padT - padB;
 
     // Grid
     [0, 25, 50, 75, 100].forEach(score => {
@@ -43,13 +58,12 @@ function TrajectoryChart({ trajectories, size }: { trajectories: { name: string;
       ctx.fillText(String(score), padL - 6, y + 3);
     });
 
-    // Period labels
-    ctx.font = '9px "Space Mono", monospace';
+    ctx.font = `${measuredW < 400 ? 7 : 9}px "Space Mono", monospace`;
     ctx.fillStyle = '#4a7090';
     ctx.textAlign = 'center';
     PERIOD_ORDER.forEach((p, i) => {
       const x = padL + (i / (PERIOD_ORDER.length - 1)) * drawW;
-      ctx.fillText(p, x, size.h - 6);
+      ctx.fillText(p, x, resolvedH - 6);
     });
 
     // Average trajectory line
@@ -111,9 +125,13 @@ function TrajectoryChart({ trajectories, size }: { trajectories: { name: string;
         ctx.fill();
       }
     }
-  }, [trajectories, size]);
+  }, [trajectories, measuredW, resolvedH]);
 
-  return <canvas ref={ref} style={{ display: 'block', width: '100%' }} />;
+  return (
+    <div ref={containerRef} style={{ width: '100%' }}>
+      <canvas ref={ref} style={{ display: 'block', width: '100%' }} />
+    </div>
+  );
 }
 
 function TrendBadge({ label, value, prev }: { label: string; value: number; prev?: number }) {
@@ -123,8 +141,9 @@ function TrendBadge({ label, value, prev }: { label: string; value: number; prev
 
   return (
     <div style={{
-      flex: '1 1 140px',
-      padding: '14px 16px',
+      flex: '1 1 100px',
+      minWidth: 0,
+      padding: '10px 12px',
       background: 'rgba(22,39,55,0.5)',
       border: '0.5px solid rgba(47,230,222,0.08)',
       borderRadius: 10,
@@ -189,10 +208,11 @@ export default function TrajectoryLens({ profiles }: LensProps) {
       maxWidth: 960,
       display: 'flex',
       flexDirection: 'column',
-      gap: 24,
+      gap: 20,
+      overflow: 'hidden',
     }}>
       {/* Period averages */}
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         {periodStats.map((ps, i) => (
           <TrendBadge
             key={ps.period}

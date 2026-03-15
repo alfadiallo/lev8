@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useEffect } from 'react';
+import { useMemo, useRef, useEffect, useState } from 'react';
 import type { LensProps, Profile } from './types';
 import { RISK_COLORS } from './types';
 
@@ -22,22 +22,37 @@ const ARCHETYPE_PALETTE: Record<string, string> = {
 
 function ScatterCanvas({ profiles, size }: { profiles: Profile[]; size: { w: number; h: number } }) {
   const ref = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [measuredW, setMeasuredW] = useState(size.w);
+
+  useEffect(() => {
+    function measure() {
+      if (containerRef.current) {
+        setMeasuredW(Math.min(size.w, containerRef.current.clientWidth));
+      }
+    }
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [size.w]);
+
+  const resolvedH = Math.max(160, Math.round(measuredW * (size.h / size.w)));
 
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d')!;
     const dpr = window.devicePixelRatio || 1;
-    canvas.width = size.w * dpr;
-    canvas.height = size.h * dpr;
-    canvas.style.width = `${size.w}px`;
-    canvas.style.height = `${size.h}px`;
+    canvas.width = measuredW * dpr;
+    canvas.height = resolvedH * dpr;
+    canvas.style.width = `${measuredW}px`;
+    canvas.style.height = `${resolvedH}px`;
     ctx.scale(dpr, dpr);
-    ctx.clearRect(0, 0, size.w, size.h);
+    ctx.clearRect(0, 0, measuredW, resolvedH);
 
     const padL = 50, padR = 20, padT = 20, padB = 40;
-    const drawW = size.w - padL - padR;
-    const drawH = size.h - padT - padB;
+    const drawW = measuredW - padL - padR;
+    const drawH = resolvedH - padT - padB;
 
     // Grid
     [0, 25, 50, 75, 100].forEach(score => {
@@ -58,7 +73,7 @@ function ScatterCanvas({ profiles, size }: { profiles: Profile[]; size: { w: num
     ctx.font = '9px "Space Mono", monospace';
     ctx.fillStyle = '#4a7090';
     ctx.textAlign = 'center';
-    ctx.fillText('CURRENT COMPOSITE', padL + drawW / 2, size.h - 6);
+    ctx.fillText('CURRENT COMPOSITE', padL + drawW / 2, resolvedH - 6);
     ctx.save();
     ctx.translate(10, padT + drawH / 2);
     ctx.rotate(-Math.PI / 2);
@@ -92,18 +107,22 @@ function ScatterCanvas({ profiles, size }: { profiles: Profile[]; size: { w: num
     ctx.lineWidth = 1;
     ctx.stroke();
     ctx.setLineDash([]);
-  }, [profiles, size]);
+  }, [profiles, measuredW, resolvedH]);
 
-  return <canvas ref={ref} style={{ display: 'block', width: '100%' }} />;
+  return (
+    <div ref={containerRef} style={{ width: '100%' }}>
+      <canvas ref={ref} style={{ display: 'block', width: '100%' }} />
+    </div>
+  );
 }
 
 function DistributionBar({ name, count, total, color }: { name: string; count: number; total: number; color: string }) {
   const pct = total > 0 ? (count / total) * 100 : 0;
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
       <div style={{
-        width: 130,
-        fontSize: 11,
+        width: 100,
+        fontSize: 10,
         color: '#c8e0ee',
         textAlign: 'right' as const,
         flexShrink: 0,
@@ -169,18 +188,20 @@ export default function ArchetypesLens({ profiles }: LensProps) {
       maxWidth: 960,
       display: 'flex',
       flexDirection: 'column',
-      gap: 24,
+      gap: 20,
+      overflow: 'hidden',
     }}>
       {/* Risk summary row */}
-      <div style={{ display: 'flex', gap: 14 }}>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         {['Low', 'Moderate', 'High'].map(risk => {
           const count = stats.riskMap[risk] || 0;
           const pct = stats.total > 0 ? Math.round((count / stats.total) * 100) : 0;
           const rc = RISK_COLORS[risk] || RISK_COLORS.Low;
           return (
             <div key={risk} style={{
-              flex: 1,
-              padding: '16px',
+              flex: '1 1 80px',
+              minWidth: 0,
+              padding: '12px',
               background: rc.bg,
               border: `0.5px solid ${rc.border}`,
               borderRadius: 12,
@@ -201,9 +222,10 @@ export default function ArchetypesLens({ profiles }: LensProps) {
       </div>
 
       {/* Scatter + Distribution */}
-      <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
         <div style={{
-          flex: '1 1 500px',
+          flex: '1 1 280px',
+          minWidth: 0,
           background: 'rgba(22,39,55,0.4)',
           border: '0.5px solid rgba(47,230,222,0.08)',
           borderRadius: 14,
@@ -220,7 +242,8 @@ export default function ArchetypesLens({ profiles }: LensProps) {
         </div>
 
         <div style={{
-          flex: '1 1 340px',
+          flex: '1 1 260px',
+          minWidth: 0,
           background: 'rgba(22,39,55,0.4)',
           border: '0.5px solid rgba(47,230,222,0.08)',
           borderRadius: 14,
@@ -246,7 +269,7 @@ export default function ArchetypesLens({ profiles }: LensProps) {
       </div>
 
       {/* Archetype detail cards */}
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         {sortedArchetypes.map(([name, data]) => {
           const color = ARCHETYPE_PALETTE[name] || '#4a7090';
           const sampleProfile = data.profiles[0];
@@ -254,7 +277,8 @@ export default function ArchetypesLens({ profiles }: LensProps) {
           const rc = RISK_COLORS[risk] || RISK_COLORS.Low;
           return (
             <div key={name} style={{
-              flex: '1 1 200px',
+              flex: '1 1 160px',
+              minWidth: 0,
               padding: '14px 16px',
               background: 'rgba(22,39,55,0.4)',
               border: `0.5px solid ${color}33`,

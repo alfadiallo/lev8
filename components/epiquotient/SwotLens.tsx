@@ -19,12 +19,13 @@ function avg(arr: number[]): number {
 function SwotCard({ title, color, items }: { title: string; color: string; items: SwotItem[] }) {
   return (
     <div style={{
-      flex: '1 1 420px',
+      flex: '1 1 280px',
+      minWidth: 0,
       background: 'rgba(22,39,55,0.4)',
       border: `0.5px solid ${color}33`,
       borderRadius: 14,
-      padding: '22px 24px',
-      minHeight: 200,
+      padding: '16px 16px',
+      minHeight: 160,
     }}>
       <div style={{
         fontSize: 13,
@@ -143,7 +144,8 @@ export default function SwotLens({ profiles }: LensProps) {
       maxWidth: 960,
       display: 'flex',
       flexWrap: 'wrap',
-      gap: 20,
+      gap: 14,
+      overflow: 'hidden',
     }}>
       <SwotCard title="Strengths" color="#18F2B2" items={swot.strengths} />
       <SwotCard title="Weaknesses" color="#f06060" items={swot.weaknesses} />

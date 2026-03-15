@@ -14,9 +14,9 @@ function StatCard({ label, value, sub, color }: { label: string; value: string |
       background: 'rgba(22,39,55,0.6)',
       border: '0.5px solid rgba(47,230,222,0.12)',
       borderRadius: 12,
-      padding: '20px 22px',
-      flex: '1 1 160px',
-      minWidth: 140,
+      padding: '16px 16px',
+      flex: '1 1 120px',
+      minWidth: 0,
     }}>
       <div style={{
         fontFamily: "'Space Mono', monospace",
@@ -24,12 +24,14 @@ function StatCard({ label, value, sub, color }: { label: string; value: string |
         fontWeight: 700,
         color: color || '#2fe6de',
         lineHeight: 1,
+        wordBreak: 'break-all' as const,
       }}>{value}</div>
       <div style={{
         fontSize: 11,
         color: '#c8e0ee',
         marginTop: 6,
         fontWeight: 500,
+        lineHeight: 1.3,
       }}>{label}</div>
       {sub && (
         <div style={{ fontSize: 10, color: '#4a7090', marginTop: 3 }}>{sub}</div>
@@ -207,10 +209,11 @@ export default function OverviewLens({ scope, profiles }: LensProps) {
       maxWidth: 960,
       display: 'flex',
       flexDirection: 'column',
-      gap: 28,
+      gap: 20,
+      overflow: 'hidden',
     }}>
       {/* Top stats */}
-      <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         <StatCard label="Total Profiles" value={stats.total} sub={`${scopeLabel} scope`} />
         <StatCard label="Composite Avg" value={stats.compositeAvg} sub="Across all pillars" />
         <StatCard label="EQ Average" value={stats.eqAvg} color={PILLAR_COLORS.eq} sub={PILLAR_LABELS.eq} />
@@ -219,9 +222,10 @@ export default function OverviewLens({ scope, profiles }: LensProps) {
       </div>
 
       {/* Pillar bars + Risk summary row */}
-      <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
         <div style={{
-          flex: '1 1 320px',
+          flex: '1 1 260px',
+          minWidth: 0,
           background: 'rgba(22,39,55,0.4)',
           border: '0.5px solid rgba(47,230,222,0.08)',
           borderRadius: 12,
@@ -240,7 +244,8 @@ export default function OverviewLens({ scope, profiles }: LensProps) {
         </div>
 
         <div style={{
-          flex: '1 1 320px',
+          flex: '1 1 260px',
+          minWidth: 0,
           background: 'rgba(22,39,55,0.4)',
           border: '0.5px solid rgba(47,230,222,0.08)',
           borderRadius: 12,
@@ -258,9 +263,10 @@ export default function OverviewLens({ scope, profiles }: LensProps) {
       </div>
 
       {/* Roles + Archetypes */}
-      <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
         <div style={{
-          flex: '1 1 300px',
+          flex: '1 1 240px',
+          minWidth: 0,
           background: 'rgba(22,39,55,0.4)',
           border: '0.5px solid rgba(47,230,222,0.08)',
           borderRadius: 12,
@@ -283,7 +289,8 @@ export default function OverviewLens({ scope, profiles }: LensProps) {
         </div>
 
         <div style={{
-          flex: '1 1 300px',
+          flex: '1 1 240px',
+          minWidth: 0,
           background: 'rgba(22,39,55,0.4)',
           border: '0.5px solid rgba(47,230,222,0.08)',
           borderRadius: 12,

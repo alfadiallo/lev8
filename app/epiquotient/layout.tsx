@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 
 export const metadata: Metadata = {
   title: 'EPI·Q — Performance Fingerprint',
@@ -10,6 +10,15 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  viewportFit: 'cover',
+  themeColor: '#07121D',
+};
+
 export default function EpiquotientLayout({ children }: { children: ReactNode }) {
   return (
     <div
@@ -18,7 +27,9 @@ export default function EpiquotientLayout({ children }: { children: ReactNode })
         color: '#c8e0ee',
         minHeight: '100vh',
         overflow: 'hidden',
+        overflowX: 'hidden',
         position: 'relative',
+        maxWidth: '100vw',
       }}
     >
       {children}

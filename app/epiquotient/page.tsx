@@ -296,12 +296,14 @@ function TooltipSparkline({ history }: { history: HistoryPoint[] }) {
 
 function PanelSparkline({ history, archetype }: { history: HistoryPoint[]; archetype: Archetype | null }) {
   const ref = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const canvas = ref.current;
-    if (!canvas || history.length === 0) return;
+    const container = containerRef.current;
+    if (!canvas || !container || history.length === 0) return;
     const ctx = canvas.getContext('2d')!;
     const dpr = window.devicePixelRatio || 1;
-    const w = 340;
+    const w = Math.min(340, container.clientWidth);
     const h = 80;
     canvas.width = w * dpr;
     canvas.height = h * dpr;
@@ -353,7 +355,11 @@ function PanelSparkline({ history, archetype }: { history: HistoryPoint[]; arche
   }, [history, archetype]);
 
   if (history.length === 0) return null;
-  return <canvas ref={ref} style={{ display: 'block', width: '100%' }} />;
+  return (
+    <div ref={containerRef} style={{ width: '100%' }}>
+      <canvas ref={ref} style={{ display: 'block', width: '100%' }} />
+    </div>
+  );
 }
 export default function EpiquotientPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -567,10 +573,11 @@ export default function EpiquotientPage() {
 
         // Draw subtle labels along the curve
         const label = WAVE_LABELS[wi];
-        const LABEL_SPACING = 420;
-        const LABEL_OFFSET = (wi * 90) + 140;
-        ctx.font = '500 9px "Sora", system-ui, sans-serif';
-        ctx.letterSpacing = '1.5px';
+        const isMobile = W < 600;
+        const LABEL_SPACING = isMobile ? 220 : 420;
+        const LABEL_OFFSET = isMobile ? (wi * 40) + 60 : (wi * 90) + 140;
+        ctx.font = isMobile ? '500 7px "Sora", system-ui, sans-serif' : '500 9px "Sora", system-ui, sans-serif';
+        ctx.letterSpacing = isMobile ? '0.8px' : '1.5px';
 
         for (let lx = LABEL_OFFSET; lx < W - 60; lx += LABEL_SPACING) {
           const y0 = waveY(w, lx, t);
@@ -712,6 +719,40 @@ export default function EpiquotientPage() {
     },
     [nearest]
   );
+
+  // ─── Touch interaction (mobile) ───────────────────────────
+  const [touchedProfile, setTouchedProfile] = useState<Profile | null>(null);
+
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent<HTMLCanvasElement>) => {
+      if (e.touches.length !== 1) return;
+      const touch = e.touches[0];
+      const p = nearest(touch.clientX, touch.clientY, 36);
+      if (p) {
+        e.preventDefault();
+        hovIdRef.current = p.id;
+        setTouchedProfile(p);
+      }
+    },
+    [nearest]
+  );
+
+  const handleTouchEnd = useCallback(
+    (e: React.TouchEvent<HTMLCanvasElement>) => {
+      if (touchedProfile) {
+        e.preventDefault();
+        openPanel(touchedProfile);
+        setTouchedProfile(null);
+        hovIdRef.current = null;
+      }
+    },
+    [touchedProfile]
+  );
+
+  const handleTouchCancel = useCallback(() => {
+    setTouchedProfile(null);
+    hovIdRef.current = null;
+  }, []);
 
   // ─── Panel logic ───────────────────────────────────────────
   function openPanel(p: Profile) {
@@ -1518,8 +1559,9 @@ export default function EpiquotientPage() {
         }
 
         .epiq-scope-section {
-          width: 100vw;
+          width: 100%;
           min-height: 100vh;
+          min-height: 100dvh;
           scroll-snap-align: start;
           display: flex;
           flex-direction: column;
@@ -1671,6 +1713,372 @@ export default function EpiquotientPage() {
           0%, 80%, 100% { opacity: 0.2; }
           40% { opacity: 1; }
         }
+
+        /* ─── Mobile Responsive ≤1024px ──────────────────────── */
+        @media (max-width: 1024px) {
+          .epiq-scope-section {
+            padding: 90px 32px 40px;
+          }
+          .epiq-section-header {
+            left: 32px;
+            top: 70px;
+          }
+          .epiq-panel {
+            width: 340px;
+          }
+        }
+
+        /* ─── Mobile Responsive ≤768px ───────────────────────── */
+        @media (max-width: 768px) {
+          .epiq-hdr {
+            padding: 14px 16px;
+            flex-direction: column;
+            gap: 6px;
+            z-index: 15;
+          }
+          .epiq-logo {
+            font-size: 14px;
+          }
+          .epiq-logo-sub {
+            font-size: 9px;
+            margin-top: 1px;
+          }
+          .epiq-stats {
+            gap: 16px;
+          }
+          .epiq-stat-val {
+            font-size: 16px;
+          }
+          .epiq-stat-lbl {
+            font-size: 9px;
+          }
+
+          .epiq-view-switcher {
+            top: 14px;
+            padding: 2px;
+          }
+          .epiq-view-btn {
+            font-size: 11px;
+            padding: 6px 14px;
+          }
+
+          .epiq-sort-row {
+            top: 54px;
+          }
+          .epiq-sort-btn {
+            font-size: 9px;
+            padding: 3px 4px;
+          }
+
+          .epiq-filter-bar {
+            bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+            padding: 8px 10px;
+            left: 50%;
+            width: calc(100% - 20px);
+            max-width: 400px;
+          }
+          .epiq-pill {
+            font-size: 9px;
+            padding: 5px 8px;
+            min-height: 34px;
+            display: inline-flex;
+            align-items: center;
+          }
+          .epiq-pill-dot {
+            width: 30px;
+            height: 30px;
+          }
+
+          .epiq-legend {
+            bottom: auto;
+            top: 72px;
+            left: 16px;
+            right: auto;
+            gap: 6px;
+            z-index: 15;
+          }
+          .epiq-grad-bar {
+            width: 140px;
+          }
+          .epiq-hint {
+            display: none;
+          }
+
+          .epiq-scope-section {
+            width: 100%;
+            min-height: 100vh;
+            min-height: 100dvh;
+            padding: 80px 16px 32px;
+          }
+          .epiq-section-header {
+            left: 16px;
+            top: 60px;
+            gap: 8px;
+          }
+          .epiq-section-icon {
+            width: 28px;
+            height: 28px;
+            font-size: 13px;
+            border-radius: 7px;
+          }
+          .epiq-section-title {
+            font-size: 14px;
+          }
+          .epiq-section-scope {
+            font-size: 9px;
+          }
+
+          .epiq-dot-nav {
+            right: 10px;
+            gap: 10px;
+          }
+          .epiq-dot {
+            width: 12px;
+            height: 12px;
+          }
+
+          .epiq-panel {
+            width: 100%;
+            max-width: 100vw;
+          }
+          .epiq-ph {
+            padding: 18px 16px 14px;
+          }
+          .epiq-p-name {
+            font-size: 15px;
+          }
+          .epiq-p-comp-val {
+            font-size: 28px;
+          }
+          .epiq-close-btn {
+            width: 36px;
+            height: 36px;
+            font-size: 16px;
+          }
+          .epiq-pillars {
+            padding: 16px;
+          }
+          .epiq-back-btn {
+            width: 36px;
+            height: 36px;
+          }
+
+          .epiq-footer {
+            font-size: 8px;
+            bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+          }
+        }
+
+        /* ─── Mobile Responsive ≤480px ───────────────────────── */
+        @media (max-width: 480px) {
+          .epiq-view-switcher {
+            top: 10px;
+            border-radius: 20px;
+          }
+          .epiq-view-btn {
+            font-size: 10px;
+            padding: 6px 12px;
+            border-radius: 18px;
+          }
+          .epiq-sort-row {
+            top: 46px;
+            gap: 0;
+          }
+          .epiq-sort-btn {
+            font-size: 9px;
+            padding: 3px 4px;
+          }
+          .epiq-sort-sep {
+            font-size: 9px;
+            padding: 0 1px;
+          }
+
+          .epiq-hdr {
+            padding: 10px 12px;
+          }
+          .epiq-logo {
+            font-size: 13px;
+          }
+          .epiq-logo-sub {
+            font-size: 8px;
+          }
+          .epiq-stats {
+            gap: 12px;
+          }
+          .epiq-stat-val {
+            font-size: 14px;
+          }
+
+          .epiq-legend {
+            top: 64px;
+            left: 12px;
+            z-index: 15;
+          }
+          .epiq-grad-bar {
+            width: 110px;
+            height: 6px;
+          }
+
+          .epiq-filter-bar {
+            bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+            padding: 6px 6px;
+            gap: 5px;
+            width: calc(100% - 12px);
+          }
+          .epiq-filter-pills {
+            gap: 3px;
+          }
+          .epiq-pill {
+            font-size: 9px;
+            padding: 4px 7px;
+            min-height: 30px;
+          }
+          .epiq-pill-dot {
+            width: 26px;
+            height: 26px;
+          }
+
+          .epiq-scope-section {
+            padding: 72px 12px 24px;
+          }
+          .epiq-section-header {
+            left: 12px;
+            top: 52px;
+          }
+          .epiq-section-icon {
+            width: 24px;
+            height: 24px;
+            font-size: 11px;
+            border-radius: 6px;
+          }
+          .epiq-section-title {
+            font-size: 12px;
+          }
+          .epiq-class-pill {
+            font-size: 9px;
+            padding: 2px 6px;
+          }
+
+          .epiq-dot-nav {
+            right: 6px;
+            gap: 8px;
+          }
+          .epiq-dot {
+            width: 9px;
+            height: 9px;
+          }
+          .epiq-dot-label {
+            display: none;
+          }
+
+          .epiq-tt {
+            display: none;
+          }
+
+          .epiq-ph {
+            padding: 14px 12px 10px;
+          }
+          .epiq-close-btn {
+            top: 14px;
+            right: 12px;
+            width: 40px;
+            height: 40px;
+            font-size: 18px;
+          }
+          .epiq-p-name {
+            font-size: 14px;
+          }
+          .epiq-p-comp {
+            padding: 10px 12px;
+            gap: 10px;
+          }
+          .epiq-p-comp-val {
+            font-size: 24px;
+          }
+          .epiq-pillars {
+            padding: 12px;
+          }
+          .epiq-pcard {
+            padding: 12px;
+            gap: 12px;
+          }
+          .epiq-dh {
+            padding: 14px 12px 10px;
+          }
+          .epiq-d-content {
+            padding: 16px 12px;
+          }
+
+          .epiq-footer {
+            font-size: 7px;
+          }
+        }
+
+        /* ─── Touch device hover removal ─────────────────────── */
+        @media (hover: none) {
+          .epiq-tt {
+            display: none !important;
+          }
+          .epiq-pcard:hover {
+            transform: none;
+          }
+          .epiq-grad-seg .epiq-seg-tip {
+            display: none;
+          }
+          .epiq-hint {
+            display: none;
+          }
+          .epiq-touch-sheet.visible {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+
+        /* ─── Mobile Touch Mini-Sheet ────────────────────────── */
+        .epiq-touch-sheet {
+          display: none;
+        }
+        @media (hover: none) {
+          .epiq-touch-sheet {
+            display: flex;
+            position: fixed;
+            bottom: calc(100px + env(safe-area-inset-bottom, 0px));
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            z-index: 45;
+            background: rgba(10, 24, 38, 0.96);
+            border: 0.5px solid rgba(47, 230, 222, 0.2);
+            border-radius: 14px;
+            padding: 12px 16px;
+            gap: 14px;
+            align-items: center;
+            min-width: 200px;
+            max-width: calc(100vw - 32px);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+          }
+          .epiq-touch-sheet.visible {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+            pointer-events: auto;
+          }
+        }
+
+        /* ─── iOS safe areas ─────────────────────────────────── */
+        @supports (padding: env(safe-area-inset-bottom)) {
+          .epiq-filter-bar {
+            padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+          }
+          .epiq-footer {
+            bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+          }
+          .epiq-panel {
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+          }
+        }
       `}</style>
 
       {/* View Switcher Pill */}
@@ -1735,6 +2143,9 @@ export default function EpiquotientPage() {
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
           onClick={handleClick}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchCancel}
         />
 
         {loading && (
@@ -1833,6 +2244,16 @@ export default function EpiquotientPage() {
           )}
           <div className="t-cta">Click to view full profile →</div>
         </div>
+      </div>
+
+      {/* Mobile touch mini-sheet */}
+      <div className={`epiq-touch-sheet${touchedProfile ? ' visible' : ''}`}>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 500, color: '#c8e0ee' }}>{touchedProfile?.name || ''}</div>
+          <div style={{ fontSize: 9, color: '#4a7090', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{touchedProfile?.role || ''}</div>
+        </div>
+        <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 22, color: '#2fe6de', lineHeight: 1 }}>{touchedProfile?.composite ?? ''}</div>
+        <div style={{ fontSize: 9, color: '#4a7090' }}>Tap to open →</div>
       </div>
 
       {/* ═══ Scope Pages (Program / Class / Individual) ═══ */}

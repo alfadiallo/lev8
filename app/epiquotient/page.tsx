@@ -170,10 +170,15 @@ function grade(s: number) {
   return { lbl: 'Serious Deficit', c: '#f06060' };
 }
 
+function mobileYOffset(W: number): number {
+  return W <= 768 ? 60 : 0;
+}
+
 function getY(p: Particle, t: number, H: number, W: number) {
   const w = WAVES[p.wIdx];
+  const yOff = mobileYOffset(W);
   return (
-    H * w.yF +
+    H * w.yF + yOff +
     w.amp * Math.sin(w.freq * (p.x / W) * Math.PI * 4 + w.ph + t * w.spd) +
     p.yScatter
   );
@@ -555,7 +560,8 @@ export default function EpiquotientPage() {
     window.addEventListener('resize', resize);
 
     function waveY(w: typeof WAVES[0], x: number, t: number) {
-      return H * w.yF + w.amp * Math.sin(w.freq * (x / W) * Math.PI * 4 + w.ph + t * w.spd);
+      const yOff = mobileYOffset(W);
+      return H * w.yF + yOff + w.amp * Math.sin(w.freq * (x / W) * Math.PI * 4 + w.ph + t * w.spd);
     }
 
     function drawWaveLines(t: number) {
@@ -1730,51 +1736,79 @@ export default function EpiquotientPage() {
 
         /* ─── Mobile Responsive ≤768px ───────────────────────── */
         @media (max-width: 768px) {
+          /* Header: centered vertical stack */
           .epiq-hdr {
-            padding: 14px 16px;
+            padding: 12px 16px 8px;
             flex-direction: column;
-            gap: 6px;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            gap: 4px;
             z-index: 15;
+            pointer-events: none;
           }
           .epiq-logo {
-            font-size: 14px;
+            font-size: 16px;
           }
           .epiq-logo-sub {
             font-size: 9px;
-            margin-top: 1px;
+            margin-top: 0;
           }
           .epiq-stats {
-            gap: 16px;
+            gap: 24px;
+            justify-content: center;
+            margin-top: 2px;
           }
           .epiq-stat-val {
-            font-size: 16px;
+            font-size: 18px;
           }
           .epiq-stat-lbl {
             font-size: 9px;
           }
 
+          /* View switcher: below header */
           .epiq-view-switcher {
-            top: 14px;
+            top: 76px;
             padding: 2px;
           }
           .epiq-view-btn {
             font-size: 11px;
-            padding: 6px 14px;
+            padding: 6px 16px;
           }
 
+          /* Sort row: below switcher */
           .epiq-sort-row {
-            top: 54px;
+            top: 114px;
           }
           .epiq-sort-btn {
             font-size: 9px;
-            padding: 3px 4px;
+            padding: 3px 5px;
           }
 
+          /* Legend: move to bottom, centered above filter pills */
+          .epiq-legend {
+            bottom: calc(100px + env(safe-area-inset-bottom, 0px));
+            top: auto;
+            left: 50%;
+            right: auto;
+            transform: translateX(-50%);
+            gap: 6px;
+            z-index: 20;
+            justify-content: center;
+          }
+          .epiq-grad-bar {
+            width: 160px;
+          }
+          .epiq-hint {
+            display: none;
+          }
+
+          /* Filter bar: bottom cluster */
           .epiq-filter-bar {
             bottom: calc(12px + env(safe-area-inset-bottom, 0px));
             padding: 8px 10px;
             left: 50%;
-            width: calc(100% - 20px);
+            width: calc(100% - 24px);
             max-width: 400px;
           }
           .epiq-pill {
@@ -1789,21 +1823,13 @@ export default function EpiquotientPage() {
             height: 30px;
           }
 
-          .epiq-legend {
-            bottom: auto;
-            top: 72px;
-            left: 16px;
-            right: auto;
-            gap: 6px;
-            z-index: 15;
-          }
-          .epiq-grad-bar {
-            width: 140px;
-          }
-          .epiq-hint {
-            display: none;
+          /* Footer: above safe area */
+          .epiq-footer {
+            font-size: 8px;
+            bottom: calc(6px + env(safe-area-inset-bottom, 0px));
           }
 
+          /* Scope sections */
           .epiq-scope-section {
             width: 100%;
             min-height: 100vh;
@@ -1837,51 +1863,73 @@ export default function EpiquotientPage() {
             height: 12px;
           }
 
+          /* Panel: full-screen overlay on mobile */
           .epiq-panel {
             width: 100%;
             max-width: 100vw;
+            height: 100%;
+            border-left: none;
+          }
+          .epiq-panel.open {
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
           }
           .epiq-ph {
             padding: 18px 16px 14px;
           }
           .epiq-p-name {
-            font-size: 15px;
+            font-size: 16px;
           }
           .epiq-p-comp-val {
             font-size: 28px;
           }
           .epiq-close-btn {
-            width: 36px;
-            height: 36px;
-            font-size: 16px;
+            width: 40px;
+            height: 40px;
+            font-size: 18px;
           }
           .epiq-pillars {
             padding: 16px;
           }
           .epiq-back-btn {
-            width: 36px;
-            height: 36px;
-          }
-
-          .epiq-footer {
-            font-size: 8px;
-            bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+            width: 40px;
+            height: 40px;
           }
         }
 
         /* ─── Mobile Responsive ≤480px ───────────────────────── */
         @media (max-width: 480px) {
+          /* Header: tighter centered stack */
+          .epiq-hdr {
+            padding: 10px 12px 6px;
+          }
+          .epiq-logo {
+            font-size: 14px;
+          }
+          .epiq-logo-sub {
+            font-size: 8px;
+          }
+          .epiq-stats {
+            gap: 20px;
+          }
+          .epiq-stat-val {
+            font-size: 16px;
+          }
+
+          /* View switcher: tighter spacing */
           .epiq-view-switcher {
-            top: 10px;
+            top: 68px;
             border-radius: 20px;
           }
           .epiq-view-btn {
             font-size: 10px;
-            padding: 6px 12px;
+            padding: 5px 12px;
             border-radius: 18px;
           }
+
+          /* Sort row: below switcher */
           .epiq-sort-row {
-            top: 46px;
+            top: 104px;
             gap: 0;
           }
           .epiq-sort-btn {
@@ -1893,37 +1941,21 @@ export default function EpiquotientPage() {
             padding: 0 1px;
           }
 
-          .epiq-hdr {
-            padding: 10px 12px;
-          }
-          .epiq-logo {
-            font-size: 13px;
-          }
-          .epiq-logo-sub {
-            font-size: 8px;
-          }
-          .epiq-stats {
-            gap: 12px;
-          }
-          .epiq-stat-val {
-            font-size: 14px;
-          }
-
+          /* Legend: bottom centered, above filter pills */
           .epiq-legend {
-            top: 64px;
-            left: 12px;
-            z-index: 15;
+            bottom: calc(90px + env(safe-area-inset-bottom, 0px));
           }
           .epiq-grad-bar {
-            width: 110px;
+            width: 130px;
             height: 6px;
           }
 
+          /* Filter bar: tighter */
           .epiq-filter-bar {
             bottom: calc(8px + env(safe-area-inset-bottom, 0px));
             padding: 6px 6px;
             gap: 5px;
-            width: calc(100% - 12px);
+            width: calc(100% - 16px);
           }
           .epiq-filter-pills {
             gap: 3px;
@@ -1938,6 +1970,7 @@ export default function EpiquotientPage() {
             height: 26px;
           }
 
+          /* Scope sections */
           .epiq-scope-section {
             padding: 72px 12px 24px;
           }
@@ -1975,18 +2008,19 @@ export default function EpiquotientPage() {
             display: none;
           }
 
+          /* Panel refinements */
           .epiq-ph {
             padding: 14px 12px 10px;
           }
           .epiq-close-btn {
             top: 14px;
             right: 12px;
-            width: 40px;
-            height: 40px;
+            width: 44px;
+            height: 44px;
             font-size: 18px;
           }
           .epiq-p-name {
-            font-size: 14px;
+            font-size: 15px;
           }
           .epiq-p-comp {
             padding: 10px 12px;

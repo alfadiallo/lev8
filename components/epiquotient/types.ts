@@ -1,6 +1,9 @@
 export interface HistoryPoint {
   period: string;
   composite: number;
+  eq?: number;
+  pq?: number;
+  iq?: number;
 }
 
 export interface Archetype {

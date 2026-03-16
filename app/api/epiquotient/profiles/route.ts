@@ -189,6 +189,9 @@ export async function GET(request: NextRequest) {
         .map((h) => ({
           period: h.period,
           composite: h.composite_score,
+          eq: h.eq_score ?? undefined,
+          pq: h.pq_score ?? undefined,
+          iq: h.iq_score ?? undefined,
         }));
 
       const archetypeMeta = row.archetype_id ? ARCHETYPE_META[row.archetype_id] : null;

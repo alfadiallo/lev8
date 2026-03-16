@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { OverviewLens, EqPqIqLens, SwotLens, TrajectoryLens, ArchetypesLens } from '@/components/epiquotient';
+import { OverviewLens, EqPqIqLens, SwotLens, TrajectoryLens, ArchetypesLens, IndividualView } from '@/components/epiquotient';
 import type { ProgramMeta } from '@/components/epiquotient';
 
 type ViewMode = 'landing' | 'program' | 'class' | 'individual';
@@ -20,6 +20,9 @@ const LENS_SECTIONS = [
 interface HistoryPoint {
   period: string;
   composite: number;
+  eq?: number;
+  pq?: number;
+  iq?: number;
 }
 
 interface Archetype {
@@ -381,6 +384,9 @@ export default function EpiquotientPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('landing');
   const [activeSection, setActiveSection] = useState(0);
   const [exitingScope, setExitingScope] = useState<ScopeType | null>(null);
+  const [pivoting, setPivoting] = useState(false);
+  const [individualExiting, setIndividualExiting] = useState(false);
+  const [landingReturning, setLandingReturning] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Sort mode for particle arrangement
@@ -884,6 +890,17 @@ export default function EpiquotientPage() {
 
   function enterScope(scope: ScopeType) {
     closePanel();
+    if (scope === 'individual') {
+      setPivoting(true);
+      if (viewMode !== 'landing' && viewMode !== scope) {
+        setExitingScope(viewMode as ScopeType);
+        setTimeout(() => setExitingScope(null), 700);
+      }
+      setViewMode(scope);
+      setActiveSection(0);
+      return;
+    }
+    setPivoting(false);
     if (viewMode !== 'landing' && viewMode !== scope) {
       setExitingScope(viewMode as ScopeType);
       setTimeout(() => setExitingScope(null), 700);
@@ -897,6 +914,23 @@ export default function EpiquotientPage() {
 
   function exitToLanding() {
     closePanel();
+    if (viewMode === 'individual') {
+      setIndividualExiting(true);
+      setLandingReturning(true);
+      setPivoting(false);
+      setViewMode('landing');
+      setActiveSection(0);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setLandingReturning(false);
+        });
+      });
+      setTimeout(() => {
+        setIndividualExiting(false);
+      }, 1600);
+      return;
+    }
+    setPivoting(false);
     if (viewMode !== 'landing') {
       setExitingScope(viewMode as ScopeType);
       setTimeout(() => setExitingScope(null), 700);
@@ -1617,11 +1651,48 @@ export default function EpiquotientPage() {
           position: absolute;
           inset: 0;
           opacity: 1;
-          transition: opacity 0.7s linear;
+          transform-style: preserve-3d;
+          perspective: 1200px;
+          transition: transform 1.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+          transform-origin: center center;
         }
         .epiq-landing.hidden {
           opacity: 0;
           pointer-events: none;
+        }
+        .epiq-landing.pivoting {
+          transform: perspective(1200px) rotateY(-85deg);
+          opacity: 0;
+          pointer-events: none;
+        }
+        .epiq-landing.returning {
+          transform: perspective(1200px) rotateY(85deg);
+          opacity: 0;
+          pointer-events: none;
+          transition: none;
+        }
+
+        /* ─── Individual View Container ──────────────────────── */
+        .epiq-individual {
+          position: absolute;
+          inset: 0;
+          opacity: 0;
+          transform: perspective(1200px) rotateY(85deg);
+          transform-origin: center center;
+          pointer-events: none;
+          transition: transform 1.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+          z-index: 25;
+        }
+        .epiq-individual.active {
+          opacity: 1;
+          transform: perspective(1200px) rotateY(0deg);
+          pointer-events: auto;
+        }
+        .epiq-individual.exiting {
+          opacity: 0;
+          transform: perspective(1200px) rotateY(-85deg);
+          pointer-events: none;
+          transition: transform 1.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 1.5s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         /* ─── Scroll-Snap Scope Container ────────────────────── */
@@ -2246,8 +2317,8 @@ export default function EpiquotientPage() {
         </div>
       )}
 
-      {/* Dot Navigation (visible in scope views) */}
-      <div className={`epiq-dot-nav${viewMode !== 'landing' ? ' visible' : ''}`}>
+      {/* Dot Navigation (visible in scope views, not individual) */}
+      <div className={`epiq-dot-nav${viewMode !== 'landing' && viewMode !== 'individual' ? ' visible' : ''}`}>
         {LENS_SECTIONS.map((lens, i) => (
           <button
             key={lens.id}
@@ -2260,7 +2331,7 @@ export default function EpiquotientPage() {
       </div>
 
       {/* ═══ Landing State: Particle Wave Field ═══ */}
-      <div className={`epiq-landing${viewMode !== 'landing' ? ' hidden' : ''}`}>
+      <div className={`epiq-landing${viewMode !== 'landing' && viewMode !== 'individual' ? ' hidden' : ''}${pivoting || viewMode === 'individual' ? ' pivoting' : ''}${landingReturning ? ' returning' : ''}`}>
         <canvas
           ref={canvasRef}
           className={`epiq-canvas${hovering ? ' hovering' : ''}`}
@@ -2320,8 +2391,8 @@ export default function EpiquotientPage() {
               </div>
             ))}
           </div>
-          <button className="epiq-pill-dot epiq-legend-dot" onClick={() => setActiveScoreBands(new Set(ALL_BANDS))} title="Select all score bands">
-            <svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="currentColor" /></svg>
+          <button className="epiq-pill-dot epiq-legend-dot" onClick={() => setActiveScoreBands(prev => prev.size === ALL_BANDS.length ? new Set() : new Set(ALL_BANDS))} title={activeScoreBands.size === ALL_BANDS.length ? 'Deselect all' : 'Select all'}>
+            <svg width="10" height="10" viewBox="0 0 10 10">{activeScoreBands.size === ALL_BANDS.length ? <circle cx="5" cy="5" r="4" fill="currentColor" /> : <circle cx="5" cy="5" r="4" fill="none" stroke="currentColor" strokeWidth="1.2" />}</svg>
           </button>
         </div>
 
@@ -2333,25 +2404,19 @@ export default function EpiquotientPage() {
 
         <div className="epiq-filter-bar">
           <div className="epiq-filter-pills">
-            <button className="epiq-pill-dot" onClick={() => setActiveRoles(new Set())} title="Deselect all">
-              <svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="none" stroke="currentColor" strokeWidth="1.2" /></svg>
-            </button>
             {ALL_ROLES.map(role => (
               <button key={role} className={`epiq-pill${activeRoles.has(role) ? ' active' : ''}${selectedProfile?.role === role ? ' sel' : ''}`} onClick={() => toggleRole(role)}>{role}</button>
             ))}
-            <button className="epiq-pill-dot" onClick={() => setActiveRoles(new Set(ALL_ROLES))} title="Select all">
-              <svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="currentColor" /></svg>
+            <button className="epiq-pill-dot" onClick={() => setActiveRoles(prev => prev.size === ALL_ROLES.length ? new Set() : new Set(ALL_ROLES))} title={activeRoles.size === ALL_ROLES.length ? 'Deselect all' : 'Select all'}>
+              <svg width="10" height="10" viewBox="0 0 10 10">{activeRoles.size === ALL_ROLES.length ? <circle cx="5" cy="5" r="4" fill="currentColor" /> : <circle cx="5" cy="5" r="4" fill="none" stroke="currentColor" strokeWidth="1.2" />}</svg>
             </button>
           </div>
           <div className="epiq-filter-pills">
-            <button className="epiq-pill-dot" onClick={() => setActiveScoreBands(new Set())} title="Deselect all score bands">
-              <svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="none" stroke="currentColor" strokeWidth="1.2" /></svg>
-            </button>
             {ALL_BANDS.map(band => (
               <button key={band} className={`epiq-pill${activeScoreBands.has(band) ? ' active' : ''}${selectedProfile && scoreToBand(selectedProfile.composite) === band ? ' sel' : ''}`} onClick={() => toggleBand(band)}>{BAND_LABELS[band]}</button>
             ))}
-            <button className="epiq-pill-dot" onClick={() => setActiveScoreBands(new Set(ALL_BANDS))} title="Select all score bands">
-              <svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="currentColor" /></svg>
+            <button className="epiq-pill-dot" onClick={() => setActiveScoreBands(prev => prev.size === ALL_BANDS.length ? new Set() : new Set(ALL_BANDS))} title={activeScoreBands.size === ALL_BANDS.length ? 'Deselect all' : 'Select all'}>
+              <svg width="10" height="10" viewBox="0 0 10 10">{activeScoreBands.size === ALL_BANDS.length ? <circle cx="5" cy="5" r="4" fill="currentColor" /> : <circle cx="5" cy="5" r="4" fill="none" stroke="currentColor" strokeWidth="1.2" />}</svg>
             </button>
           </div>
         </div>
@@ -2381,8 +2446,13 @@ export default function EpiquotientPage() {
         <div style={{ fontSize: 9, color: '#4a7090' }}>Tap to open →</div>
       </div>
 
-      {/* ═══ Scope Pages (Program / Class / Individual) ═══ */}
-      {(['program', 'class', 'individual'] as ScopeType[]).map((scope) => {
+      {/* ═══ Individual View (Z-Axis Longitudinal) ═══ */}
+      <div className={`epiq-individual${viewMode === 'individual' ? ' active' : ''}${individualExiting ? ' exiting' : ''}`}>
+        <IndividualView profiles={profiles} />
+      </div>
+
+      {/* ═══ Scope Pages (Program / Class) ═══ */}
+      {(['program', 'class'] as ScopeType[]).map((scope) => {
         const scopeProfiles = scope === 'class' && classFilter
           ? profiles.filter(p => p.role === classFilter)
           : profiles;

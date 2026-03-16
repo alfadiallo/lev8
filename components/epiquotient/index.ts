@@ -3,4 +3,5 @@ export { default as EqPqIqLens } from './EqPqIqLens';
 export { default as SwotLens } from './SwotLens';
 export { default as TrajectoryLens } from './TrajectoryLens';
 export { default as ArchetypesLens } from './ArchetypesLens';
+export { default as IndividualView } from './IndividualView';
 export type { Profile, ScopeType, LensProps, ProgramMeta } from './types';

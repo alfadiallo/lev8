@@ -3,8 +3,8 @@
 **Product:** EPI Quotient  
 **Domain:** www.epiquotient.com  
 **Platform:** Integrated into lev8 monorepo (Next.js App Router)  
-**Version:** 1.2  
-**Last Updated:** March 15, 2026  
+**Version:** 1.3  
+**Last Updated:** March 16, 2026  
 **Status:** Development (local + remote DB)
 
 ---
@@ -252,6 +252,7 @@ Each section header displays contextual information next to the lens label, vary
 - Particle size scales slightly with composite score
 - Waves animate continuously with independent frequency, speed, and phase
 - **Data-driven amplitudes:** Each wave's vertical oscillation (amplitude) is computed from the min/max score spread of its cohort rather than a static constant. The amplitude dynamically recalculates when the sort mode changes (Default/A-Z use composite range, EQ/PQ/IQ use their respective score ranges). Amplitude transitions are smoothly animated via lerp in the render loop.
+- **Score-driven Y offset:** Each particle's vertical distance from its wave center line encodes how far its score deviates from the cohort mean. Above the line = above mean, below = below mean. Max deflection is capped at ~10px (~2-3mm on screen). The offset recalculates when the sort filter changes (using composite for Default/A-Z, or the specific pillar score for EQ/PQ/IQ). A tiny +/-2px random jitter prevents particles with identical scores from stacking. Offset transitions are smoothly animated via lerp alongside the X-axis sort animation.
 
 ### 5.1.1 Particle Sort
 
@@ -347,7 +348,7 @@ When a profile is selected (clicked):
 - **Top left:** "EPI Quotient" logo + "Performance Fingerprint" subtitle
 - **Top right:** Profile count (visible/total when filtered) + average composite score
 - **Bottom left:** Gradient bar with hoverable score scale tooltips
-- **Bottom right:** Interaction hint text
+- **Bottom right:** Interaction hint text — "Hover a particle to identify", "Click to explore the profile", "Wave amplitude reflects score variance of the min and max for the chosen filter."
 
 ---
 

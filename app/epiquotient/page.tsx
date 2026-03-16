@@ -53,6 +53,8 @@ interface Particle extends Profile {
   targetX: number;
   originX: number;
   yScatter: number;
+  yScatterTarget: number;
+  yJitter: number;
   baseRad: number;
 }
 
@@ -70,6 +72,7 @@ const WAVES = [
 
 const MIN_AMP = 20;
 const MAX_AMP = 80;
+const MAX_DEFLECTION = 10;
 const DEFAULT_AMPS = WAVES.map(w => w.amp);
 
 const WAVE_COLORS = [
@@ -185,7 +188,7 @@ function getY(p: Particle, t: number, H: number, W: number, amps: number[]) {
   return (
     H * w.yF + yOff +
     amp * Math.sin(w.freq * (p.x / W) * Math.PI * 4 + w.ph + t * w.spd) +
-    p.yScatter
+    p.yScatter + p.yJitter
   );
 }
 
@@ -459,6 +462,27 @@ export default function EpiquotientPage() {
     waveAmpsTargetRef.current = targets;
   }
 
+  function computeYOffsets(mode: SortMode) {
+    const parts = particlesRef.current;
+    if (parts.length === 0) return;
+    const byWave: Map<number, Particle[]> = new Map();
+    for (const p of parts) {
+      if (!byWave.has(p.wIdx)) byWave.set(p.wIdx, []);
+      byWave.get(p.wIdx)!.push(p);
+    }
+    for (const [, group] of byWave) {
+      const scores = group.map(p => getScoreForMode(p, mode));
+      const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
+      const lo = Math.min(...scores);
+      const hi = Math.max(...scores);
+      const range = hi - lo || 1;
+      for (const p of group) {
+        const s = getScoreForMode(p, mode);
+        p.yScatterTarget = -((s - mean) / range) * MAX_DEFLECTION;
+      }
+    }
+  }
+
   function scoreToBand(s: number): number {
     if (s <= 20) return 0;
     if (s <= 40) return 1;
@@ -565,15 +589,17 @@ export default function EpiquotientPage() {
           const xBase = ((i + 0.5) / group.length) * W;
           const xJitter = (Math.random() - 0.5) * 60;
           const x = clamp(xBase + xJitter, 0, W);
-          const yScatter = (Math.random() - 0.5) * 18;
+          const yJitter = (Math.random() - 0.5) * 4;
           const baseRad = 2.8 + p.composite / 110;
-          allParticles.push({ ...p, wIdx: wi, x, targetX: x, originX: x, yScatter, baseRad });
+          allParticles.push({ ...p, wIdx: wi, x, targetX: x, originX: x, yScatter: 0, yScatterTarget: 0, yJitter, baseRad });
         });
       }
       particlesRef.current = allParticles;
 
       computeAmplitudes(sortModeRef.current);
+      computeYOffsets(sortModeRef.current);
       waveAmpsRef.current = [...waveAmpsTargetRef.current];
+      for (const p of allParticles) p.yScatter = p.yScatterTarget;
 
       if (sortModeRef.current !== 'default') {
         applySortOrder(sortModeRef.current, W);
@@ -670,6 +696,10 @@ export default function EpiquotientPage() {
         const dx = p.targetX - p.x;
         if (Math.abs(dx) > 0.3) {
           p.x += dx * (0.035 + Math.random() * 0.018);
+        }
+        const dy = p.yScatterTarget - p.yScatter;
+        if (Math.abs(dy) > 0.1) {
+          p.yScatter += dy * 0.04;
         }
       }
 
@@ -2205,6 +2235,7 @@ export default function EpiquotientPage() {
                   sortModeRef.current = next;
                   applySortOrder(next, dimRef.current.W);
                   computeAmplitudes(next);
+                  computeYOffsets(next);
                 }}
               >
                 {item.label}

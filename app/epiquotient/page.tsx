@@ -2297,6 +2297,7 @@ export default function EpiquotientPage() {
         <div className="epiq-hint">
           <p>Hover a particle to identify</p>
           <p>Click to explore the profile</p>
+          <p>Wave amplitude reflects score variance of<br/>the min and max for the chosen filter.</p>
         </div>
 
         <div className="epiq-filter-bar">

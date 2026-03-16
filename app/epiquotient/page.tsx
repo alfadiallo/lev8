@@ -60,13 +60,17 @@ type SortMode = 'default' | 'az' | 'eq' | 'pq' | 'iq' | 'epiq';
 
 // ─── Constants ──────────────────────────────────────────────────
 const WAVES = [
-  { yF: 0.22, amp: 55, freq: 1.1, spd: 0.22, ph: 0 },
-  { yF: 0.34, amp: 70, freq: 0.85, spd: 0.17, ph: 1.2 },
-  { yF: 0.46, amp: 65, freq: 1.0, spd: 0.25, ph: 2.5 },
-  { yF: 0.57, amp: 50, freq: 0.75, spd: 0.20, ph: 3.8 },
-  { yF: 0.68, amp: 45, freq: 1.15, spd: 0.19, ph: 5.1 },
-  { yF: 0.79, amp: 42, freq: 0.90, spd: 0.21, ph: 4.3 },
+  { yF: 0.22, amp: 55, freq: 1.1, spd: 0.22, ph: 0 },     // Graduate
+  { yF: 0.34, amp: 70, freq: 0.85, spd: 0.17, ph: 1.2 },   // PGY 3
+  { yF: 0.46, amp: 65, freq: 1.0, spd: 0.25, ph: 2.5 },    // PGY 2
+  { yF: 0.57, amp: 50, freq: 0.75, spd: 0.20, ph: 3.8 },   // PGY 1
+  { yF: 0.68, amp: 45, freq: 1.15, spd: 0.19, ph: 5.1 },   // MS4
+  { yF: 0.79, amp: 42, freq: 0.90, spd: 0.21, ph: 4.3 },   // MS3
 ];
+
+const MIN_AMP = 20;
+const MAX_AMP = 80;
+const DEFAULT_AMPS = WAVES.map(w => w.amp);
 
 const WAVE_COLORS = [
   'rgba(18,80,100,0.28)',
@@ -77,10 +81,10 @@ const WAVE_COLORS = [
   'rgba(30,200,160,0.22)',
 ];
 
-const WAVE_LABELS = ['PGY 4', 'PGY 3', 'PGY 2', 'PGY 1', 'MS4', 'MS3'];
+const WAVE_LABELS = ['Graduate', 'PGY 3', 'PGY 2', 'PGY 1', 'MS4', 'MS3'];
 
 const ROLE_TO_WAVE: Record<string, number> = {
-  'PGY 4': 0,
+  'Graduate': 0,
   'PGY 3': 1,
   'PGY 2': 2,
   'PGY 1': 3,
@@ -174,12 +178,13 @@ function mobileYOffset(W: number): number {
   return W <= 768 ? 60 : 0;
 }
 
-function getY(p: Particle, t: number, H: number, W: number) {
+function getY(p: Particle, t: number, H: number, W: number, amps: number[]) {
   const w = WAVES[p.wIdx];
   const yOff = mobileYOffset(W);
+  const amp = amps[p.wIdx] ?? w.amp;
   return (
     H * w.yF + yOff +
-    w.amp * Math.sin(w.freq * (p.x / W) * Math.PI * 4 + w.ph + t * w.spd) +
+    amp * Math.sin(w.freq * (p.x / W) * Math.PI * 4 + w.ph + t * w.spd) +
     p.yScatter
   );
 }
@@ -407,7 +412,7 @@ export default function EpiquotientPage() {
   const [drillAnimated, setDrillAnimated] = useState(false);
 
   // ─── Filter state ─────────────────────────────────────────
-  const ALL_ROLES = ['MS3', 'MS4', 'PGY 1', 'PGY 2', 'PGY 3', 'PGY 4'] as const;
+  const ALL_ROLES = ['MS3', 'MS4', 'PGY 1', 'PGY 2', 'PGY 3', 'Graduate'] as const;
   const ALL_BANDS = [0, 1, 2, 3, 4] as const;
   const BAND_LABELS = ['0–20', '21–40', '41–60', '61–80', '81–100'];
 
@@ -418,6 +423,41 @@ export default function EpiquotientPage() {
 
   useEffect(() => { activeRolesRef.current = activeRoles; }, [activeRoles]);
   useEffect(() => { activeScoreBandsRef.current = activeScoreBands; }, [activeScoreBands]);
+
+  // ─── Data-driven wave amplitudes ───────────────────────────
+  const waveAmpsRef = useRef<number[]>([...DEFAULT_AMPS]);
+  const waveAmpsTargetRef = useRef<number[]>([...DEFAULT_AMPS]);
+
+  function getScoreForMode(p: Particle, mode: SortMode): number {
+    switch (mode) {
+      case 'eq': return p.eqScore;
+      case 'pq': return p.pqScore;
+      case 'iq': return p.iqScore;
+      default: return p.composite;
+    }
+  }
+
+  function computeAmplitudes(mode: SortMode) {
+    const parts = particlesRef.current;
+    if (parts.length === 0) return;
+    const byWave: Map<number, number[]> = new Map();
+    for (const p of parts) {
+      if (!byWave.has(p.wIdx)) byWave.set(p.wIdx, []);
+      byWave.get(p.wIdx)!.push(getScoreForMode(p, mode));
+    }
+    const targets = [...DEFAULT_AMPS];
+    for (const [wIdx, scores] of byWave) {
+      if (scores.length <= 1) {
+        targets[wIdx] = MIN_AMP;
+        continue;
+      }
+      const lo = Math.min(...scores);
+      const hi = Math.max(...scores);
+      const range = hi - lo;
+      targets[wIdx] = MIN_AMP + (range / 100) * (MAX_AMP - MIN_AMP);
+    }
+    waveAmpsTargetRef.current = targets;
+  }
 
   function scoreToBand(s: number): number {
     if (s <= 20) return 0;
@@ -532,6 +572,9 @@ export default function EpiquotientPage() {
       }
       particlesRef.current = allParticles;
 
+      computeAmplitudes(sortModeRef.current);
+      waveAmpsRef.current = [...waveAmpsTargetRef.current];
+
       if (sortModeRef.current !== 'default') {
         applySortOrder(sortModeRef.current, W);
       }
@@ -559,17 +602,17 @@ export default function EpiquotientPage() {
     }
     window.addEventListener('resize', resize);
 
-    function waveY(w: typeof WAVES[0], x: number, t: number) {
+    function waveY(w: typeof WAVES[0], wi: number, x: number, t: number) {
       const yOff = mobileYOffset(W);
-      return H * w.yF + yOff + w.amp * Math.sin(w.freq * (x / W) * Math.PI * 4 + w.ph + t * w.spd);
+      const amp = waveAmpsRef.current[wi] ?? w.amp;
+      return H * w.yF + yOff + amp * Math.sin(w.freq * (x / W) * Math.PI * 4 + w.ph + t * w.spd);
     }
 
     function drawWaveLines(t: number) {
       WAVES.forEach((w, wi) => {
-        // Draw the sine trace line
         ctx.beginPath();
         for (let x = 0; x <= W; x += 3) {
-          const y = waveY(w, x, t);
+          const y = waveY(w, wi, x, t);
           x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
         }
         ctx.strokeStyle = WAVE_COLORS[wi];
@@ -577,7 +620,6 @@ export default function EpiquotientPage() {
         ctx.setLineDash([]);
         ctx.stroke();
 
-        // Draw subtle labels along the curve
         const label = WAVE_LABELS[wi];
         const isMobile = W < 600;
         const LABEL_SPACING = isMobile ? 220 : 420;
@@ -586,8 +628,8 @@ export default function EpiquotientPage() {
         ctx.letterSpacing = isMobile ? '0.8px' : '1.5px';
 
         for (let lx = LABEL_OFFSET; lx < W - 60; lx += LABEL_SPACING) {
-          const y0 = waveY(w, lx, t);
-          const y1 = waveY(w, lx + 2, t);
+          const y0 = waveY(w, wi, lx, t);
+          const y1 = waveY(w, wi, lx + 2, t);
           const angle = Math.atan2(y1 - y0, 2);
 
           ctx.save();
@@ -605,6 +647,19 @@ export default function EpiquotientPage() {
       const time = ts / 1000;
       timeRef.current = time;
       ctx.clearRect(0, 0, W, H);
+
+      // Lerp wave amplitudes toward targets for smooth transitions
+      const amps = waveAmpsRef.current;
+      const targets = waveAmpsTargetRef.current;
+      for (let wi = 0; wi < amps.length; wi++) {
+        const diff = targets[wi] - amps[wi];
+        if (Math.abs(diff) > 0.2) {
+          amps[wi] += diff * 0.04;
+        } else {
+          amps[wi] = targets[wi];
+        }
+      }
+
       drawWaveLines(time);
 
       const parts = particlesRef.current;
@@ -619,7 +674,7 @@ export default function EpiquotientPage() {
       }
 
       for (const p of parts) {
-        const py = getY(p, time, H, W);
+        const py = getY(p, time, H, W, amps);
         const isHov = p.id === hovId;
         const isSel = p.id === selId;
         const dimmed = selId !== null && !isSel && !isHov;
@@ -676,7 +731,7 @@ export default function EpiquotientPage() {
       const time = timeRef.current;
       for (const p of particlesRef.current) {
         if (!activeScoreBandsRef.current.has(scoreToBand(p.composite)) || !activeRolesRef.current.has(p.role)) continue;
-        const py = getY(p, time, H, W);
+        const py = getY(p, time, H, W, waveAmpsRef.current);
         const d = Math.hypot(p.x - mx, py - my);
         if (d < minD) {
           minD = d;
@@ -926,6 +981,9 @@ export default function EpiquotientPage() {
         .epiq-stats {
           display: flex;
           gap: 28px;
+        }
+        .epiq-stats > div {
+          text-align: center;
         }
         .epiq-stat-val {
           font-family: 'Space Mono', monospace;
@@ -2146,6 +2204,7 @@ export default function EpiquotientPage() {
                   setSortMode(next);
                   sortModeRef.current = next;
                   applySortOrder(next, dimRef.current.W);
+                  computeAmplitudes(next);
                 }}
               >
                 {item.label}
@@ -2297,7 +2356,7 @@ export default function EpiquotientPage() {
           : profiles;
 
         const distinctRoles = [...new Set(profiles.map(p => p.role))].sort((a, b) => {
-          const order: Record<string, number> = { 'MS3': 0, 'MS4': 1, 'PGY 1': 2, 'PGY 2': 3, 'PGY 3': 4, 'PGY 4': 5 };
+          const order: Record<string, number> = { 'MS3': 0, 'MS4': 1, 'PGY 1': 2, 'PGY 2': 3, 'PGY 3': 4, 'Graduate': 5 };
           return (order[a] ?? 99) - (order[b] ?? 99);
         });
 

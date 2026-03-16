@@ -280,7 +280,7 @@ export default function OverviewLens({ scope, profiles }: LensProps) {
             marginBottom: 14,
           }}>Role Breakdown</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {['PGY 4', 'PGY 3', 'PGY 2', 'PGY 1', 'MS4', 'MS3']
+            {['Graduate', 'PGY 3', 'PGY 2', 'PGY 1', 'MS4', 'MS3']
               .filter(r => stats.roles[r])
               .map(role => (
                 <RoleBadge key={role} role={role} count={stats.roles[role]} total={stats.total} />

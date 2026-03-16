@@ -54,7 +54,7 @@ const SLUG_TO_CAMEL: Record<string, string> = {
 };
 
 const PERIOD_ORDER: Record<string, number> = {
-  'MS3': 0, 'MS4': 1, 'PGY 1': 2, 'PGY 2': 3, 'PGY 3': 4, 'PGY 4': 5,
+  'MS3': 0, 'MS4': 1, 'PGY 1': 2, 'PGY 2': 3, 'PGY 3': 4, 'Graduate': 5,
 };
 
 const ARCHETYPE_META: Record<string, { name: string; risk: string; action: string; description: string }> = {
@@ -174,7 +174,7 @@ export async function GET(request: NextRequest) {
       const iqScore = avg(Object.values(iq));
       const composite = Math.round((eqScore + pqScore + iqScore) / 3);
 
-      const isResident = row.role.startsWith('PGY');
+      const isResident = row.role.startsWith('PGY') || row.role === 'Graduate';
       let name: string;
       if (isResident) {
         const hashVal = parseInt(row.id.replace(/-/g, '').slice(0, 8), 16) / 0xFFFFFFFF;

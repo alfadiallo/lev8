@@ -3,8 +3,8 @@
 **Product:** EPI Quotient  
 **Domain:** www.epiquotient.com  
 **Platform:** Integrated into lev8 monorepo (Next.js App Router)  
-**Version:** 1.1  
-**Last Updated:** March 14, 2026  
+**Version:** 1.2  
+**Last Updated:** March 15, 2026  
 **Status:** Development (local + remote DB)
 
 ---
@@ -64,7 +64,8 @@ supabase/migrations/
 ├── 20260313000001_epiquotient_tables.sql        # Base tables + seed data
 ├── 20260313000002_epiquotient_update_roles.sql   # Role rename (PGY designations)
 ├── 20260313000003_epiq_trajectories.sql          # History table + archetype seeding
-└── 20260314000001_epiq_program_context.sql       # Institution + program name columns
+├── 20260314000001_epiq_program_context.sql       # Institution + program name columns
+└── 20260316000001_epiq_redistribute_profiles.sql # Redistribute: 23 MS3, 35 MS4, 15x PGY 1-3, 167 Graduate
 ```
 
 ### 3.3 Database Schema
@@ -76,7 +77,7 @@ supabase/migrations/
 | id | UUID PK | Profile identifier |
 | first_name | TEXT | First name |
 | last_name | TEXT | Last name |
-| role | TEXT | Training level: MS3, MS4, PGY 1, PGY 2, PGY 3, PGY 4 |
+| role | TEXT | Training level: MS3, MS4, PGY 1, PGY 2, PGY 3, Graduate |
 | cohort_label | TEXT | Cohort name (default: "EM Residency 2025") |
 | institution_name | TEXT | Hospital/institution name (default: "Grey Sloan Memorial Hospital") |
 | program_name | TEXT | Residency program name (default: "Emergency Medicine Residency") |
@@ -103,7 +104,7 @@ supabase/migrations/
 |--------|------|-------------|
 | id | UUID PK | History row identifier |
 | profile_id | UUID FK | References epiq_profiles |
-| period | TEXT | MS3, MS4, PGY 1, PGY 2, PGY 3, PGY 4 |
+| period | TEXT | MS3, MS4, PGY 1, PGY 2, PGY 3, Graduate |
 | composite_score | INTEGER | 0–100 |
 | eq_score | INTEGER | 0–100 |
 | pq_score | INTEGER | 0–100 |
@@ -161,7 +162,7 @@ Returns all profiles with computed scores, history, and archetype metadata, wrap
 **Fallback behavior:** If `institution_name` / `program_name` columns do not exist (migration not yet applied), the API retries without those columns and returns hardcoded defaults in `meta`.
 
 **Name formatting:**
-- PGY 1–4: `Dr. [First] [Last], MD` (63%) or `Dr. [First] [Last], DO` (37%) — assigned deterministically via UUID hash
+- PGY 1–3 and Graduate: `Dr. [First] [Last], MD` (63%) or `Dr. [First] [Last], DO` (37%) — assigned deterministically via UUID hash
 - MS3/MS4: `[First] [Last]` (no "Dr." prefix)
 
 ---
@@ -222,7 +223,7 @@ Each section header displays contextual information next to the lens label, vary
 | Scope | Context Badge | Behavior |
 |-------|--------------|----------|
 | **Program** | `{institution} · {program}` (e.g., "Grey Sloan Memorial Hospital · Emergency Medicine Residency") | Static text from API meta; monospace, muted, no text-transform |
-| **Class** | Clickable role pills: `MS3 | MS4 | PGY 1 | PGY 2 | PGY 3 | PGY 4` | Clicking a pill filters all lens data to that class; clicking again deselects (shows all). Active pill: teal text/border/bg. Unfiltered state: all pills at 50% opacity |
+| **Class** | Clickable role pills: `MS3 | MS4 | PGY 1 | PGY 2 | PGY 3 | Graduate` | Clicking a pill filters all lens data to that class; clicking again deselects (shows all). Active pill: teal text/border/bg. Unfiltered state: all pills at 50% opacity |
 | **Individual** | `individual` (uppercase, static) | No interactivity |
 
 **Class filter behavior:**
@@ -245,11 +246,12 @@ Each section header displays contextual information next to the lens label, vary
 
 ### 5.1 Landing Page — Particle Wave Field
 
-- 6 sine waves, one per training level (PGY 4 at top → MS3 at bottom)
+- 6 sine waves, one per training level (Graduate at top → MS3 at bottom)
 - Each particle = one profile, positioned along its wave with slight jitter
 - Particle color = composite score mapped through a teal gradient (low=dark, high=bright)
 - Particle size scales slightly with composite score
-- Waves animate continuously with independent frequency, amplitude, speed, and phase
+- Waves animate continuously with independent frequency, speed, and phase
+- **Data-driven amplitudes:** Each wave's vertical oscillation (amplitude) is computed from the min/max score spread of its cohort rather than a static constant. The amplitude dynamically recalculates when the sort mode changes (Default/A-Z use composite range, EQ/PQ/IQ use their respective score ranges). Amplitude transitions are smoothly animated via lerp in the render loop.
 
 ### 5.1.1 Particle Sort
 
@@ -312,7 +314,7 @@ On particle click, a slide-in panel shows:
 ### 5.6 Filtering
 
 **Role filter pills** (bottom center, row 1):
-- 6 toggle pills: MS3, MS4, PGY 1, PGY 2, PGY 3, PGY 4
+- 6 toggle pills: MS3, MS4, PGY 1, PGY 2, PGY 3, Graduate
 - Hollow dot (left) = deselect all, filled dot (right) = select all
 
 **Score band pills** (bottom center, row 2):
@@ -374,7 +376,7 @@ Full deep-dive into a single profile:
 - Archetype classification with confidence score and narrative
 - Comparison overlay with class or program averages
 
-> **Note:** The current demo dataset of 270 profiles represents an unrealistically large cohort (a typical class has 10–15 residents). Individual view data presentation will be refined in a future iteration.
+> **Note:** The current demo uses a realistic EM residency distribution (15 per PGY class, 167 graduates). The architecture supports additional PGY levels (PGY 4, PGY 5) for other specialties via database/seed changes only.
 
 ---
 
@@ -498,7 +500,7 @@ The composite score maps through these RGB stops for particle coloring:
 
 | Wave (top→bottom) | Training Level | Color |
 |-------------------|---------------|-------|
-| 0 | PGY 4 | `rgba(18,80,100,0.28)` |
+| 0 | Graduate | `rgba(18,80,100,0.28)` |
 | 1 | PGY 3 | `rgba(22,130,140,0.26)` |
 | 2 | PGY 2 | `rgba(34,180,170,0.24)` |
 | 3 | PGY 1 | `rgba(47,220,210,0.22)` |
@@ -543,16 +545,18 @@ The composite score maps through these RGB stops for particle coloring:
 | Metric | Value |
 |--------|-------|
 | Total profiles | 270 |
-| MS3 | 50 |
-| MS4 | 45 |
-| PGY 1 | 45 |
-| PGY 2 | 45 |
-| PGY 3 | 45 |
-| PGY 4 | 40 |
+| MS3 | 23 |
+| MS4 | 35 |
+| PGY 1 | 15 (engineered low variance — flat wave) |
+| PGY 2 | 15 (engineered high variance — tall wave) |
+| PGY 3 | 15 (engineered moderate variance — medium wave) |
+| Graduate | 167 |
 | Score attributes per profile | 15 (5 per pillar) |
-| History depth | 0 (MS3) to 5 (PGY 4) periods |
+| History depth | 0 (MS3) to 5 (Graduate) periods |
 | Archetypes | 9 types, evenly distributed |
-| MD/DO split | 63% MD / 37% DO (residents only) |
+| MD/DO split | 63% MD / 37% DO (residents + graduates) |
+
+> **Note on PGY variance:** The three PGY classes are deliberately seeded with distinct score variance profiles to showcase the data-driven amplitude feature. PGY 1 scores cluster tightly (composite ~52-78), PGY 2 scores spread widely (~30-90), and PGY 3 sits in between (~45-85). This makes the amplitude differences immediately visible on the landing page.
 
 ---
 
@@ -581,5 +585,6 @@ The composite score maps through these RGB stops for particle coloring:
 7. **Time animation** — Animate the particle field across periods, showing how scores evolve
 8. **Export** — Screenshot or PDF export of the current view
 9. **Comparison mode** — Select two profiles to overlay their trajectories
-10. **Mobile responsive** — Adapted layout for tablet/mobile viewports
-11. **Individual view refinement** — Reduce dataset size to realistic class sizes (10–15 per class) and add profile search/selection
+10. ~~**Mobile responsive**~~ — ✅ Implemented: Adapted layout for tablet/mobile viewports
+11. ~~**Individual view refinement**~~ — ✅ Realistic class sizes (15 per PGY class) with graduate cohort
+12. **Multi-specialty support** — Additional PGY levels (PGY 4, PGY 5, etc.) for specialties beyond EM

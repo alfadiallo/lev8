@@ -7,7 +7,7 @@ function avg(arr: number[]): number {
   return arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0;
 }
 
-const PERIOD_ORDER = ['MS3', 'MS4', 'PGY 1', 'PGY 2', 'PGY 3', 'PGY 4'];
+const PERIOD_ORDER = ['MS3', 'MS4', 'PGY 1', 'PGY 2', 'PGY 3', 'Graduate'];
 
 function TrajectoryChart({ trajectories, size }: { trajectories: { name: string; points: { period: string; score: number }[] }[]; size: { w: number; h: number } }) {
   const ref = useRef<HTMLCanvasElement>(null);

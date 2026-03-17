@@ -1,3 +1,5 @@
+// ─── Core Types ──────────────────────────────────────────────────
+
 export interface HistoryPoint {
   period: string;
   composite: number;
@@ -15,10 +17,99 @@ export interface Archetype {
   confidence: number;
 }
 
+// ─── Data Slice Types ────────────────────────────────────────────
+
+export interface RadarSeries {
+  label: string;
+  scores: Record<string, number>;
+  color: string;
+  children?: RadarSeries[];
+}
+
+export interface RadarSnapshot {
+  period: string;
+  series: RadarSeries[];
+}
+
+export interface RadarData {
+  series: RadarSeries[];
+  timeline?: RadarSnapshot[];
+}
+
+export interface ComparisonData {
+  faculty: { eq: number; pq: number; iq: number };
+  self: { eq: number; pq: number; iq: number };
+  classAverages?: { eq: number; pq: number; iq: number };
+  classLabel?: string;
+  facultyCount?: number;
+  selfCount?: number;
+}
+
+export interface TrendPoint {
+  period: string;
+  facultyEq?: number;
+  facultyPq?: number;
+  facultyIq?: number;
+  selfEq?: number;
+  selfPq?: number;
+  selfIq?: number;
+}
+
+export interface SwotData {
+  strengths: string[];
+  weaknesses: string[];
+  opportunities: string[];
+  threats: string[];
+  periodLabel?: string;
+  generatedAt?: string;
+}
+
+export interface IteScore {
+  examYear: number;
+  rawScore: number | null;
+  percentile: number | null;
+  nationalMean: number | null;
+}
+
+export interface IteAverages {
+  rawScore: number | null;
+  percentile: number | null;
+}
+
+export interface IteData {
+  scores: IteScore[];
+  individualAvg: IteAverages;
+  classAvg: IteAverages;
+  programAvg: IteAverages;
+}
+
+export interface RatingEntry {
+  id: string;
+  evaluatorType: 'core_faculty' | 'teaching_faculty' | 'self';
+  evaluatorName?: string;
+  date: string;
+  eqAvg: number;
+  pqAvg: number;
+  iqAvg: number;
+  comment?: string;
+}
+
+export interface RatingsData {
+  coreFaculty: number;
+  teachingFaculty: number;
+  self: number;
+  total: number;
+  recent: RatingEntry[];
+}
+
+// ─── Profile (extensible via optional data slices) ───────────────
+
 export interface Profile {
   id: string;
   name: string;
   role: string;
+  graduationClass?: string;
+  graduationYear?: number;
   eq: Record<string, number>;
   pq: Record<string, number>;
   iq: Record<string, number>;
@@ -29,19 +120,31 @@ export interface Profile {
   history: HistoryPoint[];
   archetype: Archetype | null;
   narrative: string | null;
+
+  radar?: RadarData;
+  comparison?: ComparisonData;
+  trends?: TrendPoint[];
+  swot?: SwotData;
+  ite?: IteData;
+  ratings?: RatingsData;
 }
+
+// ─── Scope & Lens ────────────────────────────────────────────────
 
 export type ScopeType = 'program' | 'class' | 'individual';
 
 export interface ProgramMeta {
   institution: string;
   program: string;
+  programLength?: number;
 }
 
 export interface LensProps {
   scope: ScopeType;
   profiles: Profile[];
 }
+
+// ─── Constants ───────────────────────────────────────────────────
 
 export const PILLAR_COLORS = {
   eq: '#2FE6DE',

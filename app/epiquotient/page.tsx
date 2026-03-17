@@ -381,6 +381,7 @@ export default function EpiquotientPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('landing');
   const [activeSection, setActiveSection] = useState(0);
   const [exitingScope, setExitingScope] = useState<ScopeType | null>(null);
@@ -388,6 +389,8 @@ export default function EpiquotientPage() {
   const [individualExiting, setIndividualExiting] = useState(false);
   const [landingReturning, setLandingReturning] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { setMounted(true); }, []);
 
   // Sort mode for particle arrangement
   const [sortMode, setSortMode] = useState<SortMode>('default');
@@ -2274,6 +2277,9 @@ export default function EpiquotientPage() {
         }
       `}</style>
 
+      {/* Gate: hide everything until client-side styles are applied */}
+      <div style={{ opacity: mounted ? 1 : 0, transition: 'opacity 0.15s ease' }}>
+
       {/* View Switcher Pill */}
       <div className="epiq-view-switcher">
         {(['program', 'class', 'individual'] as ScopeType[]).map((scope) => (
@@ -2448,7 +2454,7 @@ export default function EpiquotientPage() {
 
       {/* ═══ Individual View (Z-Axis Longitudinal) ═══ */}
       <div className={`epiq-individual${viewMode === 'individual' ? ' active' : ''}${individualExiting ? ' exiting' : ''}`}>
-        <IndividualView profiles={profiles} />
+        <IndividualView profiles={profiles} programLength={programMeta.programLength} />
       </div>
 
       {/* ═══ Scope Pages (Program / Class) ═══ */}
@@ -2746,6 +2752,8 @@ export default function EpiquotientPage() {
         </div>
       </div>
       )}
+
+      </div>{/* end gate */}
     </>
   );
 }

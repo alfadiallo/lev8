@@ -1,52 +1,15 @@
 'use client';
 
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import type { Profile } from './types';
-import { PILLAR_COLORS, PILLAR_LABELS, ATTR_LABELS, RISK_COLORS } from './types';
+import { PILLAR_COLORS, RISK_COLORS } from './types';
+import { THEME, scoreColor, grade } from './sections/primitives';
+import { SECTION_REGISTRY, SECTION_GROUPS } from './sections';
+import { isResidentActive } from '@/lib/utils/pgy-calculator';
 
-const WAVE_ORDER = ['Graduate', 'PGY 3', 'PGY 2', 'PGY 1', 'MS4', 'MS3'];
-const PERIOD_ORDER = ['MS3', 'MS4', 'PGY 1', 'PGY 2', 'PGY 3', 'PGY 4', 'Graduate'];
-
-function scoreToRGB(s: number) {
-  const stops = [
-    { s: 0, r: 12, g: 25, b: 50 },
-    { s: 35, r: 16, g: 60, b: 82 },
-    { s: 55, r: 18, g: 110, b: 120 },
-    { s: 70, r: 30, g: 165, b: 170 },
-    { s: 83, r: 47, g: 220, b: 210 },
-    { s: 95, r: 24, g: 242, b: 178 },
-    { s: 100, r: 60, g: 255, b: 200 },
-  ];
-  s = Math.max(0, Math.min(100, s));
-  let lo = stops[0], hi = stops[stops.length - 1];
-  for (let i = 0; i < stops.length - 1; i++) {
-    if (s >= stops[i].s && s <= stops[i + 1].s) { lo = stops[i]; hi = stops[i + 1]; break; }
-  }
-  const t = hi.s === lo.s ? 0 : (s - lo.s) / (hi.s - lo.s);
-  return {
-    r: Math.round(lo.r + (hi.r - lo.r) * t),
-    g: Math.round(lo.g + (hi.g - lo.g) * t),
-    b: Math.round(lo.b + (hi.b - lo.b) * t),
-  };
-}
-
-function scoreBg(s: number, alpha = 0.35): string {
-  const { r, g, b } = scoreToRGB(s);
-  return `rgba(${r},${g},${b},${alpha})`;
-}
-
-function scoreColor(s: number): string {
-  const { r, g, b } = scoreToRGB(s);
-  return `rgb(${r},${g},${b})`;
-}
-
-function grade(s: number) {
-  if (s >= 88) return { lbl: 'Exemplary', c: '#18F2B2' };
-  if (s >= 74) return { lbl: 'Strong', c: '#2FE6DE' };
-  if (s >= 60) return { lbl: 'Acceptable', c: '#7BC8F8' };
-  if (s >= 46) return { lbl: 'Concerning', c: '#f0a060' };
-  return { lbl: 'Serious Deficit', c: '#f06060' };
-}
+const PGY_ROLES = ['PGY 3', 'PGY 2', 'PGY 1'];
+const MS_ROLES = ['MS4', 'MS3'];
+const ACTIVE_ROLE_ORDER = [...PGY_ROLES, ...MS_ROLES];
 
 // ─── Sidebar ─────────────────────────────────────────────────────
 
@@ -55,13 +18,15 @@ function SidebarGroup({
   profiles,
   selectedId,
   onSelect,
+  defaultCollapsed = false,
 }: {
   label: string;
   profiles: Profile[];
   selectedId: string | null;
   onSelect: (p: Profile) => void;
+  defaultCollapsed?: boolean;
 }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(defaultCollapsed);
 
   return (
     <div style={{ marginBottom: 4 }}>
@@ -75,10 +40,10 @@ function SidebarGroup({
           padding: '8px 12px',
           background: 'rgba(47,230,222,0.04)',
           border: 'none',
-          borderBottom: '0.5px solid rgba(47,230,222,0.08)',
+          borderBottom: `0.5px solid ${THEME.border.light}`,
           cursor: 'pointer',
-          color: '#4a7090',
-          fontFamily: "'Space Mono', monospace",
+          color: THEME.text.muted,
+          fontFamily: THEME.font.mono,
           fontSize: 10,
           letterSpacing: '0.1em',
           textTransform: 'uppercase' as const,
@@ -86,7 +51,7 @@ function SidebarGroup({
       >
         <span>{label}</span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 9, color: '#3a5a72' }}>{profiles.length}</span>
+          <span style={{ fontSize: 9, color: THEME.text.dim }}>{profiles.length}</span>
           <span style={{ fontSize: 8, transition: 'transform 0.2s', transform: collapsed ? 'rotate(-90deg)' : 'rotate(0)' }}>▼</span>
         </span>
       </button>
@@ -106,27 +71,40 @@ function SidebarGroup({
                   padding: '7px 12px 7px 20px',
                   background: isActive ? 'rgba(47,230,222,0.08)' : 'transparent',
                   border: 'none',
-                  borderLeft: isActive ? '2px solid #2fe6de' : '2px solid transparent',
+                  borderLeft: isActive ? `2px solid ${THEME.accent}` : '2px solid transparent',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
                   textAlign: 'left' as const,
                 }}
               >
+                <div style={{ flex: 1, marginRight: 8, overflow: 'hidden' }}>
+                  <span style={{
+                    fontSize: 12,
+                    color: isActive ? THEME.text.primary : THEME.text.secondary,
+                    fontFamily: THEME.font.body,
+                    fontWeight: isActive ? 500 : 400,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap' as const,
+                    display: 'block',
+                  }}>
+                    {p.name}
+                  </span>
+                  {p.graduationClass && (
+                    <span style={{
+                      fontSize: 9,
+                      color: THEME.text.dim,
+                      fontFamily: THEME.font.mono,
+                      letterSpacing: '0.04em',
+                      display: 'block',
+                      marginTop: 1,
+                    }}>
+                      {p.graduationClass}
+                    </span>
+                  )}
+                </div>
                 <span style={{
-                  fontSize: 12,
-                  color: isActive ? '#c8e0ee' : '#7ab5cc',
-                  fontFamily: "'Sora', system-ui, sans-serif",
-                  fontWeight: isActive ? 500 : 400,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap' as const,
-                  flex: 1,
-                  marginRight: 8,
-                }}>
-                  {p.name}
-                </span>
-                <span style={{
-                  fontFamily: "'Space Mono', monospace",
+                  fontFamily: THEME.font.mono,
                   fontSize: 11,
                   color: scoreColor(p.composite),
                   flexShrink: 0,
@@ -142,753 +120,545 @@ function SidebarGroup({
   );
 }
 
-// ─── Heatmap Cell ─────────────────────────────────────────────────
+// ─── Graduate Sidebar Group (single collapsible with class dividers) ───
 
-function HeatCell({ value }: { value?: number }) {
-  if (value === undefined || value === null) {
-    return (
-      <td style={{
-        padding: '6px 10px',
-        textAlign: 'center' as const,
-        fontFamily: "'Space Mono', monospace",
-        fontSize: 11,
-        color: '#3a5a72',
-        borderBottom: '0.5px solid rgba(47,230,222,0.06)',
-      }}>
-        —
-      </td>
-    );
-  }
+function GraduateSidebarGroup({
+  profiles,
+  selectedId,
+  onSelect,
+}: {
+  profiles: Profile[];
+  selectedId: string | null;
+  onSelect: (p: Profile) => void;
+}) {
+  const [collapsed, setCollapsed] = useState(true);
 
-  return (
-    <td style={{
-      padding: '6px 10px',
-      textAlign: 'center' as const,
-      fontFamily: "'Space Mono', monospace",
-      fontSize: 12,
-      fontWeight: 600,
-      color: scoreColor(value),
-      background: scoreBg(value, 0.12),
-      borderBottom: '0.5px solid rgba(47,230,222,0.06)',
-      borderRadius: 4,
-    }}>
-      {value}
-    </td>
-  );
-}
-
-// ─── Sparkline Mini ──────────────────────────────────────────────
-
-function MiniSparkline({ values, color, width = 80, height = 24 }: { values: number[]; color: string; width?: number; height?: number }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || values.length < 2) return;
-    const ctx = canvas.getContext('2d')!;
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = width * dpr;
-    canvas.height = height * dpr;
-    ctx.scale(dpr, dpr);
-    ctx.clearRect(0, 0, width, height);
-
-    const pad = 3;
-    const drawW = width - pad * 2;
-    const drawH = height - pad * 2;
-    const pts = values.map((v, i) => ({
-      x: pad + (i / (values.length - 1)) * drawW,
-      y: pad + drawH - (v / 100) * drawH,
-    }));
-
-    ctx.beginPath();
-    ctx.moveTo(pts[0].x, pts[0].y);
-    for (let i = 0; i < pts.length - 1; i++) {
-      const cpX = (pts[i].x + pts[i + 1].x) / 2;
-      const cpY = (pts[i].y + pts[i + 1].y) / 2;
-      ctx.quadraticCurveTo(pts[i].x, pts[i].y, cpX, cpY);
+  const classBuckets = useMemo(() => {
+    const buckets = new Map<number, Profile[]>();
+    for (const p of profiles) {
+      const year = p.graduationYear ?? 0;
+      if (!buckets.has(year)) buckets.set(year, []);
+      buckets.get(year)!.push(p);
     }
-    ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    const last = pts[pts.length - 1];
-    ctx.beginPath();
-    ctx.arc(last.x, last.y, 2.5, 0, Math.PI * 2);
-    ctx.fillStyle = color;
-    ctx.fill();
-  }, [values, color, width, height]);
-
-  if (values.length < 2) return null;
-  return <canvas ref={canvasRef} style={{ display: 'block', width, height }} />;
-}
-
-// ─── Summary Table ───────────────────────────────────────────────
-
-function SummaryTable({ profile }: { profile: Profile }) {
-  const periods = useMemo(() => {
-    return profile.history
-      .map(h => h.period)
-      .sort((a, b) => (PERIOD_ORDER.indexOf(a) === -1 ? 99 : PERIOD_ORDER.indexOf(a)) - (PERIOD_ORDER.indexOf(b) === -1 ? 99 : PERIOD_ORDER.indexOf(b)));
-  }, [profile]);
-
-  const rows: { label: string; key: string; color: string }[] = [
-    { label: 'Composite', key: 'composite', color: '#2fe6de' },
-    { label: 'EQ', key: 'eq', color: PILLAR_COLORS.eq },
-    { label: 'PQ', key: 'pq', color: PILLAR_COLORS.pq },
-    { label: 'IQ', key: 'iq', color: PILLAR_COLORS.iq },
-  ];
-
-  if (periods.length === 0) {
-    return (
-      <div style={{ padding: 20, textAlign: 'center', color: '#4a7090', fontSize: 12 }}>
-        No longitudinal data available
-      </div>
-    );
-  }
+    return [...buckets.entries()].sort((a, b) => b[0] - a[0]);
+  }, [profiles]);
 
   return (
-    <div style={{ overflowX: 'auto', marginBottom: 0 }}>
-      <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '3px 2px' }}>
-        <thead>
-          <tr>
-            <th style={{
-              padding: '8px 12px',
-              textAlign: 'left' as const,
-              fontSize: 10,
-              color: '#4a7090',
-              fontFamily: "'Space Mono', monospace",
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase' as const,
-              fontWeight: 400,
-              borderBottom: '0.5px solid rgba(47,230,222,0.12)',
-              position: 'sticky' as const,
-              left: 0,
-              background: '#0e1e2d',
-              zIndex: 1,
-              minWidth: 90,
-            }}>
-              Metric
-            </th>
-            {periods.map(p => (
-              <th key={p} style={{
-                padding: '8px 10px',
-                textAlign: 'center' as const,
-                fontSize: 10,
-                color: '#4a7090',
-                fontFamily: "'Space Mono', monospace",
-                letterSpacing: '0.06em',
-                fontWeight: 400,
-                borderBottom: '0.5px solid rgba(47,230,222,0.12)',
-                whiteSpace: 'nowrap' as const,
-                minWidth: 60,
-              }}>
-                {p}
-              </th>
-            ))}
-            <th style={{
-              padding: '8px 10px',
-              textAlign: 'center' as const,
-              fontSize: 10,
-              color: '#4a7090',
-              fontFamily: "'Space Mono', monospace",
-              letterSpacing: '0.06em',
-              fontWeight: 400,
-              borderBottom: '0.5px solid rgba(47,230,222,0.12)',
-              minWidth: 80,
-            }}>
-              Trend
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(row => {
-            const values = periods.map(p => {
-              const h = profile.history.find(hp => hp.period === p);
-              if (!h) return undefined;
-              if (row.key === 'composite') return h.composite;
-              return h[row.key as 'eq' | 'pq' | 'iq'];
-            });
-            const sparkValues = values.filter((v): v is number => v !== undefined);
-
-            return (
-              <tr key={row.key}>
-                <td style={{
-                  padding: '6px 12px',
-                  fontSize: 12,
-                  color: row.color,
-                  fontWeight: 500,
-                  fontFamily: "'Sora', system-ui, sans-serif",
-                  borderBottom: '0.5px solid rgba(47,230,222,0.06)',
-                  position: 'sticky' as const,
-                  left: 0,
-                  background: '#0e1e2d',
-                  zIndex: 1,
-                }}>
-                  {row.label}
-                </td>
-                {values.map((v, i) => <HeatCell key={i} value={v} />)}
-                <td style={{
-                  padding: '4px 8px',
-                  textAlign: 'center' as const,
-                  borderBottom: '0.5px solid rgba(47,230,222,0.06)',
-                }}>
-                  <MiniSparkline values={sparkValues} color={row.color} />
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-// ─── Attribute Drilldown Card ────────────────────────────────────
-
-function AttributeDrilldown({ profile, pillar }: { profile: Profile; pillar: 'eq' | 'pq' | 'iq' }) {
-  const [expanded, setExpanded] = useState(false);
-  const color = PILLAR_COLORS[pillar];
-  const label = PILLAR_LABELS[pillar];
-  const attrs = ATTR_LABELS[pillar];
-  const currentScore = profile[`${pillar}Score` as keyof Profile] as number;
-
-  const periods = useMemo(() => {
-    return profile.history
-      .map(h => h.period)
-      .sort((a, b) => (PERIOD_ORDER.indexOf(a) === -1 ? 99 : PERIOD_ORDER.indexOf(a)) - (PERIOD_ORDER.indexOf(b) === -1 ? 99 : PERIOD_ORDER.indexOf(b)));
-  }, [profile]);
-
-  const pillarValues = periods.map(p => {
-    const h = profile.history.find(hp => hp.period === p);
-    return h?.[pillar] as number | undefined;
-  }).filter((v): v is number => v !== undefined);
-
-  return (
-    <div style={{
-      background: '#162737',
-      border: `0.5px solid ${expanded ? color + '40' : 'rgba(47,230,222,0.12)'}`,
-      borderRadius: 10,
-      marginBottom: 10,
-      overflow: 'hidden',
-      transition: 'border-color 0.2s ease',
-    }}>
+    <div style={{ marginBottom: 4 }}>
       <button
-        onClick={() => setExpanded(!expanded)}
+        onClick={() => setCollapsed(!collapsed)}
         style={{
           width: '100%',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '14px 16px',
-          background: 'transparent',
+          padding: '8px 12px',
+          background: 'rgba(47,230,222,0.04)',
           border: 'none',
+          borderBottom: `0.5px solid ${THEME.border.light}`,
           cursor: 'pointer',
+          color: THEME.text.muted,
+          fontFamily: THEME.font.mono,
+          fontSize: 10,
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase' as const,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{
-            width: 4,
-            height: 24,
-            borderRadius: 2,
-            background: color,
-            flexShrink: 0,
-          }} />
-          <div style={{ textAlign: 'left' }}>
-            <div style={{ fontSize: 13, color: '#c8e0ee', fontWeight: 500 }}>{label}</div>
-            <div style={{ fontSize: 10, color: '#4a7090', marginTop: 2 }}>
-              {Object.values(attrs).length} attributes across {periods.length} periods
+        <span>Graduates</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 9, color: THEME.text.dim }}>{profiles.length}</span>
+          <span style={{ fontSize: 8, transition: 'transform 0.2s', transform: collapsed ? 'rotate(-90deg)' : 'rotate(0)' }}>▼</span>
+        </span>
+      </button>
+      {!collapsed && (
+        <div>
+          {classBuckets.map(([year, classProfiles], idx) => (
+            <div key={year}>
+              {/* Class divider */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '6px 12px',
+                marginTop: idx === 0 ? 2 : 0,
+              }}>
+                <div style={{
+                  flex: 1,
+                  height: '0.5px',
+                  background: THEME.border.light,
+                }} />
+                <span style={{
+                  fontSize: 9,
+                  color: THEME.text.dim,
+                  fontFamily: THEME.font.mono,
+                  letterSpacing: '0.06em',
+                  whiteSpace: 'nowrap',
+                }}>
+                  Class of {year}
+                </span>
+                <div style={{
+                  flex: 1,
+                  height: '0.5px',
+                  background: THEME.border.light,
+                }} />
+              </div>
+
+              {/* Profiles in this class */}
+              {classProfiles.map((p) => {
+                const isActive = p.id === selectedId;
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => onSelect(p)}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '7px 12px 7px 20px',
+                      background: isActive ? 'rgba(47,230,222,0.08)' : 'transparent',
+                      border: 'none',
+                      borderLeft: isActive ? `2px solid ${THEME.accent}` : '2px solid transparent',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      textAlign: 'left' as const,
+                    }}
+                  >
+                    <div style={{ flex: 1, marginRight: 8, overflow: 'hidden' }}>
+                      <span style={{
+                        fontSize: 12,
+                        color: isActive ? THEME.text.primary : THEME.text.secondary,
+                        fontFamily: THEME.font.body,
+                        fontWeight: isActive ? 500 : 400,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap' as const,
+                        display: 'block',
+                      }}>
+                        {p.name}
+                      </span>
+                    </div>
+                    <span style={{
+                      fontFamily: THEME.font.mono,
+                      fontSize: 11,
+                      color: scoreColor(p.composite),
+                      flexShrink: 0,
+                    }}>
+                      {p.composite}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Section labels for share modal ─────────────────────────────
+
+const SECTION_LABELS: Record<string, string> = {
+  radar: 'EQ·PQ·IQ Radar Profile',
+  comparison: 'Faculty vs Self Comparison',
+  heatmap: 'Longitudinal Heatmap',
+  trends: 'Score Trends',
+  'eq-drilldown': 'EQ Drilldown',
+  'pq-drilldown': 'PQ Drilldown',
+  'iq-drilldown': 'IQ Drilldown',
+  trajectory: 'Composite Trajectory',
+  swot: 'SWOT Analysis',
+  ite: 'ITE Scores',
+  archetype: 'Archetype Classification',
+  ratings: 'Ratings Summary',
+  comments: 'Recent Comments',
+};
+
+// ─── SVG Icons ──────────────────────────────────────────────────
+
+function MailIcon({ size = 18, color = THEME.text.muted }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="4" width="20" height="16" rx="2" />
+      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+    </svg>
+  );
+}
+
+function ShareIcon({ size = 18, color = THEME.text.muted }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="18" cy="5" r="3" />
+      <circle cx="6" cy="12" r="3" />
+      <circle cx="18" cy="19" r="3" />
+      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+    </svg>
+  );
+}
+
+function CloseIcon({ size = 16, color = THEME.text.muted }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  );
+}
+
+// ─── Share Modal ─────────────────────────────────────────────────
+
+function ShareModal({
+  profile,
+  onClose,
+}: {
+  profile: Profile;
+  onClose: () => void;
+}) {
+  const backdropRef = useRef<HTMLDivElement>(null);
+  const [selected, setSelected] = useState<Set<string>>(
+    () => new Set(SECTION_REGISTRY.map(s => s.id))
+  );
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handleEsc);
+    return () => document.removeEventListener('keydown', handleEsc);
+  }, [onClose]);
+
+  const toggle = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    const allIds = SECTION_REGISTRY.map(s => s.id);
+    if (selected.size === allIds.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(allIds));
+    }
+  };
+
+  const handleShare = async () => {
+    const selectedLabels = SECTION_REGISTRY
+      .filter(s => selected.has(s.id))
+      .map(s => SECTION_LABELS[s.id] || s.id);
+
+    const text = [
+      `EPIQuotient Profile: ${profile.name}`,
+      `Role: ${profile.role}${profile.graduationClass ? ` · ${profile.graduationClass}` : ''}`,
+      `Composite: ${profile.composite}`,
+      `EQ: ${profile.eqScore} | PQ: ${profile.pqScore} | IQ: ${profile.iqScore}`,
+      '',
+      `Sections included (${selectedLabels.length}):`,
+      ...selectedLabels.map(l => `  • ${l}`),
+      '',
+      `Shared from EPIQuotient`,
+    ].join('\n');
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `${profile.name} — EPIQuotient Profile`, text });
+        onClose();
+        return;
+      } catch {
+        // User cancelled or not supported, fall through to clipboard
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard not available
+    }
+  };
+
+  const allIds = SECTION_REGISTRY.map(s => s.id);
+  const allSelected = selected.size === allIds.length;
+
+  return (
+    <div
+      ref={backdropRef}
+      onClick={(e) => { if (e.target === backdropRef.current) onClose(); }}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'rgba(0,0,0,0.6)',
+        backdropFilter: 'blur(4px)',
+      }}
+    >
+      <div style={{
+        background: THEME.bg.card,
+        border: `1px solid ${THEME.border.medium}`,
+        borderRadius: 14,
+        width: 420,
+        maxWidth: '90vw',
+        maxHeight: '80vh',
+        display: 'flex',
+        flexDirection: 'column',
+        boxShadow: '0 24px 48px rgba(0,0,0,0.4)',
+      }}>
+        {/* Modal header */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '16px 20px',
+          borderBottom: `0.5px solid ${THEME.border.light}`,
+        }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: THEME.text.primary }}>
+              Share Profile
+            </div>
+            <div style={{ fontSize: 11, color: THEME.text.muted, marginTop: 2 }}>
+              {profile.name}
             </div>
           </div>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 4,
+              borderRadius: 6,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <CloseIcon />
+          </button>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <MiniSparkline values={pillarValues} color={color} width={60} height={20} />
-          <span style={{
-            fontFamily: "'Space Mono', monospace",
-            fontSize: 16,
-            color,
-            fontWeight: 700,
-          }}>
-            {currentScore}
-          </span>
-          <span style={{
-            fontSize: 10,
-            color: '#4a7090',
-            transition: 'transform 0.2s',
-            transform: expanded ? 'rotate(180deg)' : 'rotate(0)',
-          }}>
-            ▼
-          </span>
-        </div>
-      </button>
 
-      {expanded && (
-        <div style={{ padding: '0 16px 16px' }}>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '3px 2px' }}>
-              <thead>
-                <tr>
-                  <th style={{
-                    padding: '6px 8px',
-                    textAlign: 'left' as const,
-                    fontSize: 10,
-                    color: '#4a7090',
-                    fontFamily: "'Space Mono', monospace",
-                    fontWeight: 400,
-                    borderBottom: `0.5px solid ${color}20`,
-                    position: 'sticky' as const,
-                    left: 0,
-                    background: '#162737',
-                    zIndex: 1,
-                    minWidth: 100,
-                  }}>
-                    Attribute
-                  </th>
-                  <th style={{
-                    padding: '6px 8px',
-                    textAlign: 'center' as const,
-                    fontSize: 10,
-                    color: color,
-                    fontFamily: "'Space Mono', monospace",
-                    fontWeight: 600,
-                    borderBottom: `0.5px solid ${color}20`,
-                    minWidth: 60,
-                  }}>
-                    Current
-                  </th>
-                  <th style={{
-                    padding: '6px 8px',
-                    textAlign: 'center' as const,
-                    fontSize: 10,
-                    color: '#4a7090',
-                    fontFamily: "'Space Mono', monospace",
-                    fontWeight: 400,
-                    borderBottom: `0.5px solid ${color}20`,
-                    minWidth: 60,
-                  }}>
-                    Grade
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.entries(attrs).map(([key, attrLabel]) => {
-                  const pillarData = profile[pillar] as Record<string, number>;
-                  const s = pillarData[key] ?? 0;
-                  const g = grade(s);
+        {/* Section checklist */}
+        <div style={{ padding: '12px 20px', overflowY: 'auto', flex: 1 }}>
+          <div style={{ marginBottom: 10 }}>
+            <button
+              onClick={toggleAll}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: 11,
+                color: THEME.accent,
+                fontWeight: 500,
+                padding: 0,
+              }}
+            >
+              {allSelected ? 'Deselect All' : 'Select All'}
+            </button>
+          </div>
 
+          {SECTION_GROUPS.map(group => {
+            const groupSections = SECTION_REGISTRY.filter(s => s.group === group.id);
+            return (
+              <div key={group.id} style={{ marginBottom: 14 }}>
+                <div style={{
+                  fontSize: 9,
+                  color: THEME.text.dim,
+                  fontFamily: THEME.font.mono,
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase' as const,
+                  marginBottom: 6,
+                }}>
+                  {group.label}
+                </div>
+                {groupSections.map(section => {
+                  const isOn = selected.has(section.id);
                   return (
-                    <tr key={key}>
-                      <td style={{
+                    <label
+                      key={section.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
                         padding: '6px 8px',
-                        fontSize: 11,
-                        color: '#c8e0ee',
-                        fontFamily: "'Sora', system-ui, sans-serif",
-                        borderBottom: '0.5px solid rgba(47,230,222,0.04)',
-                        position: 'sticky' as const,
-                        left: 0,
-                        background: '#162737',
-                        zIndex: 1,
-                      }}>
-                        {attrLabel}
-                      </td>
-                      <td style={{
-                        padding: '6px 8px',
-                        textAlign: 'center' as const,
-                        fontFamily: "'Space Mono', monospace",
+                        borderRadius: 6,
+                        cursor: 'pointer',
+                        transition: 'background 0.15s',
+                        background: isOn ? 'rgba(47,230,222,0.06)' : 'transparent',
+                      }}
+                    >
+                      <div
+                        onClick={(e) => { e.preventDefault(); toggle(section.id); }}
+                        style={{
+                          width: 18,
+                          height: 18,
+                          borderRadius: 4,
+                          border: `1.5px solid ${isOn ? THEME.accent : THEME.border.medium}`,
+                          background: isOn ? THEME.accent + '20' : 'transparent',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                          transition: 'all 0.15s',
+                        }}
+                      >
+                        {isOn && (
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={THEME.accent} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        )}
+                      </div>
+                      <span style={{
                         fontSize: 12,
-                        fontWeight: 600,
-                        color,
-                        background: scoreBg(s, 0.1),
-                        borderBottom: '0.5px solid rgba(47,230,222,0.04)',
-                        borderRadius: 4,
+                        color: isOn ? THEME.text.primary : THEME.text.secondary,
+                        fontWeight: isOn ? 500 : 400,
                       }}>
-                        {s}
-                      </td>
-                      <td style={{
-                        padding: '6px 8px',
-                        textAlign: 'center' as const,
-                        fontSize: 10,
-                        color: g.c,
-                        fontWeight: 500,
-                        letterSpacing: '0.04em',
-                        borderBottom: '0.5px solid rgba(47,230,222,0.04)',
-                      }}>
-                        {g.lbl}
-                      </td>
-                    </tr>
+                        {SECTION_LABELS[section.id] || section.id}
+                      </span>
+                    </label>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Attribute bar chart */}
-          <div style={{ marginTop: 14 }}>
-            {Object.entries(attrs).map(([key, attrLabel]) => {
-              const pillarData = profile[pillar] as Record<string, number>;
-              const s = pillarData[key] ?? 0;
-              return (
-                <div key={key} style={{ marginBottom: 8 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                    <span style={{ fontSize: 10, color: '#7ab5cc' }}>{attrLabel}</span>
-                    <span style={{ fontSize: 10, color, fontFamily: "'Space Mono', monospace" }}>{s}</span>
-                  </div>
-                  <div style={{
-                    height: 4,
-                    background: '#07121d',
-                    borderRadius: 2,
-                    overflow: 'hidden',
-                    border: '0.5px solid rgba(47,230,222,0.06)',
-                  }}>
-                    <div style={{
-                      height: '100%',
-                      width: `${s}%`,
-                      borderRadius: 2,
-                      background: `linear-gradient(to right, ${color}66, ${color})`,
-                      transition: 'width 0.8s cubic-bezier(0.16,1,0.3,1)',
-                    }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Trajectory Card ────────────────────────────────────────────
-
-function TrajectoryCard({ profile }: { profile: Profile }) {
-  const [expanded, setExpanded] = useState(false);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!expanded) return;
-    const canvas = canvasRef.current;
-    const container = containerRef.current;
-    if (!canvas || !container) return;
-
-    const ctx = canvas.getContext('2d')!;
-    const dpr = window.devicePixelRatio || 1;
-    const w = Math.min(600, container.clientWidth);
-    const h = 140;
-    canvas.width = w * dpr;
-    canvas.height = h * dpr;
-    canvas.style.width = `${w}px`;
-    canvas.style.height = `${h}px`;
-    ctx.scale(dpr, dpr);
-    ctx.clearRect(0, 0, w, h);
-
-    const padL = 36, padR = 16, padT = 16, padB = 26;
-    const drawW = w - padL - padR;
-    const drawH = h - padT - padB;
-
-    // Grid
-    [0, 25, 50, 75, 100].forEach(score => {
-      const y = padT + drawH - (score / 100) * drawH;
-      ctx.beginPath();
-      ctx.moveTo(padL, y);
-      ctx.lineTo(w - padR, y);
-      ctx.strokeStyle = 'rgba(47,230,222,0.06)';
-      ctx.lineWidth = 0.5;
-      ctx.stroke();
-      ctx.fillStyle = 'rgba(74,112,144,0.4)';
-      ctx.font = '9px "Space Mono", monospace';
-      ctx.textAlign = 'right';
-      ctx.fillText(String(score), padL - 6, y + 3);
-    });
-
-    const history = profile.history;
-    if (history.length === 0) return;
-
-    // Period labels
-    ctx.textAlign = 'center';
-    ctx.font = '9px "Sora", system-ui, sans-serif';
-    ctx.fillStyle = 'rgba(74,112,144,0.6)';
-    history.forEach((pt, i) => {
-      const x = padL + (history.length === 1 ? drawW / 2 : (i / (history.length - 1)) * drawW);
-      ctx.fillText(pt.period, x, h - 4);
-    });
-
-    // Draw lines for composite, eq, pq, iq
-    const series = [
-      { key: 'composite', color: '#2fe6de', width: 2.5 },
-      { key: 'eq', color: PILLAR_COLORS.eq + '80', width: 1 },
-      { key: 'pq', color: PILLAR_COLORS.pq + '80', width: 1 },
-      { key: 'iq', color: PILLAR_COLORS.iq + '80', width: 1 },
-    ];
-
-    for (const s of series) {
-      const pts = history
-        .map((pt, i) => {
-          const val = s.key === 'composite' ? pt.composite : pt[s.key as 'eq' | 'pq' | 'iq'];
-          if (val === undefined) return null;
-          return {
-            x: padL + (history.length === 1 ? drawW / 2 : (i / (history.length - 1)) * drawW),
-            y: padT + drawH - (val / 100) * drawH,
-          };
-        })
-        .filter((p): p is { x: number; y: number } => p !== null);
-
-      if (pts.length < 2) continue;
-
-      ctx.beginPath();
-      ctx.moveTo(pts[0].x, pts[0].y);
-      for (let i = 0; i < pts.length - 1; i++) {
-        const cpX = (pts[i].x + pts[i + 1].x) / 2;
-        const cpY = (pts[i].y + pts[i + 1].y) / 2;
-        ctx.quadraticCurveTo(pts[i].x, pts[i].y, cpX, cpY);
-      }
-      ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
-      ctx.strokeStyle = s.color;
-      ctx.lineWidth = s.width;
-      ctx.stroke();
-
-      if (s.key === 'composite') {
-        pts.forEach((p, i) => {
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
-          ctx.fillStyle = '#2fe6de';
-          ctx.fill();
-          ctx.fillStyle = '#c8e0ee';
-          ctx.font = 'bold 9px "Space Mono", monospace';
-          ctx.textAlign = 'center';
-          ctx.fillText(String(history[i].composite), p.x, p.y - 8);
-        });
-      }
-    }
-  }, [expanded, profile]);
-
-  return (
-    <div style={{
-      background: '#162737',
-      border: `0.5px solid ${expanded ? 'rgba(47,230,222,0.25)' : 'rgba(47,230,222,0.12)'}`,
-      borderRadius: 10,
-      marginBottom: 10,
-      overflow: 'hidden',
-      transition: 'border-color 0.2s ease',
-    }}>
-      <button
-        onClick={() => setExpanded(!expanded)}
-        style={{
-          width: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '14px 16px',
-          background: 'transparent',
-          border: 'none',
-          cursor: 'pointer',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{
-            width: 4,
-            height: 24,
-            borderRadius: 2,
-            background: '#2fe6de',
-            flexShrink: 0,
-          }} />
-          <div style={{ textAlign: 'left' }}>
-            <div style={{ fontSize: 13, color: '#c8e0ee', fontWeight: 500 }}>Trajectory</div>
-            <div style={{ fontSize: 10, color: '#4a7090', marginTop: 2 }}>
-              {profile.history.length} data points · Composite + Pillar trends
-            </div>
-          </div>
-        </div>
-        <span style={{
-          fontSize: 10,
-          color: '#4a7090',
-          transition: 'transform 0.2s',
-          transform: expanded ? 'rotate(180deg)' : 'rotate(0)',
-        }}>
-          ▼
-        </span>
-      </button>
-      {expanded && (
-        <div ref={containerRef} style={{ padding: '0 16px 16px' }}>
-          <canvas ref={canvasRef} style={{ display: 'block', width: '100%' }} />
-          <div style={{ display: 'flex', gap: 16, marginTop: 8, flexWrap: 'wrap' }}>
-            {[
-              { label: 'Composite', color: '#2fe6de' },
-              { label: 'EQ', color: PILLAR_COLORS.eq + '80' },
-              { label: 'PQ', color: PILLAR_COLORS.pq + '80' },
-              { label: 'IQ', color: PILLAR_COLORS.iq + '80' },
-            ].map(l => (
-              <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <div style={{ width: 12, height: 2, borderRadius: 1, background: l.color }} />
-                <span style={{ fontSize: 9, color: '#4a7090' }}>{l.label}</span>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
-      )}
-    </div>
-  );
-}
 
-// ─── Archetype Card ──────────────────────────────────────────────
-
-function ArchetypeCard({ profile }: { profile: Profile }) {
-  const [expanded, setExpanded] = useState(false);
-  const arch = profile.archetype;
-  if (!arch) return null;
-
-  const rc = RISK_COLORS[arch.risk] || RISK_COLORS.Low;
-
-  return (
-    <div style={{
-      background: '#162737',
-      border: `0.5px solid ${expanded ? rc.border : 'rgba(47,230,222,0.12)'}`,
-      borderRadius: 10,
-      marginBottom: 10,
-      overflow: 'hidden',
-      transition: 'border-color 0.2s ease',
-    }}>
-      <button
-        onClick={() => setExpanded(!expanded)}
-        style={{
-          width: '100%',
+        {/* Modal footer */}
+        <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '14px 16px',
-          background: 'transparent',
-          border: 'none',
-          cursor: 'pointer',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{
-            width: 4,
-            height: 24,
-            borderRadius: 2,
-            background: rc.text,
-            flexShrink: 0,
-          }} />
-          <div style={{ textAlign: 'left' }}>
-            <div style={{ fontSize: 13, color: '#c8e0ee', fontWeight: 500 }}>Archetype</div>
-            <div style={{ fontSize: 10, color: rc.text, marginTop: 2 }}>
-              {arch.name} · {arch.risk} Risk · {arch.action}
-            </div>
-          </div>
-        </div>
-        <span style={{
-          fontSize: 10,
-          color: '#4a7090',
-          transition: 'transform 0.2s',
-          transform: expanded ? 'rotate(180deg)' : 'rotate(0)',
+          padding: '14px 20px',
+          borderTop: `0.5px solid ${THEME.border.light}`,
         }}>
-          ▼
-        </span>
-      </button>
-      {expanded && (
-        <div style={{ padding: '0 16px 16px' }}>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-            <span style={{
-              padding: '3px 10px',
-              borderRadius: 20,
-              background: rc.bg,
-              border: `0.5px solid ${rc.border}`,
-              fontSize: 11,
-              fontWeight: 500,
-              color: rc.text,
-            }}>
-              {arch.name}
-            </span>
-            <span style={{
-              padding: '3px 8px',
-              borderRadius: 20,
-              background: 'rgba(74,112,144,0.1)',
-              border: '0.5px solid rgba(74,112,144,0.2)',
-              fontSize: 10,
-              color: '#4a7090',
-              textTransform: 'uppercase' as const,
-              letterSpacing: '0.06em',
-            }}>
-              {arch.action}
-            </span>
-            <span style={{
-              padding: '3px 8px',
-              borderRadius: 20,
-              background: 'rgba(74,112,144,0.1)',
-              border: '0.5px solid rgba(74,112,144,0.2)',
-              fontSize: 10,
-              color: '#4a7090',
-              fontFamily: "'Space Mono', monospace",
-            }}>
-              {Math.round(arch.confidence * 100)}% conf.
-            </span>
-          </div>
-          <p style={{ fontSize: 12, color: '#7ab5cc', lineHeight: 1.5, margin: 0 }}>
-            {arch.description}
-          </p>
-          {profile.narrative && (
-            <div style={{
-              marginTop: 12,
-              padding: '10px 14px',
+          <span style={{ fontSize: 11, color: THEME.text.muted }}>
+            {selected.size} of {allIds.length} sections
+          </span>
+          <button
+            onClick={handleShare}
+            disabled={selected.size === 0}
+            style={{
+              padding: '8px 20px',
               borderRadius: 8,
-              border: '0.5px solid rgba(74,112,144,0.15)',
-              background: 'rgba(7,18,29,0.4)',
-            }}>
-              <div style={{ fontSize: 10, color: '#4a7090', marginBottom: 4, fontWeight: 500 }}>Narrative</div>
-              <div style={{ fontSize: 11, color: '#7ab5cc', lineHeight: 1.5, fontStyle: 'italic' }}>
-                {profile.narrative}
-              </div>
-            </div>
-          )}
+              border: 'none',
+              cursor: selected.size > 0 ? 'pointer' : 'default',
+              background: selected.size > 0 ? THEME.accent : THEME.border.medium,
+              color: selected.size > 0 ? THEME.bg.deep : THEME.text.dim,
+              fontSize: 12,
+              fontWeight: 600,
+              transition: 'all 0.15s',
+              opacity: selected.size > 0 ? 1 : 0.5,
+            }}
+          >
+            {copied ? 'Copied to Clipboard!' : 'Share'}
+          </button>
         </div>
-      )}
+      </div>
     </div>
   );
 }
 
 // ─── Profile Header ──────────────────────────────────────────────
 
-function ProfileHeader({ profile }: { profile: Profile }) {
+function ProfileHeader({
+  profile,
+  onShare,
+}: {
+  profile: Profile;
+  onShare: () => void;
+}) {
   const g = grade(profile.composite);
   const arch = profile.archetype;
   const rc = arch ? (RISK_COLORS[arch.risk] || RISK_COLORS.Low) : null;
 
+  const mailtoHref = `mailto:?subject=${encodeURIComponent(`EPIQuotient Profile: ${profile.name}`)}&body=${encodeURIComponent(
+    `${profile.name}\nRole: ${profile.role}${profile.graduationClass ? ` · ${profile.graduationClass}` : ''}\nComposite: ${profile.composite}\nEQ: ${profile.eqScore} | PQ: ${profile.pqScore} | IQ: ${profile.iqScore}\n\nShared from EPIQuotient`
+  )}`;
+
+  const iconBtnStyle: React.CSSProperties = {
+    background: 'transparent',
+    border: `1px solid ${THEME.border.medium}`,
+    borderRadius: 8,
+    padding: 7,
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'all 0.15s ease',
+  };
+
   return (
     <div style={{
       padding: '24px 28px 20px',
-      borderBottom: '0.5px solid rgba(47,230,222,0.12)',
+      borderBottom: `0.5px solid ${THEME.border.medium}`,
     }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
         <div>
-          <h2 style={{
-            margin: 0,
-            fontSize: 20,
-            fontWeight: 500,
-            color: '#c8e0ee',
-            fontFamily: "'Sora', system-ui, sans-serif",
-          }}>
-            {profile.name}
-          </h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <h2 style={{
+              margin: 0,
+              fontSize: 20,
+              fontWeight: 500,
+              color: THEME.text.primary,
+              fontFamily: THEME.font.body,
+            }}>
+              {profile.name}
+            </h2>
+            <a
+              href={mailtoHref}
+              title="Send email about this profile"
+              style={iconBtnStyle}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = THEME.accent; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = THEME.border.medium; }}
+            >
+              <MailIcon size={16} />
+            </a>
+            <button
+              onClick={onShare}
+              title="Share profile sections"
+              style={iconBtnStyle}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = THEME.accent; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = THEME.border.medium; }}
+            >
+              <ShareIcon size={16} />
+            </button>
+          </div>
           <div style={{
             fontSize: 11,
-            color: '#4a7090',
+            color: THEME.text.muted,
             textTransform: 'uppercase' as const,
             letterSpacing: '0.12em',
             marginTop: 4,
-            fontFamily: "'Space Mono', monospace",
+            fontFamily: THEME.font.mono,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
           }}>
             {profile.role}
+            {profile.graduationClass && (
+              <span style={{
+                fontSize: 10,
+                color: THEME.accent,
+                opacity: 0.7,
+                fontWeight: 500,
+              }}>
+                · {profile.graduationClass}
+              </span>
+            )}
           </div>
         </div>
-        <div style={{
-          textAlign: 'right',
-          flexShrink: 0,
-        }}>
+        <div style={{ textAlign: 'right', flexShrink: 0 }}>
           <div style={{
-            fontFamily: "'Space Mono', monospace",
+            fontFamily: THEME.font.mono,
             fontSize: 36,
             fontWeight: 700,
-            color: '#2fe6de',
+            color: THEME.accent,
             lineHeight: 1,
           }}>
             {profile.composite}
@@ -899,12 +669,7 @@ function ProfileHeader({ profile }: { profile: Profile }) {
         </div>
       </div>
 
-      {/* Pillar summary row */}
-      <div style={{
-        display: 'flex',
-        gap: 12,
-        marginTop: 16,
-      }}>
+      <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
         {(['eq', 'pq', 'iq'] as const).map(pillar => {
           const score = profile[`${pillar}Score` as keyof Profile] as number;
           const color = PILLAR_COLORS[pillar];
@@ -912,12 +677,12 @@ function ProfileHeader({ profile }: { profile: Profile }) {
             <div key={pillar} style={{
               flex: 1,
               padding: '10px 12px',
-              background: '#162737',
+              background: THEME.bg.card,
               borderRadius: 8,
-              border: '0.5px solid rgba(47,230,222,0.12)',
+              border: `0.5px solid ${THEME.border.medium}`,
             }}>
               <div style={{
-                fontFamily: "'Space Mono', monospace",
+                fontFamily: THEME.font.mono,
                 fontSize: 20,
                 fontWeight: 700,
                 color,
@@ -927,7 +692,7 @@ function ProfileHeader({ profile }: { profile: Profile }) {
               </div>
               <div style={{
                 fontSize: 9,
-                color: '#4a7090',
+                color: THEME.text.muted,
                 marginTop: 4,
                 textTransform: 'uppercase' as const,
                 letterSpacing: '0.08em',
@@ -936,7 +701,7 @@ function ProfileHeader({ profile }: { profile: Profile }) {
               </div>
               <div style={{
                 height: 3,
-                background: '#07121d',
+                background: THEME.bg.deep,
                 borderRadius: 2,
                 marginTop: 6,
                 overflow: 'hidden',
@@ -954,14 +719,8 @@ function ProfileHeader({ profile }: { profile: Profile }) {
         })}
       </div>
 
-      {/* Archetype badge */}
       {arch && rc && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          marginTop: 12,
-        }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12 }}>
           <span style={{
             padding: '3px 10px',
             borderRadius: 20,
@@ -975,8 +734,8 @@ function ProfileHeader({ profile }: { profile: Profile }) {
           </span>
           <span style={{
             fontSize: 10,
-            color: '#4a7090',
-            fontFamily: "'Space Mono', monospace",
+            color: THEME.text.muted,
+            fontFamily: THEME.font.mono,
           }}>
             {Math.round(arch.confidence * 100)}% confidence
           </span>
@@ -991,21 +750,55 @@ function ProfileHeader({ profile }: { profile: Profile }) {
 export default function IndividualView({
   profiles,
   initialProfileId,
+  programLength: _programLength = 3,
 }: {
   profiles: Profile[];
   initialProfileId?: string;
+  programLength?: number;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(initialProfileId || (profiles[0]?.id ?? null));
+  const [shareOpen, setShareOpen] = useState(false);
+  const [pairedExpanded, setPairedExpanded] = useState<Record<string, boolean>>({
+    'comparison-heatmap': true,
+    'trends-ite': false,
+  });
 
-  const groupedProfiles = useMemo(() => {
-    const groups: { label: string; profiles: Profile[] }[] = [];
-    for (const wave of WAVE_ORDER) {
-      const matching = profiles.filter(p => p.role === wave);
-      if (matching.length > 0) {
-        groups.push({ label: wave, profiles: matching });
+  const { activeGroups, graduateProfiles } = useMemo(() => {
+    const now = new Date();
+    const grads: Profile[] = [];
+    const activeByRole = new Map<string, Profile[]>();
+
+    for (const p of profiles) {
+      const gradYear = p.graduationYear;
+
+      // Profiles already marked as Graduate always go to the graduates bucket
+      if (p.role === 'Graduate') {
+        grads.push(p);
+      } else if (gradYear != null && !isResidentActive(gradYear, now)) {
+        // Active-role profiles whose graduation year has passed
+        grads.push(p);
+      } else {
+        const role = p.role;
+        if (!activeByRole.has(role)) activeByRole.set(role, []);
+        activeByRole.get(role)!.push(p);
       }
     }
-    return groups;
+
+    const groups: { label: string; profiles: Profile[] }[] = [];
+    for (const role of ACTIVE_ROLE_ORDER) {
+      const matching = activeByRole.get(role);
+      if (matching && matching.length > 0) {
+        groups.push({ label: role, profiles: matching });
+      }
+    }
+
+    for (const [role, roleProfiles] of activeByRole) {
+      if (!ACTIVE_ROLE_ORDER.includes(role)) {
+        groups.push({ label: role, profiles: roleProfiles });
+      }
+    }
+
+    return { activeGroups: groups, graduateProfiles: grads };
   }, [profiles]);
 
   const selectedProfile = useMemo(() => {
@@ -1017,35 +810,43 @@ export default function IndividualView({
       display: 'flex',
       width: '100%',
       height: '100%',
-      background: '#0a1620',
-      fontFamily: "'Sora', system-ui, sans-serif",
+      background: THEME.bg.page,
+      fontFamily: THEME.font.body,
     }}>
       {/* Left Sidebar */}
       <div style={{
         width: 260,
         flexShrink: 0,
-        borderRight: '0.5px solid rgba(47,230,222,0.12)',
+        borderRight: `0.5px solid ${THEME.border.medium}`,
         overflowY: 'auto',
-        background: '#0e1e2d',
+        background: THEME.bg.sidebar,
       }}>
         <div style={{
           padding: '16px 12px 8px',
           fontSize: 10,
-          color: '#4a7090',
-          fontFamily: "'Space Mono', monospace",
+          color: THEME.text.muted,
+          fontFamily: THEME.font.mono,
           letterSpacing: '0.1em',
           textTransform: 'uppercase' as const,
-          borderBottom: '0.5px solid rgba(47,230,222,0.08)',
+          borderBottom: `0.5px solid ${THEME.border.light}`,
         }}>
           Profiles · {profiles.length}
         </div>
-        {groupedProfiles.map(group => (
+        {graduateProfiles.length > 0 && (
+          <GraduateSidebarGroup
+            profiles={graduateProfiles}
+            selectedId={selectedId}
+            onSelect={(p) => setSelectedId(p.id)}
+          />
+        )}
+        {activeGroups.map(group => (
           <SidebarGroup
             key={group.label}
             label={group.label}
             profiles={group.profiles}
             selectedId={selectedId}
             onSelect={(p) => setSelectedId(p.id)}
+            defaultCollapsed={MS_ROLES.includes(group.label)}
           />
         ))}
       </div>
@@ -1054,52 +855,79 @@ export default function IndividualView({
       <div style={{
         flex: 1,
         overflowY: 'auto',
-        background: '#0a1620',
+        background: THEME.bg.page,
       }}>
         {selectedProfile ? (
           <>
-            <ProfileHeader profile={selectedProfile} />
+            <ProfileHeader profile={selectedProfile} onShare={() => setShareOpen(true)} />
 
-            {/* Summary Table Section */}
-            <div style={{ padding: '20px 28px' }}>
-              <div style={{
-                fontSize: 10,
-                color: '#4a7090',
-                fontFamily: "'Space Mono', monospace",
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase' as const,
-                marginBottom: 12,
-              }}>
-                Longitudinal Scores
-              </div>
-              <div style={{
-                background: '#0e1e2d',
-                border: '0.5px solid rgba(47,230,222,0.12)',
-                borderRadius: 10,
-                overflow: 'hidden',
-              }}>
-                <SummaryTable profile={selectedProfile} />
-              </div>
-            </div>
+            {SECTION_GROUPS.map(group => {
+              const groupSections = SECTION_REGISTRY.filter(s => s.group === group.id);
 
-            {/* Expandable Drilldowns */}
-            <div style={{ padding: '0 28px 28px' }}>
-              <div style={{
-                fontSize: 10,
-                color: '#4a7090',
-                fontFamily: "'Space Mono', monospace",
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase' as const,
-                marginBottom: 12,
-              }}>
-                Deep Dive
-              </div>
-              <AttributeDrilldown profile={selectedProfile} pillar="eq" />
-              <AttributeDrilldown profile={selectedProfile} pillar="pq" />
-              <AttributeDrilldown profile={selectedProfile} pillar="iq" />
-              <TrajectoryCard profile={selectedProfile} />
-              <ArchetypeCard profile={selectedProfile} />
-            </div>
+              const PAIRED_ROWS: [string, string][] = [
+                ['comparison', 'heatmap'],
+                ['trends', 'ite'],
+              ];
+
+              const pairedIdSet = new Set<string>();
+              const pairedRows: { left: typeof groupSections[0]; right: typeof groupSections[0] }[] = [];
+              for (const [leftId, rightId] of PAIRED_ROWS) {
+                const left = groupSections.find(s => s.id === leftId);
+                const right = groupSections.find(s => s.id === rightId);
+                if (left && right) {
+                  pairedRows.push({ left, right });
+                  pairedIdSet.add(leftId);
+                  pairedIdSet.add(rightId);
+                }
+              }
+              const normalSections = groupSections.filter(s => !pairedIdSet.has(s.id));
+
+              return (
+                <div key={group.id} style={{ padding: '20px 28px 0' }}>
+                  <div style={{
+                    fontSize: 10,
+                    color: THEME.text.muted,
+                    fontFamily: THEME.font.mono,
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase' as const,
+                    marginBottom: 12,
+                  }}>
+                    {group.label}
+                  </div>
+
+                  {pairedRows.map(({ left, right }) => {
+                    const LeftComponent = left.component;
+                    const RightComponent = right.component;
+                    const pairKey = `${left.id}-${right.id}`;
+                    const isExpanded = pairedExpanded[pairKey] ?? true;
+                    const toggle = () => setPairedExpanded(prev => ({ ...prev, [pairKey]: !isExpanded }));
+                    return (
+                      <div key={pairKey} style={{ display: 'flex', gap: 10, alignItems: 'stretch' }}>
+                        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                          <LeftComponent profile={selectedProfile} pillar={left.pillar} expanded={isExpanded} onToggleExpanded={toggle} />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                          <RightComponent profile={selectedProfile} pillar={right.pillar} expanded={isExpanded} onToggleExpanded={toggle} />
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {normalSections.map(section => {
+                    const Component = section.component;
+                    return (
+                      <Component
+                        key={section.id}
+                        profile={selectedProfile}
+                        pillar={section.pillar}
+                      />
+                    );
+                  })}
+                </div>
+              );
+            })}
+
+            <div style={{ height: 28 }} />
           </>
         ) : (
           <div style={{
@@ -1107,13 +935,18 @@ export default function IndividualView({
             alignItems: 'center',
             justifyContent: 'center',
             height: '100%',
-            color: '#4a7090',
+            color: THEME.text.muted,
             fontSize: 13,
           }}>
             Select a profile from the sidebar
           </div>
         )}
       </div>
+
+      {/* Share Modal */}
+      {shareOpen && selectedProfile && (
+        <ShareModal profile={selectedProfile} onClose={() => setShareOpen(false)} />
+      )}
     </div>
   );
 }

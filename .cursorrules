@@ -11,13 +11,17 @@ Resident analytics, SWOT analysis, EQ/PQ/IQ scoring, and Progress Check meeting 
 - learn/ - Clinical cases, conversations, EKG/ACLS, running board
 - reflect/ - Voice journaling with AI transcription
 - understand/ - Resident analytics, class cohorts, Progress Check meetings
+- epiquotient/ - EPI Quotient performance fingerprint visualization (epiquotient.com)
 
 ## Key Directories
 - app/(dashboard)/modules/ - Module pages
 - app/api/ - API routes (~200 REST endpoints)
 - app/progress-check/ - Progress Check survey admin pages
 - app/survey/ - Public survey response form (/survey/[token])
+- app/epiquotient/ - EPI Quotient visualization page (epiquotient.com)
+- app/api/epiquotient/ - EPI Quotient API routes
 - components/analytics/ - Shared analytics (SWOT, Scores, D3 Charts)
+- components/epiquotient/ - Particle field, lenses, individual view sections (14 section components)
 - components/modules/understand/ - OverviewPane
 - context/ - React context providers (ProgressCheckUserContext)
 - lib/ - Utilities and services
@@ -49,6 +53,7 @@ Resident analytics, SWOT analysis, EQ/PQ/IQ scoring, and Progress Check meeting 
 - /api/surveys/respond/[token] - Public survey form data + submission
 - /api/progress-check-sessions - Progress Check meeting sessions
 - /api/cron/survey-reminders - Automated reminder emails
+- /api/epiquotient/profiles - EPI Quotient profiles with scores, history, archetypes, demo data (?cohort= filter)
 
 ## Database Schema (Key Tables)
 - residents - Resident profiles (FK to classes via class_id)
@@ -64,6 +69,9 @@ Resident analytics, SWOT analysis, EQ/PQ/IQ scoring, and Progress Check meeting 
 - evaluation_frameworks - Configurable attribute sets per program
 - evaluation_attributes - Individual EQ/PQ/IQ attributes within frameworks
 - progress_check_sessions - Progress Check meeting sessions (renamed from ccc_sessions)
+- epiq_profiles - EPI Quotient physician/student profiles (270 demo, public RLS)
+- epiq_profile_scores - Per-attribute EQ/PQ/IQ scores (15 per profile)
+- epiq_profile_history - Longitudinal composite score history
 
 ## EQ/PQ/IQ Terminology
 - EQ = Emotional Quotient (not Intelligence)
@@ -81,3 +89,5 @@ Resident analytics, SWOT analysis, EQ/PQ/IQ scoring, and Progress Check meeting 
 ## Known Patterns
 - **PostgREST FK joins:** `user_profiles:user_id` embedded joins fail because `faculty.user_id` / `residents.user_id` FK to `auth.users(id)` (auth schema), not `user_profiles(id)` (public schema). Workaround: query main table first, collect user_ids, query `user_profiles` separately, merge in application code.
 - **Survey form styling:** Uses hex-based inline styles (not Tailwind color classes) for consistent green theme (#16A34A primary, #15803D dark) with pillar accents (red=EQ, blue=PQ, purple=IQ).
+- **EpiQuotient domain routing:** `epiquotient.com` → `www.epiquotient.com` (308 canonical redirect), then middleware rewrites `/` to `/epiquotient` with `x-lev8-context: epiquotient` header. Local dev: `http://localhost:3000/epiquotient` or `epiquotient.localhost`.
+- **EpiQuotient inline styles:** Uses inline `style` objects (not Tailwind) with dark theme constants from `components/epiquotient/sections/primitives.tsx` (THEME object). Canvas-based charts (radar, comparison, trends, trajectory, scatter) via HTML5 Canvas 2D.

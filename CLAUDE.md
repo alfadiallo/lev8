@@ -2,10 +2,11 @@
 
 ## Project Overview
 
-**Elevate (Lev8)** is a medical residency education platform for Memorial Hospital West Emergency Medicine Residency Program. It includes the Elevate learning platform plus EQ·PQ·IQ products: Progress Check (residency evaluation surveys), Interview Assessment Tool, and Pulse Check provider evaluations.
+**Elevate (Lev8)** is a medical residency education platform for Memorial Hospital West Emergency Medicine Residency Program. It includes the Elevate learning platform plus EQ·PQ·IQ products: Progress Check (residency evaluation surveys), Interview Assessment Tool, Pulse Check provider evaluations, and EPI Quotient performance visualization.
 
 - **Main Platform:** www.lev8.ai
 - **EQ·PQ·IQ Products:** www.eqpqiq.com
+- **EPI Quotient:** www.epiquotient.com
 - **Repository:** https://github.com/alfadiallo/lev8
 - **Status:** Production (February 2026)
 - **API Routes:** ~200 endpoints
@@ -50,6 +51,16 @@
 │ • Faculty/Self     │ • Season rank list │ • Voice memos     │
 │ • Cron reminders   │ • Demo role tiles  │ • Email reports   │
 └────────────────────┴────────────────────┴───────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│              EPI QUOTIENT (epiquotient.com)                  │
+├─────────────────────────────────────────────────────────────┤
+│ • Particle wave visualization (270 demo profiles)           │
+│ • Program / Class / Individual view scopes                  │
+│ • 5 analytical lens sections + 13-section individual view   │
+│ • 3D perspective transitions, touch support                 │
+│ • 9 trajectory archetypes, seeded demo data                 │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ### Multi-Tenant Routing
@@ -58,6 +69,7 @@
 - Middleware handles tenant context initialization
 - Domain-based routing for subdomains (studio., eqpqiq.com)
 - eqpqiq.com root (/) serves brand landing page via middleware rewrite to /eqpqiq-landing
+- epiquotient.com root (/) serves particle visualization via middleware rewrite to /epiquotient (308 canonical redirect from bare domain to www.epiquotient.com; `x-lev8-context: epiquotient` header)
 
 ## Directory Structure
 
@@ -69,6 +81,7 @@ lev8/
 │   ├── api/                      # ~200 API endpoints (~30 route groups)
 │   ├── admin/                    # Admin dashboard
 │   ├── eqpqiq-landing/           # EQ·PQ·IQ brand landing page (eqpqiq.com root)
+│   ├── epiquotient/              # EPI Quotient visualization (epiquotient.com)
 │   ├── interview/                # Interview tool pages
 │   ├── progress-check/           # Progress Check pages (surveys, admin)
 │   ├── pulsecheck/               # Pulse Check pages
@@ -78,6 +91,7 @@ lev8/
 │   ├── modules/                  # Learn module UIs
 │   ├── analytics/                # SWOT, ITE, radar charts
 │   ├── eqpqiq/                   # Shared EQ·PQ·IQ brand components
+│   ├── epiquotient/              # EPI Quotient particle field, lenses, individual view sections
 │   ├── forms/                    # EQ+PQ+IQ rating forms
 │   ├── pulsecheck/               # Sparkline, ProviderProfileModal, RatingSliders
 │   └── ui/                       # Shadcn/ui components
@@ -150,6 +164,19 @@ lev8/
 - Email reminders and reporting
 - Demo accounts for Regional Director, Medical Director, Admin Assistant
 
+### EPI Quotient (Performance Fingerprint)
+- **Particle Wave Visualization:** Interactive canvas field where each particle represents a physician/medical student, colored by composite EQ/PQ/IQ score, positioned along sine waves grouped by training level
+- **Four View Modes:** Landing (particle field), Program (cohort analytics), Class (class-level analytics with role filter), Individual (deep-dive profile)
+- **5 Analytical Lens Sections:** Overview, EQ/PQ/IQ, SWOT, Trajectory, Archetypes — full-viewport scroll-snap sections at Program and Class scopes
+- **13-Section Individual View:** Radar (with timeline play/pause), Comparison (faculty vs self), Heatmap, Trends (Faculty/Self/Both toggle), ITE, EQ/PQ/IQ Drilldowns, Trajectory, SWOT, Archetype, Ratings, Comments — organized into Overview, Deep Dive, and Context & History groups
+- **Sorting & Filtering:** 6 sort modes (A-Z, EQ, PQ, IQ, EPIq, default), role filter pills, score band filter pills, gradient bar segments
+- **3D Transitions:** Perspective rotateY animation between landing and individual view; cross-dissolve between program/class
+- **Touch Support:** Mobile touch mini-sheet, 36px hit areas, responsive breakpoints (1024/768/480px)
+- **9 Trajectory Archetypes:** Elite Performer, Breakthrough, Late Bloomer, Steady Climber, etc. with risk classification
+- **Demo Data:** 270 seeded profiles (23 MS3, 35 MS4, 45 PGY 1-3, 75 active graduates across 5 classes, 92 archived)
+- **Domain:** www.epiquotient.com (public, no auth required)
+- **Database:** `epiq_profiles`, `epiq_profile_scores`, `epiq_profile_history` with public RLS
+
 ## Known Issues / TODOs
 
 ### High Priority
@@ -186,10 +213,25 @@ lev8/
 - `/api/progress-check-sessions` - Progress Check meeting sessions (renamed from CCC)
 - `/api/v2/sessions/progress-check` - V2 session endpoints (renamed from CCC)
 
+## Key API Endpoints (EPI Quotient)
+
+- `/api/epiquotient/profiles` - EPI Quotient profiles with scores, history, archetypes, and seeded demo data (radar, comparison, trends, SWOT, ITE, ratings). Optional `?cohort=` filter. Returns `{ meta, profiles }` envelope.
+
 ## Recent Changes
 
 From git history:
-1. **Daily Database Backup & Admin Enhancements (March 2026)**
+1. **EPI Quotient — Performance Fingerprint (March 2026)**
+   - New product at www.epiquotient.com — interactive particle wave visualization of physician EQ/PQ/IQ scores
+   - 4 view modes: landing (particle field), program, class, individual with 3D perspective transitions
+   - 5 analytical lens sections (Overview, EQ/PQ/IQ, SWOT, Trajectory, Archetypes) at program/class scopes
+   - 13-section Individual View with sidebar, section registry (Radar with timeline, Comparison, Heatmap, Trends, ITE, EQ/PQ/IQ Drilldowns, Trajectory, SWOT, Archetype, Ratings, Comments)
+   - 6 sort modes, role/score-band filtering, data-driven wave amplitudes, touch mini-sheet
+   - API with 6 seeded demo data generators (deterministic by profile UUID)
+   - Graduate class redistribution: 75 active across 5 classes (2022-2026), 92 archived
+   - Database: `epiq_profiles`, `epiq_profile_scores`, `epiq_profile_history` with public RLS
+   - Middleware domain routing: epiquotient.com → /epiquotient with `x-lev8-context: epiquotient`
+
+2. **Daily Database Backup & Admin Enhancements (March 2026)**
    - Daily cron job (`/api/cron/daily-backup`) dumps 13 critical tables to CSV, emails as attachments via Resend to `BACKUP_EMAIL` env var (6 AM EST daily)
    - Per-respondent faculty breakdowns on resident profile: nested dropdowns under Core Faculty / Teaching Faculty showing individual faculty scores and counts
    - Resend Link button on survey detail Respondents tab for individual re-sends (bypasses max_reminders)
@@ -315,7 +357,7 @@ Both cron endpoints require `Authorization: Bearer <CRON_SECRET>` header (Vercel
 | `ELEVENLABS_API_KEY` | Voice synthesis |
 | `FROM_EMAIL` | Default sender email |
 
-## Data Status (February 2026)
+## Data Status (March 2026)
 
 - 50 residents across 4 classes (2024-2028) + Class of 2026 demo residents
 - 13 faculty members + demo faculty accounts
@@ -323,6 +365,8 @@ Both cron endpoints require `Authorization: Bearer <CRON_SECRET>` header (Vercel
 - 319 EQ+PQ+IQ ratings (267 faculty + 52 self-assessments)
 - 66 period scores aggregated
 - Progress Check demo accounts (PD, Faculty, Resident)
+- 270 EPI Quotient demo profiles (23 MS3, 35 MS4, 45 PGY 1-3, 75 active graduates across 5 classes of 15, 92 archived graduates)
+- 9 trajectory archetypes with seeded classification
 
 ## Role-Based Access Control
 
@@ -355,6 +399,7 @@ Both cron endpoints require `Authorization: Bearer <CRON_SECRET>` header (Vercel
 - `docs/PRD-PROGRESS-CHECK.md` - Progress Check product requirements
 - `docs/PRD-INTERVIEW.md` - Interview Assessment product requirements
 - `docs/PRD-PULSECHECK.md` - Pulse Check product requirements
+- `docs/PRD-EPIQUOTIENT.md` - EPI Quotient product requirements
 - `docs/OPS-SURVEY-RUNBOOK.md` - Survey operations runbook
 - `docs/site-map-eqpqiq.md` - EQ·PQ·IQ site map and routing
 

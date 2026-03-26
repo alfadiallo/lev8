@@ -225,7 +225,7 @@ export default function EpiqAccessGate({ onGranted }: EpiqAccessGateProps) {
             textAlign: 'center',
             lineHeight: 1.5,
           }}>
-            Enter your name and email to explore the EPI Quotient visualization.
+            Welcome to the EPI Quotient.
           </p>
 
           <form onSubmit={handleSubmit}>
@@ -336,15 +336,6 @@ export default function EpiqAccessGate({ onGranted }: EpiqAccessGateProps) {
           </form>
         </div>
 
-        <p style={{
-          textAlign: 'center',
-          marginTop: 20,
-          fontSize: 12,
-          color: THEME.textMuted,
-          lineHeight: 1.5,
-        }}>
-          Your information is only used to track access to this demo.
-        </p>
       </div>
     </div>
   );

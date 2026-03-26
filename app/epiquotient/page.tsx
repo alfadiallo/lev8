@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { OverviewLens, EqPqIqLens, SwotLens, TrajectoryLens, ArchetypesLens, IndividualView } from '@/components/epiquotient';
 import type { ProgramMeta } from '@/components/epiquotient';
+import EpiqAccessGate from '@/components/epiquotient/EpiqAccessGate';
 
 type ViewMode = 'landing' | 'program' | 'class' | 'individual';
 
@@ -391,6 +392,9 @@ export default function EpiquotientPage() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { setMounted(true); }, []);
+
+  // Access gate
+  const [gateOpen, setGateOpen] = useState(true);
 
   // Sort mode for particle arrangement
   const [sortMode, setSortMode] = useState<SortMode>('default');
@@ -1001,6 +1005,7 @@ export default function EpiquotientPage() {
   // ─── Render ────────────────────────────────────────────────
   return (
     <>
+      {gateOpen && <EpiqAccessGate onGranted={() => setGateOpen(false)} />}
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap');
 

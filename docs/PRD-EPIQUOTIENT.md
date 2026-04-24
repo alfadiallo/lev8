@@ -1,17 +1,21 @@
 # Product Requirements Document: EPI Quotient — Performance Fingerprint
 
-**Product:** EPI Quotient  
-**Domain:** www.epiquotient.com  
-**Platform:** Integrated into lev8 monorepo (Next.js App Router)  
-**Version:** 1.4  
-**Last Updated:** March 17, 2026  
-**Status:** Development (local + remote DB)
+**Product:** EPI Quotient
+**Domain:** www.epiquotient.com
+**Platform:** Integrated into lev8 monorepo (Next.js 15 App Router)
+**Version:** 2.0
+**Last Updated:** March 25, 2026
+**Status:** Production (Vercel deployment, public access)
 
 ---
 
 ## 1. Executive Summary
 
-EPI Quotient is an interactive data visualization product that renders a "Performance Fingerprint" — a particle wave field where each particle represents a physician or medical student, positioned along sine waves grouped by training level, and colored by their composite EQ/PQ/IQ score. The product provides three hierarchical views — **Program**, **Class**, and **Individual** — navigated via a centered pill switcher. The Program view shows the full cohort particle field; the Class view enables side-by-side comparison of training classes; and the Individual view offers a deep-dive into a single profile's EQ/PQ/IQ breakdown, trajectory, and archetype analysis.
+EPI Quotient is an interactive data visualization product that renders a "Performance Fingerprint" — a particle wave field where each particle represents a physician or medical student, positioned along sine waves grouped by training level, and colored by their composite EQ/PQ/IQ score. The product provides four view modes — **Landing**, **Program**, **Class**, and **Individual** — navigated via a centered pill switcher with animated transitions.
+
+The Landing page is an immersive particle canvas that supports sorting, filtering, hover tooltips, and click-to-explore interactions. Program and Class views provide five full-viewport scroll-snap analytical lens sections. The Individual view offers a deep-dive into a single profile across 13 collapsible section cards organized in three groups.
+
+The product is publicly accessible at www.epiquotient.com with no authentication required. It currently serves 270 demo profiles representing a fictional Emergency Medicine residency program.
 
 ---
 
@@ -24,7 +28,7 @@ Medical education programs lack an intuitive, at-a-glance visualization of their
 - **No archetype recognition.** Programs cannot quickly identify which residents fit known performance patterns (Elite Performer, Late Bloomer, Continuous Decline, etc.).
 - **Data is tabular, not spatial.** Spreadsheets and dashboards present numbers, not a visual fingerprint that reveals patterns intuitively.
 
-EPI Quotient solves these by rendering the entire cohort as an animated particle field where position, color, and interaction reveal the full performance story.
+EPI Quotient solves these by rendering the entire cohort as an animated particle field where position, color, size, and interaction reveal the full performance story.
 
 ---
 
@@ -32,105 +36,121 @@ EPI Quotient solves these by rendering the entire cohort as an animated particle
 
 ### 3.1 Domain Routing
 
-EPI Quotient is served from the lev8 monorepo via Next.js middleware:
+EPI Quotient is served from the lev8 monorepo via Next.js middleware (`middleware.ts`):
 
 - **Production:** `www.epiquotient.com` → rewrites `/` to `/epiquotient`
-- **Canonical redirect:** `epiquotient.com` (bare) → `www.epiquotient.com` (308)
+- **Canonical redirect:** `epiquotient.com` (bare) → `www.epiquotient.com` (308 permanent)
 - **Local development:** `http://localhost:3000/epiquotient` (direct path)
 - **Local domain:** `epiquotient.localhost` (middleware rewrite)
 - **Context header:** All responses set `x-lev8-context: epiquotient`
+- **Passthrough:** `/api`, `/_next`, `/favicon.ico`, static file extensions bypass rewrite
+- **Catch-all:** Any other path on the epiquotient domain redirects to `/` (which rewrites to `/epiquotient`)
 
 ### 3.2 File Structure
 
 ```
 app/
 ├── epiquotient/
-│   ├── layout.tsx              # Dark theme layout, metadata
-│   └── page.tsx                # Main visualization (client component, ~2135 lines)
+│   ├── layout.tsx                  # Server layout — dark theme, metadata, viewport config
+│   └── page.tsx                    # Client component (~2760 lines) — particle canvas, all views
 ├── api/epiquotient/
-│   └── profiles/route.ts       # GET: fetch profiles with scores, history, archetypes, demo data
-components/
-└── epiquotient/
-    ├── index.ts                # Barrel exports (lenses, types, section registry)
-    ├── types.ts                # Profile, LensProps, ProgramMeta, RadarData, constants
-    ├── IndividualView.tsx       # Individual profile deep-dive with sidebar + section groups
-    ├── OverviewLens.tsx         # Program-level aggregated stats
-    ├── EqPqIqLens.tsx           # 15-attribute radar chart + pillar breakdown
-    ├── SwotLens.tsx             # SWOT cards from attribute analysis
-    ├── TrajectoryLens.tsx       # Period trend + composite trajectory chart
-    ├── ArchetypesLens.tsx       # Risk scatter plot + archetype distribution
-    └── sections/
-        ├── index.ts            # SectionDef interface, SECTION_REGISTRY, SECTION_GROUPS
-        ├── primitives.tsx       # THEME, score utilities, HeatCell, MiniSparkline
-        ├── SectionCard.tsx      # Collapsible card wrapper with accent, sparkline, score
-        ├── RadarSection.tsx     # 15-attribute radar with timeline play/pause + lerp
-        ├── ComparisonSection.tsx # Faculty vs self bar chart (canvas, ResizeObserver)
-        ├── HeatmapSection.tsx   # Longitudinal attribute heatmap table
-        ├── TrendSection.tsx     # Faculty/Self/Both line chart (canvas, ResizeObserver)
-        ├── IteSection.tsx       # In-Training Exam score table
-        ├── DrilldownSection.tsx # Per-pillar attribute bars (EQ/PQ/IQ)
-        ├── TrajectorySection.tsx # Composite + pillar trajectory (canvas)
-        ├── SwotSection.tsx      # 2×2 SWOT quadrant grid
-        ├── ArchetypeSection.tsx # Archetype badges + narrative
-        ├── RatingsSection.tsx   # Rating source count summary
-        └── CommentsSection.tsx  # Evaluator comment list
-middleware.ts                    # Domain routing for epiquotient.com
+│   └── profiles/route.ts           # GET: profiles with scores, history, archetypes, demo data (~559 lines)
+
+components/epiquotient/             # ~4700 lines across 22 files
+├── index.ts                        # Barrel exports (lenses, types, section registry)
+├── types.ts                        # Profile, LensProps, ProgramMeta, RadarData, constants (~190 lines)
+├── IndividualView.tsx              # Individual profile deep-dive, sidebar, section groups (~952 lines)
+├── OverviewLens.tsx                # Program/class-level aggregated stats (~317 lines)
+├── EqPqIqLens.tsx                  # 15-attribute radar chart + pillar breakdown (~278 lines)
+├── SwotLens.tsx                    # SWOT cards from attribute analysis (~156 lines)
+├── TrajectoryLens.tsx              # Period trend + composite trajectory chart (~254 lines)
+├── ArchetypesLens.tsx              # Risk scatter plot + archetype distribution (~321 lines)
+└── sections/
+    ├── index.ts                    # SectionDef interface, SECTION_REGISTRY (13), SECTION_GROUPS (3)
+    ├── primitives.tsx              # THEME, PERIOD_ORDER, scoreToRGB, grade(), HeatCell, MiniSparkline
+    ├── SectionCard.tsx             # Collapsible card wrapper with accent bar, sparkline, score
+    ├── RadarSection.tsx            # 15-attribute radar with timeline play/pause + lerp (~497 lines)
+    ├── ComparisonSection.tsx       # Faculty vs self bar chart (Canvas, ResizeObserver) (~185 lines)
+    ├── HeatmapSection.tsx          # Longitudinal period × pillar heatmap table (~160 lines)
+    ├── TrendSection.tsx            # Faculty/Self/Both line chart (Canvas) (~210 lines)
+    ├── IteSection.tsx              # In-Training Exam score table (~135 lines)
+    ├── DrilldownSection.tsx        # Per-pillar attribute bars (EQ/PQ/IQ) (~171 lines)
+    ├── TrajectorySection.tsx       # Composite + pillar trajectory chart (Canvas) (~171 lines)
+    ├── SwotSection.tsx             # 2×2 SWOT quadrant grid (~94 lines)
+    ├── ArchetypeSection.tsx        # Archetype badges + narrative (~79 lines)
+    ├── RatingsSection.tsx          # Rating source count summary (~70 lines)
+    └── CommentsSection.tsx         # Evaluator comment list (~78 lines)
+
+middleware.ts                       # Domain routing for epiquotient.com (lines ~65–140)
 
 scripts/
-└── migrate-graduate-classes.js  # Graduate class redistribution (Supabase JS client)
+└── migrate-graduate-classes.js     # Graduate class redistribution (Supabase JS client)
 
 supabase/migrations/
-├── 20260313000001_epiquotient_tables.sql        # Base tables + seed data
-├── 20260313000002_epiquotient_update_roles.sql   # Role rename (PGY designations)
-├── 20260313000003_epiq_trajectories.sql          # History table + archetype seeding
-├── 20260314000001_epiq_program_context.sql       # Institution + program name columns
-├── 20260316000001_epiq_redistribute_profiles.sql # Redistribute: 23 MS3, 35 MS4, 15×PGY 1-3, 167 Graduate
-└── 20260317000001_epiq_graduate_classes.sql      # Graduate classes: 75 active (5×15), 92 archived
+├── 20260313000001_epiquotient_tables.sql          # Base tables + 270-profile seed data
+├── 20260313000002_epiquotient_update_roles.sql    # Role rename (Intern→PGY 1, R1→PGY 2, etc.)
+├── 20260313000003_epiq_trajectories.sql           # History table + archetype seeding
+├── 20260314000001_epiq_program_context.sql        # institution_name + program_name columns
+├── 20260316000001_epiq_redistribute_profiles.sql  # Full reseed: 23 MS3, 35 MS4, 15×PGY 1-3, graduates
+└── 20260317000001_epiq_graduate_classes.sql        # Graduate class documentation (JS migration)
 ```
 
-### 3.3 Database Schema
+### 3.3 Component Architecture
+
+**Rendering approach:** All charts and visualizations use HTML5 Canvas 2D — no SVG, D3, or Recharts. This is a deliberate choice for performance with 270+ animated particles.
+
+**Styling approach:** Inline `style` objects (not Tailwind CSS) with constants from the `THEME` object in `primitives.tsx`. This ensures consistent dark theme across all components without Tailwind class conflicts.
+
+**Fonts:** Sora (body, 300–600 weight) + Space Mono (monospace data, 400/700 weight) loaded via Google Fonts.
+
+**State management:** React useState/useRef/useMemo/useCallback only. No external state library. Particle positions managed via `particlesRef` (mutable ref for animation loop performance).
+
+### 3.4 Database Schema
 
 **`epiq_profiles`** — One row per physician/student
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | UUID PK | Profile identifier |
-| first_name | TEXT | First name |
-| last_name | TEXT | Last name |
-| role | TEXT | Training level: MS3, MS4, PGY 1, PGY 2, PGY 3, Graduate |
-| cohort_label | TEXT | Cohort name (default: "EM Residency 2025") |
-| institution_name | TEXT | Hospital/institution name (default: "Grey Sloan Memorial Hospital") |
-| program_name | TEXT | Residency program name (default: "Emergency Medicine Residency") |
-| archetype_id | TEXT | Assigned archetype slug |
-| archetype_confidence | NUMERIC | Confidence score (0–1) |
-| narrative | TEXT | AI-generated narrative placeholder |
-| is_demo | BOOLEAN | Demo data flag |
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PK, default gen_random_uuid() | Profile identifier |
+| first_name | TEXT | NOT NULL | First name |
+| last_name | TEXT | NOT NULL | Last name |
+| role | TEXT | CHECK (IN 'MS3','MS4','PGY 1','PGY 2','PGY 3','Graduate') | Training level |
+| cohort_label | TEXT | default 'EM Residency 2025' | Cohort name |
+| institution_name | TEXT | default 'Grey Sloan Memorial Hospital' | Hospital name |
+| program_name | TEXT | default 'Emergency Medicine Residency' | Program name |
+| archetype_id | TEXT | nullable | Trajectory archetype slug |
+| archetype_confidence | NUMERIC | nullable, 0–1 | Classification confidence |
+| narrative | TEXT | nullable | AI narrative or 'ARCHIVED' for hidden graduates |
+| is_demo | BOOLEAN | default true | Demo data flag |
+| created_at | TIMESTAMPTZ | default now() | Row creation time |
 
-**`epiq_profile_scores`** — Attribute-level scores per profile
+**`epiq_profile_scores`** — 15 attribute-level scores per profile (5 EQ + 5 PQ + 5 IQ)
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | UUID PK | Score row identifier |
-| profile_id | UUID FK | References epiq_profiles |
-| pillar | TEXT | eq, pq, or iq |
-| attribute_slug | TEXT | e.g., empathy, workEthic, knowledgeBase |
-| attribute_label | TEXT | Human-readable attribute name |
-| score | INTEGER | 0–100 |
-| display_order | INTEGER | Ordering within pillar |
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PK | Score row identifier |
+| profile_id | UUID | FK → epiq_profiles ON DELETE CASCADE | Parent profile |
+| pillar | TEXT | CHECK (IN 'eq','pq','iq') | Which quotient pillar |
+| attribute_slug | TEXT | NOT NULL | DB slug (e.g., stress_mgmt) |
+| attribute_label | TEXT | NOT NULL | Display label (e.g., Stress Management) |
+| score | INTEGER | CHECK (0–100) | Attribute score |
+| display_order | INTEGER | NOT NULL | Sort order within pillar |
+| | | UNIQUE (profile_id, pillar, attribute_slug) | |
 
-**`epiq_profile_history`** — Longitudinal composite scores
+**`epiq_profile_history`** — Longitudinal composite + pillar scores by training period
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | UUID PK | History row identifier |
-| profile_id | UUID FK | References epiq_profiles |
-| period | TEXT | MS3, MS4, PGY 1, PGY 2, PGY 3, Graduate |
-| composite_score | INTEGER | 0–100 |
-| eq_score | INTEGER | 0–100 |
-| pq_score | INTEGER | 0–100 |
-| iq_score | INTEGER | 0–100 |
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PK | History row identifier |
+| profile_id | UUID | FK → epiq_profiles ON DELETE CASCADE | Parent profile |
+| period | TEXT | CHECK (IN 'MS3','MS4','PGY 1','PGY 2','PGY 3','Graduate') | Training period |
+| composite_score | INTEGER | CHECK (0–100) | Composite average |
+| eq_score | INTEGER | nullable, CHECK (0–100) | EQ pillar score |
+| pq_score | INTEGER | nullable, CHECK (0–100) | PQ pillar score |
+| iq_score | INTEGER | nullable, CHECK (0–100) | IQ pillar score |
+| | | UNIQUE (profile_id, period) | |
 
-All tables have RLS policies allowing public SELECT (no auth required for the visualization).
+**Row-Level Security:** All three tables have RLS enabled with `SELECT` policy for all (public read, no auth required). No INSERT/UPDATE/DELETE policies — data is managed via service role only.
 
 ---
 
@@ -138,11 +158,23 @@ All tables have RLS policies allowing public SELECT (no auth required for the vi
 
 ### GET `/api/epiquotient/profiles`
 
-Returns all profiles with computed scores, history, archetype metadata, and demo data slices, wrapped in a meta envelope.
+Returns all non-archived profiles with computed scores, history, archetype metadata, and 7 deterministic demo data slices, wrapped in a meta envelope.
 
-**Query params:** `cohort` (optional, filters by cohort_label)
+**Auth:** None (uses Supabase service role key server-side)
 
-**Response shape:**
+**Query params:**
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `cohort` | string | No | Filters by `cohort_label` column |
+
+**Supabase query:**
+- Select: `*, epiq_profile_scores(*), epiq_profile_history(*)`
+- Filter: `or('narrative.is.null,narrative.neq.ARCHIVED')` — excludes archived graduates
+- Order: `created_at` ascending
+- Fallback: if `institution_name`/`program_name` columns are missing (migration not applied), retries without them
+
+**Response shape (200):**
+
 ```json
 {
   "meta": {
@@ -183,8 +215,8 @@ Returns all profiles with computed scores, history, archetype metadata, and demo
           { "label": "Self", "scores": { "empathy": 75, "..." : "..." }, "color": "#6366f1" }
         ],
         "timeline": [
-          { "period": "PGY 1", "series": [ "..." ] },
-          { "period": "PGY 2", "series": [ "..." ] }
+          { "period": "PGY 1", "series": ["..."] },
+          { "period": "PGY 2", "series": ["..."] }
         ]
       },
       "comparison": {
@@ -199,11 +231,12 @@ Returns all profiles with computed scores, history, archetype metadata, and demo
         { "period": "PGY 1", "facultyEq": 65, "facultyPq": 70, "facultyIq": 60, "selfEq": 62, "selfPq": 68, "selfIq": 58 }
       ],
       "swot": {
-        "strengths": ["Strong interpersonal skills", "..."],
+        "strengths": ["Strong interpersonal skills"],
         "weaknesses": ["Documentation needs improvement"],
         "opportunities": ["Leadership development"],
         "threats": ["Burnout risk under high census"],
-        "periodLabel": "PGY 3"
+        "periodLabel": "PGY 3",
+        "generatedAt": "2026-03-15T..."
       },
       "ite": {
         "scores": [{ "examYear": 2024, "rawScore": 245, "percentile": 62, "nationalMean": 230 }],
@@ -225,45 +258,63 @@ Returns all profiles with computed scores, history, archetype metadata, and demo
 }
 ```
 
-**Fallback behavior:** If `institution_name` / `program_name` columns do not exist (migration not yet applied), the API retries without those columns and returns hardcoded defaults in `meta`.
-
-**Archived profile filter:** Profiles with `narrative = 'ARCHIVED'` are excluded via `or('narrative.is.null,narrative.neq.ARCHIVED')`.
+**Error response:** `{ "error": "message" }` with status 500.
 
 **Name formatting:**
 - PGY 1–3 and Graduate: `Dr. [First] [Last], MD` (63%) or `Dr. [First] [Last], DO` (37%) — assigned deterministically via UUID hash
 - MS3/MS4: `[First] [Last]` (no "Dr." prefix)
 
+**Graduation year calculation:** Graduate profiles use `getGraduationYearForPGY()` from `lib/utils/pgy-calculator.ts`. Graduate class label (e.g., "Class of 2024") is derived from `cohort_label` matching pattern.
+
 **Attribute slug mapping (DB → frontend camelCase):**
-`empathy`, `adaptability`, `stress_mgmt→stressMgmt`, `curiosity`, `communication`, `work_ethic→workEthic`, `teachability`, `integrity`, `documentation`, `leadership`, `knowledge_base→knowledgeBase`, `learning_commit→learningCommit`, `analytical_thinking→analyticalThinking`, `clinical_adapt→clinicalAdapt`, `clinical_perf→clinicalPerf`
+
+| DB slug | Frontend key |
+|---------|-------------|
+| empathy | empathy |
+| adaptability | adaptability |
+| stress_mgmt | stressMgmt |
+| curiosity | curiosity |
+| communication | communication |
+| work_ethic | workEthic |
+| teachability | teachability |
+| integrity | integrity |
+| documentation | documentation |
+| leadership | leadership |
+| knowledge_base | knowledgeBase |
+| learning_commit | learningCommit |
+| analytical_thinking | analyticalThinking |
+| clinical_adapt | clinicalAdapt |
+| clinical_perf | clinicalPerf |
 
 ### 4.1 Demo Data Generators
 
-All demo data is generated deterministically using seeded pseudo-random functions based on the profile UUID:
+All demo data is generated deterministically using seeded pseudo-random functions based on the profile UUID. This ensures consistent data across page reloads without database storage.
 
-| Generator | Output | Logic |
-|-----------|--------|-------|
-| `seededRandom(id, salt)` | 0–1 float | Hash-based PRNG from UUID + salt string |
-| `generateDemoRadar` | `RadarData` | Faculty and self-assessment scores per attribute (base ± small deltas); `generateDemoRadarTimeline` builds per-period faculty/self snapshots scaled from history |
-| `generateDemoComparison` | `ComparisonData` | Faculty/self pillar scores, seeded class averages, faculty count (3–8), self count 1 |
-| `generateDemoTrends` | `TrendPoint[]` | Per-period faculty/self EQ/PQ/IQ with small deltas; `undefined` if < 2 history points |
-| `generateDemoSwot` | `SwotData` | Picks from fixed SWOT arrays; 3 strengths if composite ≥ 70, else 2; 3 weaknesses if composite < 50, else 2 |
-| `generateDemoIte` | `IteData` | One score per PGY year; individual/class/program averages; `undefined` for non-residents (MS3/MS4) |
-| `generateDemoRatings` | `RatingsData` | Core faculty (2–6), teaching faculty (1–4), self (1–2); up to 6 recent entries with names from `FACULTY_NAMES`, comments from `DEMO_COMMENTS` |
+| Generator | Output Type | Logic |
+|-----------|------------|-------|
+| `seededRandom(id, salt)` | `number` (0–1) | Hash-based PRNG from UUID + salt string; produces same output for same inputs |
+| `generateDemoRadar(profile)` | `RadarData` | Faculty and self-assessment scores per attribute (base ± small deltas) |
+| `generateDemoRadarTimeline(profile)` | `RadarSnapshot[]` | Per-period faculty/self snapshots scaled from history; returns undefined if < 2 history points |
+| `generateDemoComparison(profile)` | `ComparisonData` | Faculty/self pillar scores, seeded class averages, faculty count (3–8), self count 1 |
+| `generateDemoTrends(profile)` | `TrendPoint[]` | Per-period faculty/self EQ/PQ/IQ with small deltas; undefined if < 2 history points |
+| `generateDemoSwot(profile)` | `SwotData` | Picks from fixed SWOT arrays; 3 strengths if composite ≥ 70, else 2; 3 weaknesses if composite < 50, else 2 |
+| `generateDemoIte(profile)` | `IteData` | One score per PGY year; individual/class/program averages; undefined for MS3/MS4 |
+| `generateDemoRatings(profile)` | `RatingsData` | Core faculty (2–6), teaching faculty (1–4), self (1–2); up to 6 recent entries with names from `FACULTY_NAMES`, comments from `DEMO_COMMENTS` |
 
 ---
 
 ## 5. View Architecture
 
-EPI Quotient uses a **landing + scope** navigation model. The landing page is the immersive particle wave field. Clicking a scope pill (Program | Class | Individual) transitions into a full-screen vertical scroll-snap experience with 5 analytical lens sections.
+EPI Quotient uses a **landing + scope** navigation model. The landing page is the immersive particle wave field. Clicking a scope pill (Program | Class | Individual) transitions into a full-screen vertical scroll-snap experience with 5 analytical lens sections. Clicking a particle on the landing opens its side panel; from there, the Individual view provides the deep-dive.
 
 ### 5.0 Page States
 
-| State | Pill Active | Content | Navigation |
-|-------|-------------|---------|------------|
-| **Landing** | None | Particle wave field (270 profiles) | Click any pill → enter scope |
-| **Program** | Program | 5 scroll-snap sections (program-level analytics) | Click active pill or Esc → landing |
-| **Class** | Class | 5 scroll-snap sections (class-level analytics) | Click active pill or Esc → landing |
-| **Individual** | Individual | 5 scroll-snap sections (individual analytics) | Click active pill or Esc → landing |
+| State | Pill Active | Content | Exit |
+|-------|-------------|---------|------|
+| **Landing** | None | Particle wave field (270 profiles) | — |
+| **Program** | Program | 5 scroll-snap sections (program-level analytics) | Click active pill or Esc |
+| **Class** | Class | 5 scroll-snap sections (class-level analytics) | Click active pill or Esc |
+| **Individual** | Individual | Sidebar + profile header + 13 section cards | Click active pill or Esc |
 
 ### 5.0.1 Scope Pill Switcher
 
@@ -275,15 +326,15 @@ EPI Quotient uses a **landing + scope** navigation model. The landing page is th
 - **Toggle behavior:** Clicking the active pill returns to landing; clicking a different pill switches scope
 - **Escape key:** Returns to landing from any scope
 
-### 5.0.2 Landing-to-Scope Transition
+### 5.0.2 Landing-to-Scope Transition (Cross-Dissolve)
 
-Uses a cross-dissolve with `visibility` management to prevent compositing artifacts from hidden scope containers:
+Uses a cross-dissolve with `visibility` management to prevent compositing artifacts:
 
 - **Enter scope:** Landing fades out (`opacity: 0`, 0.7s linear). Scope container becomes `visibility: visible` instantly, fades in (`opacity: 1`, 0.7s linear). Side panel closes on entry.
 - **Switch scope:** Previous scope enters `exiting` state (retains `visibility: visible` during fade-out, then hides after 0.7s). New scope fades in simultaneously.
 - **Exit to landing:** Active scope enters `exiting` state. Landing fades back in.
 - **Inactive scopes:** `visibility: hidden; opacity: 0; pointer-events: none` — prevents compositing artifacts.
-- **State management:** `exitingScope` ref tracks the outgoing scope during transitions, cleared after the 0.7s animation completes.
+- **State management:** `exitingScope` ref tracks the outgoing scope during transitions, cleared after 0.7s.
 
 ### 5.0.2a Landing-to-Individual 3D Transition
 
@@ -298,59 +349,68 @@ The Individual view uses a distinct 3D perspective transition instead of the cro
 
 Each scope page is a vertically scrolling container with 5 full-viewport sections:
 
-| Section | Lens | Content (all scopes, varying granularity) |
-|---------|------|------------------------------------------|
-| 1 | **Overview** | Composite scores, pillar rings, trajectory, SWOT snapshot, archetype distribution |
-| 2 | **EQ/PQ/IQ** | 15-attribute radar chart, Faculty vs Self gap analysis, attribute timelines |
-| 3 | **SWOT** | Strengths/Weaknesses/Opportunities/Threats cards, evidence, historical comparison |
-| 4 | **ITE/Trajectory** | ITE percentile progression, slope chart, archetype badge, risk summary |
-| 5 | **Archetypes** | Scatter chart, archetype distribution, risk heatmap, trajectory patterns |
+| Section | Lens | Content |
+|---------|------|---------|
+| 1 | **Overview** | Composite scores, pillar bars, risk distribution, role breakdown, archetype frequency |
+| 2 | **EQ/PQ/IQ** | 15-attribute radar chart, 3 pillar rings, per-attribute breakdown bars |
+| 3 | **SWOT** | Statistical SWOT cards derived from attribute mean/std distribution |
+| 4 | **ITE/Trajectory** | Period badges, composite trajectory canvas (individuals + cohort average) |
+| 5 | **Archetypes** | Scatter chart (composite vs delta), distribution bars, risk summary, detail cards |
 
 - **Scroll behavior:** `scroll-snap-type: y mandatory`, each section `scroll-snap-align: start`
 - **Section size:** Each section is `100vw × 100vh`
-- **Section header:** Top-left of each section — icon + lens label + scope context badge
-
-### 5.0.5 Scope Context Headers
-
-Each section header displays contextual information next to the lens label, varying by scope:
-
-| Scope | Context Badge | Behavior |
-|-------|--------------|----------|
-| **Program** | `{institution} · {program}` (e.g., "Grey Sloan Memorial Hospital · Emergency Medicine Residency") | Static text from API meta; monospace, muted, no text-transform |
-| **Class** | Clickable role pills: `MS3 | MS4 | PGY 1 | PGY 2 | PGY 3 | Graduate` | Clicking a pill filters all lens data to that class; clicking again deselects (shows all). Active pill: teal text/border/bg. Unfiltered state: all pills at 50% opacity |
-| **Individual** | `individual` (uppercase, static) | No interactivity |
-
-**Class filter behavior:**
-- `classFilter` state: `string | null` (null = show all classes)
-- When a class is selected, `profiles` are filtered before being passed to all 5 lens components
-- All lenses (Overview, EQ/PQ/IQ, SWOT, Trajectory, Archetypes) reflect the filtered dataset
-- Distinct roles are derived from the full profile set (not the filtered set)
-- Pills appear in every section header within the Class scope
+- **Section header:** Top-left — icon + lens label + scope context badge
 
 ### 5.0.4 Dot Navigation
 
-- **Position:** Fixed, right edge, vertically centered (`right: 24px`, `top: 50%`)
+- **Position:** Fixed right edge, vertically centered (`right: 24px`, `top: 50%`)
 - **Dots:** 5 small circles (10px), one per lens section
 - **Active dot:** Teal (`#2FE6DE`) with glow, slightly scaled up
 - **Inactive dots:** Muted (`#4A7090`)
-- **Hover:** Dot brightens + label appears to the left (e.g. "Overview", "EQ / PQ / IQ")
+- **Hover:** Dot brightens + label appears to the left (e.g., "Overview", "EQ / PQ / IQ")
 - **Click:** Scrolls to that section
 - **Visibility:** Only visible when in a scope (hidden on landing)
 - **Tracking:** `IntersectionObserver` on each section (threshold 0.5) updates the active dot
+
+### 5.0.5 Scope Context Headers
+
+| Scope | Context Badge | Behavior |
+|-------|--------------|----------|
+| **Program** | `{institution} · {program}` | Static text from API meta; monospace, muted |
+| **Class** | Clickable role pills: `MS3 │ MS4 │ PGY 1 │ PGY 2 │ PGY 3 │ Graduate` | Clicking a pill filters all lens data to that class; clicking again deselects. Active: teal text/border/bg. Unfiltered: all pills at 50% opacity |
+| **Individual** | `individual` (uppercase, static) | No interactivity |
+
+**Class filter behavior:**
+- `classFilter` state: `string | null` (null = show all)
+- When selected, profiles are filtered before being passed to all 5 lens components
+- All lenses reflect the filtered dataset automatically
+- Distinct roles derived from full profile set (not filtered set)
+- Pills appear in every section header within the Class scope
 
 ### 5.1 Landing Page — Particle Wave Field
 
 - 6 sine waves, one per training level (Graduate at top → MS3 at bottom)
 - Each particle = one profile, positioned along its wave with slight jitter
-- Particle color = composite score mapped through a teal gradient (low=dark, high=bright)
-- Particle size scales slightly with composite score
+- Particle color = composite score mapped through a 7-stop teal gradient (`scoreToRGB`)
+- Particle size scales slightly with composite score (higher = larger `baseRad`)
 - Waves animate continuously with independent frequency, speed, and phase
-- **Data-driven amplitudes:** Each wave's vertical oscillation (amplitude) is computed from the min/max score spread of its cohort rather than a static constant. The amplitude dynamically recalculates when the sort mode changes (Default/A-Z use composite range, EQ/PQ/IQ use their respective score ranges). Amplitude transitions are smoothly animated via lerp in the render loop.
-- **Score-driven Y offset:** Each particle's vertical distance from its wave center line encodes how far its score deviates from the cohort mean. Above the line = above mean, below = below mean. Max deflection is capped at ~10px (~2-3mm on screen). The offset recalculates when the sort filter changes (using composite for Default/A-Z, or the specific pillar score for EQ/PQ/IQ). A tiny +/-2px random jitter prevents particles with identical scores from stacking. Offset transitions are smoothly animated via lerp alongside the X-axis sort animation.
+- **Data-driven amplitudes:** Each wave's vertical oscillation computed from the min/max score spread of its cohort. Dynamically recalculates when sort mode changes (Default/A-Z use composite range; EQ/PQ/IQ use respective pillar). Clamped to `MIN_AMP` (20) – `MAX_AMP` (80). Transitions smoothly via lerp in the render loop.
+- **Score-driven Y offset:** Each particle's vertical distance from wave center encodes deviation from cohort mean. Above line = above mean, below = below. Max deflection ±10px. Recalculates with sort filter. ±2px random jitter prevents stacking. Animated via lerp.
+
+**Wave constants:**
+
+| Wave | Training Level | yF | amp | freq | spd | ph |
+|------|---------------|-----|-----|------|-----|----|
+| 0 | Graduate | 0.22 | 55 | 1.10 | 0.22 | 0.0 |
+| 1 | PGY 3 | 0.34 | 70 | 0.85 | 0.17 | 1.2 |
+| 2 | PGY 2 | 0.46 | 65 | 1.00 | 0.25 | 2.5 |
+| 3 | PGY 1 | 0.57 | 50 | 0.75 | 0.20 | 3.8 |
+| 4 | MS4 | 0.68 | 45 | 1.15 | 0.19 | 5.1 |
+| 5 | MS3 | 0.79 | 42 | 0.90 | 0.21 | 4.3 |
 
 ### 5.1.1 Particle Sort
 
-A row of text links beneath the pill switcher allows rearranging particles within each wave by different criteria:
+A row of text links beneath the pill switcher rearranges particles within each wave:
 
 **Sort modes:** `A → Z | EQ | PQ | IQ | EPIq`
 
@@ -362,26 +422,23 @@ A row of text links beneath the pill switcher allows rearranging particles withi
 | IQ | Intellectual Quotient score | Lowest left, highest right |
 | EPIq | Composite average of EQ+PQ+IQ | Lowest left, highest right |
 
-**Animation:** Particles transition to their new x-positions via staggered spring interpolation. Each frame, `p.x += (targetX - p.x) * (0.035 + random * 0.018)`, producing an organic "swarm" effect where particles drift at slightly different speeds. Particles retain their y-position on the wave (driven by the sine function), so they slide horizontally while bobbing vertically.
+**Animation:** Staggered spring interpolation — `p.x += (targetX - p.x) * (0.035 + random * 0.018)` per frame, producing an organic "swarm" drift. Particles retain wave Y-position while sliding horizontally.
 
 **UI:**
-- **Position:** Fixed, centered beneath the pill switcher (`top: 68px`)
+- **Position:** Fixed, centered beneath pill switcher (`top: 68px`)
 - **Style:** `Space Mono`, 10px, muted teal (`#4A7090`), pipe-separated
 - **Active state:** Selected sort highlighted in `#2FE6DE`
-- **Toggle:** Clicking the active sort deselects it (returns to default scattered positions)
-- **Visibility:** Only visible on the landing page (hidden in scope views)
-- **Resize:** Sort order re-applied after window resize
+- **Toggle:** Clicking active sort deselects (returns to default scattered positions)
+- **Visibility:** Only visible on landing page
 
-**State:**
-- `sortMode`: React state (`'default' | 'az' | 'eq' | 'pq' | 'iq' | 'epiq'`)
-- `sortModeRef`: Ref mirror for animation loop access
-- Each particle stores `targetX` (destination) and `originX` (initial random position)
+**State:** `sortMode: 'default' | 'az' | 'eq' | 'pq' | 'iq' | 'epiq'` + `sortModeRef` for animation loop access. Each particle stores `targetX` (destination) and `originX` (initial random position).
 
 ### 5.2 Wave Labels
 
-- Each wave has subtle, repeating text labels that follow the sine curve
+- Subtle, repeating text labels follow the sine curve for each wave
 - Labels rotate with the curve's tangent angle
 - Positioned 5px above the wave line at low opacity
+- Font: Sora 500, 9px
 
 ### 5.3 Hover Tooltip
 
@@ -389,7 +446,7 @@ A row of text links beneath the pill switcher allows rearranging particles withi
 - Sparkline showing historical trajectory (if 2+ data points)
 - Archetype name
 - "Click to view full profile" CTA
-- **Edge detection:** Tooltip flips to the left side when particle is near the right viewport edge; shifts upward when near the bottom edge
+- **Edge detection:** Tooltip flips to left side when particle near right viewport edge; shifts upward near bottom
 - **Animation:** `opacity(0 → 1)`, `translateY(4px → 0)` over 0.15s
 
 ### 5.3a Touch Mini-Sheet
@@ -399,7 +456,7 @@ On touch devices (`@media (hover: none)`), a bottom sheet replaces the hover too
 - **Trigger:** Touch start on nearest particle within 36px hit area (vs 26px for mouse)
 - **Content:** Name, role, composite score, "Tap to open" CTA
 - **Animation:** `translateY(20px → 0)`, `opacity(0 → 1)` over 0.2s
-- **Behavior:** Touch end opens the full side panel; touch cancel dismisses the sheet
+- **Behavior:** Touch end opens the full side panel; touch cancel dismisses
 - **Position:** Fixed bottom center with `safe-area-inset-bottom` padding
 
 ### 5.3b Loading Animation
@@ -418,11 +475,14 @@ On particle click, a slide-in panel shows:
 - Narrative placeholder card
 - Clickable pillar rings open drill-down panel
 
+**Width:** 380px (340px on ≤1024px; full-screen overlay on ≤768px)
+
 ### 5.5 Drill-Down Panel
 
 - Shows all 5 attributes within a pillar
 - Animated progress bars with delay cascade
 - Grade labels (Exceptional → Significant Concern)
+- **Width:** 340px, slides in from right (overlaps side panel)
 
 ### 5.6 Filtering
 
@@ -453,18 +513,17 @@ When a profile is selected (clicked):
 - Matching score-band pill gets green border + shadow
 - Matching gradient bar segment gets inset green outline
 
-### 5.8 HUD
+### 5.8 HUD (Heads-Up Display)
 
 - **Top center:** View switcher pill (Program | Class | Individual)
 - **Below pill (landing only):** Sort row — `A → Z | EQ | PQ | IQ | EPIq` text links
 - **Top left:** "EPI Quotient" logo + "Performance Fingerprint" subtitle
 - **Top right:** Profile count (visible/total when filtered) + average composite score
 - **Bottom left:** Gradient bar with hoverable score scale tooltips
+- **Bottom center:** Filter pills (role row + score band row)
 - **Bottom right:** Interaction hint text — "Hover a particle to identify", "Click to explore the profile", "Wave amplitude reflects score variance of the min and max for the chosen filter."
 
 ### 5.8a Responsive Breakpoints
-
-Three breakpoints with specific layout changes:
 
 **≤ 1024px:**
 - Section padding: `90px 32px 40px`
@@ -500,32 +559,32 @@ Three breakpoints with specific layout changes:
 
 ## 5.9 Lens Components
 
-Reusable React components in `components/epiquotient/` provide the analytical content for each scroll-snap section. All accept `LensProps` (`scope`, `profiles`).
+Reusable React components in `components/epiquotient/` provide the analytical content for each scroll-snap section. All accept `LensProps` (`scope: ScopeType`, `profiles: Profile[]`).
 
-| Component | Content |
-|-----------|---------|
-| `OverviewLens` | Total profiles, composite/pillar averages, pillar bars, risk distribution, role breakdown, archetype distribution |
-| `EqPqIqLens` | 15-attribute radar chart (Canvas), pillar rings, attribute breakdown bars |
-| `SwotLens` | SWOT cards (Strengths/Weaknesses/Opportunities/Threats) derived from attribute analysis |
-| `TrajectoryLens` | Period trend badges, composite score trajectory chart (Canvas) |
-| `ArchetypesLens` | Risk summary cards, scatter plot (composite vs trajectory delta, Canvas), archetype distribution, detail cards |
+| Component | File | Lines | Content |
+|-----------|------|-------|---------|
+| `OverviewLens` | `OverviewLens.tsx` | 317 | Profile count, composite/pillar averages (StatCard), pillar bars (PillarBar), risk distribution (RiskSummary), role badges (RoleBadge), archetype frequency (ArchetypeChip) |
+| `EqPqIqLens` | `EqPqIqLens.tsx` | 278 | 15-attribute canvas radar (RadarCanvas with ResizeObserver), 3 SVG ring scores, 3 columns of per-attribute breakdown bars |
+| `SwotLens` | `SwotLens.tsx` | 156 | SWOT cards from attribute mean/std: top 4 = strengths, bottom 4 = weaknesses, high variance = opportunities, conditional threats from low composite or high-risk archetypes |
+| `TrajectoryLens` | `TrajectoryLens.tsx` | 254 | Period-average badges, canvas chart of faint individual composite trajectories + bold cohort average (smooth curve) |
+| `ArchetypesLens` | `ArchetypesLens.tsx` | 321 | Risk summary row, scatter canvas (composite vs trajectory delta via history first/last), archetype distribution bars, per-archetype detail cards |
 
 ### 5.9.1 Class View — Filtering
 
-The Class scope reuses the same 5 lens components but with a **class filter** in the section headers. When a class pill is selected (e.g., "PGY 2"), only profiles with that role are passed to all lens components. This means Overview shows 35 profiles instead of 270, radar charts reflect only that class's attribute averages, trajectory charts show only that class's history, etc.
+The Class scope reuses the same 5 lens components but adds a **class filter** in the section headers. When a class pill is selected (e.g., "PGY 2"), only profiles with that role are passed to all 5 lens components. All analytics, averages, and charts reflect only the filtered subset.
 
 ### 5.10 Individual View
 
-Full deep-dive into a single profile via a two-column layout:
+Full deep-dive into a single profile via a two-column layout (`IndividualView.tsx`, 952 lines):
 
 #### 5.10.1 Sidebar (260px)
 
 - **Active role groups:** Collapsible sections for PGY 3, PGY 2, PGY 1, MS4, MS3 — each shows profile count and chevron toggle
 - **Graduate group:** `GraduateSidebarGroup` groups graduates by `graduationYear` with "Class of YYYY" dividers (Class of 2022–2026)
-- **Archived exclusion:** Profiles with `narrative === 'ARCHIVED'` are hidden from the sidebar
+- **Archived exclusion:** Profiles with `narrative === 'ARCHIVED'` are hidden
 - **Profile entries:** Name, graduation class label, composite score (color-coded via `scoreColor()`)
 - **Selection:** Click any profile to load it into the main content area
-- **Active split:** Uses `isResidentActive()` from `lib/utils/pgy-calculator.ts` to separate active residents from graduates
+- **Active split:** Uses `isResidentActive()` from `lib/utils/pgy-calculator.ts`
 
 #### 5.10.2 Profile Header
 
@@ -537,48 +596,49 @@ Full deep-dive into a single profile via a two-column layout:
 
 #### 5.10.3 Section Groups (3 groups, 13 sections)
 
-Sections are rendered from `SECTION_REGISTRY` and organized by `SECTION_GROUPS`:
+Sections rendered from `SECTION_REGISTRY` (`components/epiquotient/sections/index.ts`), organized by `SECTION_GROUPS`:
 
 **Overview group:**
 
 | # | Section | Component | Description |
 |---|---------|-----------|-------------|
-| 1 | Radar | `RadarSection` | 15-attribute canvas radar with Catmull-Rom smoothing. Timeline slider with play/pause (1.2s auto-play interval). Lerp interpolation between period frames (250ms ease-in-out via `requestAnimationFrame`). Legend shows EQ/PQ/IQ pillar colors and series colors. |
-| 2 | Comparison | `ComparisonSection` | Canvas bar chart: Faculty (pillar color) vs Self (indigo `#6366f1`) bars for EQ/PQ/IQ. Optional class-average dashed line. `ResizeObserver` for responsive redrawing. |
-| 3 | Heatmap | `HeatmapSection` | Table: rows = Composite/EQ/PQ/IQ, columns = periods (sorted MS3 → Graduate). `HeatCell` with score-based background color. `MiniSparkline` in trend column. |
-| 4 | Trends | `TrendSection` | Canvas line chart with **Faculty / Self / Both** toggle. Solid lines for faculty, dashed for self. Pillar colors (EQ teal, PQ green, IQ blue). `ResizeObserver` for responsive redrawing. |
-| 5 | ITE | `IteSection` | Table: PGY level, Raw Score, Percentile (color-coded badge), National Mean. Sorted newest first. Individual/Class/Program average rows. Orange accent (`#f0a060`). |
+| 1 | Radar | `RadarSection` (497 lines) | 15-attribute canvas radar with Catmull-Rom smoothing. Timeline slider with play/pause (1.2s auto-play interval, `PLAY_INTERVAL`). Lerp interpolation between period frames (250ms, `LERP_DURATION`) via `requestAnimationFrame`. Legend: EQ/PQ/IQ pillar colors, Faculty/Self series colors. Custom `ATTR_ORDER` for visual grouping. |
+| 2 | Comparison | `ComparisonSection` (185 lines) | Canvas grouped bar chart: Faculty (pillar color) vs Self (indigo `#6366f1`) bars for EQ/PQ/IQ. Optional class-average dashed line. `ResizeObserver` for responsive redrawing. Faculty/self counts in subtitle. |
+| 3 | Heatmap | `HeatmapSection` (160 lines) | Table: rows = Composite/EQ/PQ/IQ, columns = periods (sorted MS3 → Graduate via `periodSortIndex`). `HeatCell` cells with score-based background color. `MiniSparkline` in trend column. Returns `null` if no history. |
+| 4 | Trends | `TrendSection` (210 lines) | Canvas multi-series line chart with **Faculty / Self / Both** toggle. Solid lines for faculty, dashed for self. Pillar colors (EQ teal, PQ green, IQ blue). `ResizeObserver`. |
+| 5 | ITE | `IteSection` (135 lines) | Table: PGY level, Raw Score, Percentile (color-coded badge), National Mean. Sorted newest first. Individual/Class/Program average rows at bottom. Orange accent (`#f0a060`). Returns `null` if no ITE data. |
 
 **Deep Dive group:**
 
 | # | Section | Component | Description |
 |---|---------|-----------|-------------|
-| 6 | EQ Drilldown | `DrilldownSection` (pillar=eq) | 5 EQ attributes: table with Current score and Grade, plus horizontal progress bars with teal fill. Header sparkline from pillar history. |
-| 7 | PQ Drilldown | `DrilldownSection` (pillar=pq) | Same for PQ (green fill). |
-| 8 | IQ Drilldown | `DrilldownSection` (pillar=iq) | Same for IQ (blue fill). |
-| 9 | Trajectory | `TrajectorySection` | Canvas line chart: composite (thick accent line) + EQ/PQ/IQ (thinner, 80% opacity) over periods. Score labels above composite data points. |
+| 6 | EQ Drilldown | `DrilldownSection` (pillar=eq, 171 lines) | 5 EQ attributes: Current score + Grade columns, horizontal progress bars with teal fill. Header sparkline from pillar history. `periodSortIndex` for period ordering. |
+| 7 | PQ Drilldown | `DrilldownSection` (pillar=pq) | Same layout with green fill. |
+| 8 | IQ Drilldown | `DrilldownSection` (pillar=iq) | Same layout with blue fill. |
+| 9 | Trajectory | `TrajectorySection` (171 lines) | Canvas line chart: composite (thick accent line) + EQ/PQ/IQ (thinner, 80% opacity) over periods. Score labels above composite data points. Legend with pillar colors. |
 
 **Context & History group:**
 
 | # | Section | Component | Description |
 |---|---------|-----------|-------------|
-| 10 | SWOT | `SwotSection` | 2×2 grid: Strengths (green), Weaknesses (red), Opportunities (blue), Threats (orange). Icon + label + bullet list per quadrant. Blue accent. |
-| 11 | Archetype | `ArchetypeSection` | Archetype name badge (risk-colored), action badge, confidence %, description text, optional narrative block. |
-| 12 | Ratings | `RatingsSection` | 4-column grid: Core Faculty (accent), Teaching Faculty (amber), Self (indigo), Total. Large monospace count values. |
-| 13 | Comments | `CommentsSection` | Comment list with evaluator type badge, name, date, quoted comment text. Left border colored by evaluator type. Indigo accent. |
+| 10 | SWOT | `SwotSection` (94 lines) | 2×2 grid: Strengths (green), Weaknesses (red), Opportunities (blue), Threats (orange). Icon + label + bullet list per quadrant. `QUADRANT_META` for icons/colors. Returns `null` if empty. |
+| 11 | Archetype | `ArchetypeSection` (79 lines) | Archetype name badge (risk-colored), action badge, confidence %, description text, optional narrative. Returns `null` if no archetype. |
+| 12 | Ratings | `RatingsSection` (70 lines) | 4-column grid: Core Faculty (accent), Teaching Faculty (amber), Self (indigo), Total. Large monospace count values. Scrollable recent entries list. Returns `null` if no ratings. |
+| 13 | Comments | `CommentsSection` (78 lines) | Comment list with evaluator type badge (`TYPE_STYLES`), name, date, quoted comment text. Left border colored by evaluator type. Returns `null` if no comments with text. |
 
-**Paired expand/collapse:** Comparison + Heatmap share a single expand state; Trends + ITE share a single expand state.
+**Paired expand/collapse:** Comparison + Heatmap share a single expand state (`comparison-heatmap`); Trends + ITE share `trends-ite`. Remaining sections render full width with independent expand.
 
 #### 5.10.4 Share Modal
 
-- Overlay with section checklist (one checkbox per section)
+- Overlay with section checklist (one checkbox per `SECTION_REGISTRY` entry)
 - Select All / Deselect All toggles
-- Share uses Web Share API with clipboard fallback
+- Share uses Web Share API (`navigator.share`) with clipboard (`navigator.clipboard.writeText`) fallback
+- Generates formatted text with profile name, scores, and selected section labels
 - Close via backdrop click or Escape key
 
 #### 5.10.5 Section Component Architecture
 
-All sections use the `SectionDef` interface from `components/epiquotient/sections/index.ts`:
+All sections use the `SectionDef` interface:
 
 ```typescript
 interface SectionDef {
@@ -596,17 +656,17 @@ interface SectionDef {
 
 **SECTION_REGISTRY:** 13 entries — `radar`, `comparison`, `heatmap`, `trends`, `ite`, `eq-drilldown`, `pq-drilldown`, `iq-drilldown`, `trajectory`, `swot`, `archetype`, `ratings`, `comments`
 
-**SECTION_GROUPS:** 3 groups — Overview, Deep Dive, Context & History
+**SECTION_GROUPS:** 3 groups — `Overview`, `Deep Dive`, `Context & History`
 
-**SectionCard wrapper:** Collapsible card with left accent color bar, title/subtitle, optional `headerScore` badge, optional `sparklineValues`/`sparklineColor`, expand/collapse chevron. Supports both controlled (`expanded`/`onToggleExpanded`) and uncontrolled (`defaultExpanded`) modes.
+**SectionCard wrapper** (`SectionCard.tsx`, 115 lines): Collapsible card with left accent color bar, title/subtitle, optional `headerScore` badge, optional `sparklineValues`/`sparklineColor`, expand/collapse chevron. Supports both controlled (`expanded`/`onToggleExpanded`) and uncontrolled (`defaultExpanded`) modes.
 
 #### 5.10.6 Primitives & Theme
 
-Shared constants and utilities from `components/epiquotient/sections/primitives.tsx`:
+Shared constants and utilities from `components/epiquotient/sections/primitives.tsx` (166 lines):
 
 **THEME constant:**
 - `bg`: page (`#0a1620`), sidebar (`#0e1e2d`), card (`#162737`), deep (`#07121d`), table (`#0e1e2d`)
-- `border`: subtle/light/medium/accent (rgba teal at 0.06–0.25)
+- `border`: subtle/light/medium/accent (`rgba(47,230,222,...)` at 0.06–0.25)
 - `text`: primary (`#c8e0ee`), secondary (`#7ab5cc`), muted (`#4a7090`), dim (`#3a5a72`)
 - `accent`: `#2fe6de`
 - `font`: body (`'Sora', system-ui, sans-serif`), mono (`'Space Mono', monospace`)
@@ -614,7 +674,7 @@ Shared constants and utilities from `components/epiquotient/sections/primitives.
 **Utilities:**
 - `PERIOD_ORDER`: `['MS3', 'MS4', 'PGY 1', 'PGY 2', 'PGY 3', 'PGY 4', 'Graduate']`
 - `periodSortIndex(period)`: index in PERIOD_ORDER (99 for unknown)
-- `scoreToRGB(s)`: 7-stop gradient interpolation (0 = near-black navy `#0C1932`, 100 = vivid mint `#3CFFC8`)
+- `scoreToRGB(s)`: 7-stop gradient interpolation (0 = `#0C1932` near-black navy, 100 = `#3CFFC8` vivid mint)
 - `scoreBg(s, alpha)`: `rgba` background string from score
 - `scoreColor(s)`: hex color string from score
 - `grade(s)`: returns `{ lbl, c }` — Exemplary (≥88), Strong (≥74), Acceptable (≥60), Concerning (≥46), Serious Deficit (<46)
@@ -623,7 +683,11 @@ Shared constants and utilities from `components/epiquotient/sections/primitives.
 - `HeatCell({ value })`: Score cell with `scoreColor`/`scoreBg` background; monospace font
 - `MiniSparkline({ values, color, width, height })`: Canvas sparkline with quadratic bezier curves; auto-scales to value range
 
-> **Note:** The current demo uses a realistic EM residency distribution (15 per PGY class, 167 graduates). The architecture supports additional PGY levels (PGY 4, PGY 5) for other specialties via database/seed changes only.
+**Type constants** (`types.ts`, 190 lines):
+- `PILLAR_COLORS`: `{ eq: '#2FE6DE', pq: '#18F2B2', iq: '#7BC8F8' }`
+- `PILLAR_LABELS`: `{ eq: 'Emotional Quotient', pq: 'Professional Quotient', iq: 'Intellectual Quotient' }`
+- `ATTR_LABELS`: Nested record mapping pillar → attribute_slug → display label
+- `RISK_COLORS`: `{ Low: green, Moderate: orange, High: red }` with bg/text/border variants
 
 ---
 
@@ -637,11 +701,21 @@ Shared constants and utilities from `components/epiquotient/sections/primitives.
 | 21–40 | Below Expectations | Noticeable gaps; targeted development needed |
 | 0–20 | Significant Concern | Red flags requiring intervention |
 
+**Grade thresholds** (used in Individual View sections):
+
+| Threshold | Grade Label | Color |
+|-----------|------------|-------|
+| ≥ 88 | Exemplary | `#3CFFC8` (vivid mint) |
+| ≥ 74 | Strong | `#2FE6DE` (teal) |
+| ≥ 60 | Acceptable | `#f0a060` (amber) |
+| ≥ 46 | Concerning | `#f06060` (red) |
+| < 46 | Serious Deficit | `#f06060` (red) |
+
 ---
 
 ## 7. Archetypes
 
-9 trajectory archetypes derived from the Memorial classifier:
+9 trajectory archetypes derived from the Memorial classifier, assigned during database seeding:
 
 | ID | Name | Risk | Action | Description |
 |----|------|------|--------|-------------|
@@ -655,6 +729,10 @@ Shared constants and utilities from `components/epiquotient/sections/primitives.
 | continuous_decline | Continuous Decline | High | Intervene | Declining trajectory across periods. |
 | variable | Variable | Moderate | Reinforce | Inconsistent pattern. Individualized approach. |
 
+**Risk distribution:** Low (5 archetypes), Moderate (2), High (2)
+
+**Archetype assignment logic:** Database seed script evaluates each profile's history trajectory (first composite → last composite delta, variance, peak position) and assigns the most fitting archetype with a confidence score (0–1).
+
 ---
 
 ## 8. EQ/PQ/IQ Attributes
@@ -666,19 +744,21 @@ Shared constants and utilities from `components/epiquotient/sections/primitives.
 - Curiosity & Growth Mindset
 - Communication Effectiveness
 
-### Professionalism Quotient (PQ)
+### Professional Quotient (PQ)
 - Work Ethic & Professional Presence
 - Teachability & Receptiveness
 - Integrity & Accountability
 - Clear & Timely Documentation
 - Leadership & Relationship Building
 
-### Intelligence Quotient (IQ)
+### Intellectual Quotient (IQ)
 - Strong Knowledge Base
 - Commitment to Learning
 - Analytical Thinking & Problem-Solving
 - Adaptability in Clinical Reasoning
 - Clinical Performance for Year of Training
+
+> **Terminology note:** The product uses "Intellectual Quotient" for IQ (not "Intelligence Quotient") to align with the EQ·PQ·IQ brand language across all products.
 
 ---
 
@@ -709,10 +789,10 @@ Shared constants and utilities from `components/epiquotient/sections/primitives.
 
 | Token | Hex | Usage |
 |-------|-----|-------|
-| `--bg` | `#07121D` | Page background |
+| `--bg` | `#07121D` | Page background (layout.tsx) |
 | `--text-primary` | `#C8E0EE` | Primary text |
-| `--text-muted` | `#4A7090` | Secondary/muted text |
-| `--accent-teal` | `#2FE6DE` | Logo, active pills, score gradient bright end |
+| `--text-muted` | `#4A7090` | Secondary/muted text, inactive pills |
+| `--accent-teal` | `#2FE6DE` | Logo, active pills, score gradient bright end, THEME.accent |
 | `--accent-green` | `#18F2B2` | PQ ring, gradient endpoint |
 | `--accent-blue` | `#7BC8F8` | IQ ring |
 | `--selection` | `#3CF332` | Selected profile particle, pill borders, gradient segment highlight |
@@ -741,7 +821,7 @@ The composite score maps through these RGB stops for particle coloring:
 |--------|-----|------------|
 | EQ (Emotional) | `#2FE6DE` | Teal |
 | PQ (Professional) | `#18F2B2` | Green |
-| IQ (Intelligence) | `#7BC8F8` | Blue |
+| IQ (Intellectual) | `#7BC8F8` | Blue |
 
 #### Wave Line Colors
 
@@ -758,16 +838,19 @@ The composite score maps through these RGB stops for particle coloring:
 
 | Element | Font | Weight | Size |
 |---------|------|--------|------|
-| Logo | Sora | 600 | 22px |
+| Logo | Sora | 600 | 22px (14px at ≤480px) |
 | Logo subtitle | Space Mono | 400 | 10px |
 | View switcher | Sora | 400 (inactive) / 500 (active) | 12px |
 | Stat values | Space Mono | 700 | 18px |
 | Stat labels | Space Mono | 400 | 9px |
 | Wave labels | Sora | 500 | 9px |
 | Filter pills | Space Mono | 400 | 10px |
+| Sort row | Space Mono | 400 | 10px |
 | Tooltip name | Sora | 500 | 13px |
 | Panel name | Sora | 600 | 20px |
+| Section card title | Sora | 500 | 14px |
 | Body text | Sora | 300–400 | 11–13px |
+| Monospace data | Space Mono | 400/700 | varies |
 
 **Font imports:**
 - [Sora](https://fonts.google.com/specimen/Sora) (weights 300, 400, 500, 600)
@@ -776,14 +859,16 @@ The composite score maps through these RGB stops for particle coloring:
 ### 9.3 Spacing & Layout
 
 - Full viewport canvas (100vw × 100vh)
-- HUD elements positioned absolutely with `z-index: 10–50`
-- View switcher pill: centered top, `z-index: 30`, 3px padding, 28px border-radius
-- Side panel: 380px wide, slides in from right (Program view only)
+- HUD elements positioned absolutely with `z-index: 10–60`
+- View switcher pill: centered top (`z-index: 60`), 3px padding, 28px border-radius
+- Sort row: centered, below pill (`top: 68px`, `z-index: 30`)
+- Side panel: 380px wide, slides in from right (landing only)
 - Drill panel: 340px wide, slides in from right (overlaps side panel)
 - Filter bar: centered bottom, no background (floats directly on canvas)
-- Gradient bar: bottom-left, 200px wide, 8px tall
+- Gradient bar: bottom-left, 200px wide, 8px tall (130px × 6px at ≤480px)
 - Scope sections: full-viewport (100vw × 100vh), scroll-snap-align start
 - Dot nav: fixed right edge, 5 dots at 14px gap, vertically centered
+- Individual view sidebar: 260px, scrollable
 
 ---
 
@@ -798,12 +883,15 @@ The composite score maps through these RGB stops for particle coloring:
 | PGY 2 | 15 (engineered high variance — tall wave) |
 | PGY 3 | 15 (engineered moderate variance — medium wave) |
 | Graduate (active) | 75 (5 classes × 15) |
-| Graduate (archived) | 92 |
+| Graduate (archived) | 92 (hidden via `narrative = 'ARCHIVED'`) |
 | Graduate classes | Class of 2022, 2023, 2024, 2025, 2026 |
 | Score attributes per profile | 15 (5 per pillar) |
 | History depth | 0 (MS3) to 5+ (Graduate) periods |
 | Archetypes | 9 types, evenly distributed |
 | MD/DO split | 63% MD / 37% DO (residents + graduates) |
+| Institution | Grey Sloan Memorial Hospital (default) |
+| Program | Emergency Medicine Residency (default) |
+| Program length | 3 years (constant) |
 
 ### 10.1 Graduate Class Score Profiles
 
@@ -817,40 +905,167 @@ The composite score maps through these RGB stops for particle coloring:
 
 Each class has 15 graduates with scores scaled toward the class target center via `scripts/migrate-graduate-classes.js`. Scores are rescaled from the original composite using a proportional scale factor plus jitter within the class spread.
 
-> **Note on PGY variance:** The three PGY classes are deliberately seeded with distinct score variance profiles to showcase the data-driven amplitude feature. PGY 1 scores cluster tightly (composite ~52-78), PGY 2 scores spread widely (~30-90), and PGY 3 sits in between (~45-85). This makes the amplitude differences immediately visible on the landing page.
+### 10.2 PGY Variance Design
+
+The three PGY classes are deliberately seeded with distinct score variance profiles to showcase the data-driven amplitude feature:
+
+| Class | Composite Range | Variance | Wave Effect |
+|-------|----------------|----------|-------------|
+| PGY 1 | ~52–78 | Low | Flat, calm wave |
+| PGY 2 | ~30–90 | High | Tall, dramatic wave |
+| PGY 3 | ~45–85 | Moderate | Medium wave |
+
+This makes the amplitude differences immediately visible on the landing page.
+
+### 10.3 Seed Data Pipeline
+
+1. **Initial seed** (`20260313000001`): PL/pgSQL loop creates 270 profiles with random first/last names from curated arrays, random scores (40–95 range), and role distribution
+2. **Role normalization** (`20260313000002`): Renames Intern → PGY 1, R1 → PGY 2, R2 → PGY 3
+3. **History + archetypes** (`20260313000003`): Seeds `epiq_profile_history` with period-appropriate score trajectories; assigns archetypes based on trajectory shape
+4. **Program context** (`20260314000001`): Adds institution/program name columns with defaults
+5. **Full reseed** (`20260316000001`): Deletes all rows, recreates with engineered variance (PGY 1 low, PGY 2 high, PGY 3 moderate), regenerates scores/history/archetypes
+6. **Graduate redistribution** (`scripts/migrate-graduate-classes.js`): Takes graduate rows, assigns 75 to 5 classes of 15, archives remaining 92. Rescales scores per class target profile.
 
 ---
 
 ## 11. Deployment
 
-### Current (Development)
-- Local: `http://localhost:3000/epiquotient`
-- Database: Supabase (linked project)
+### Production
+- **Platform:** Vercel (via lev8 monorepo)
+- **Domain:** `www.epiquotient.com` (DNS → Vercel)
+- **Redirect:** `epiquotient.com` → `www.epiquotient.com` (308 permanent)
+- **Routing:** Middleware rewrites `/` to `/epiquotient` (URL bar stays as `/`)
+- **Auth:** None required (public visualization)
+- **Database:** Supabase PostgreSQL with public RLS
 
-### Production (Planned)
-- Vercel deployment via lev8 monorepo
-- Domain: `www.epiquotient.com` (DNS → Vercel)
-- Middleware handles domain routing to `/epiquotient`
-- No authentication required (public visualization)
+### Local Development
+- **Direct path:** `http://localhost:3000/epiquotient`
+- **Domain simulation:** `epiquotient.localhost` (requires hosts file entry)
+- **Database:** Same Supabase project (linked via env vars)
+
+### Environment Variables Required
+| Variable | Purpose |
+|----------|---------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Database connection |
+| `SUPABASE_SERVICE_KEY` | Service role for profile API |
+
+No other environment variables are needed — EPI Quotient has no auth, email, AI, or payment dependencies.
 
 ---
 
-## 12. Future Enhancements
+## 12. TypeScript Interfaces (Key Types)
 
-1. ~~**Lens section buildout**~~ — ✅ Implemented: 5 lens components (Overview, EQ/PQ/IQ, SWOT, Trajectory, Archetypes) at all 3 scopes
-2. **Academic year scrubber** — Bottom timeline for time-aware roster filtering using `graduation_year` and `pgy-calculator.ts`
-3. ~~**Cross-view navigation**~~ — ✅ Partially implemented: Class filter pills filter all lenses; particle click opens side panel
-4. **Real data integration** — Connect to live `structured_ratings` and `period_scores` tables instead of demo seed data
-5. **AI narratives** — Generate Claude-powered narrative summaries per profile based on trajectory and archetype
-6. **Cohort selector** — Dropdown to switch between cohorts/programs (multi-tenant support)
-7. **Time animation** — Animate the particle field across periods, showing how scores evolve
-8. **Export** — Screenshot or PDF export of the current view
-9. **Comparison mode** — Select two profiles to overlay their trajectories
-10. ~~**Mobile responsive**~~ — ✅ Implemented: Adapted layout for tablet/mobile viewports with 3 breakpoints (1024/768/480px) and touch mini-sheet
-11. ~~**Individual view refinement**~~ — ✅ Implemented: 13-section registry across 3 groups (Overview, Deep Dive, Context & History), graduate class sidebar grouping (5 classes of 15), paired section expand/collapse, share modal, timeline radar with play/pause
-12. **Multi-specialty support** — Additional PGY levels (PGY 4, PGY 5, etc.) for specialties beyond EM
-13. **Authentication layer** — Program-specific data access with role-based visibility
-14. **Graduate class year scrubber** — Time-based filtering within the Individual sidebar
-15. **Sidebar search** — Text search across profile names in Individual view
-16. **Section permalinks** — Deep link to a specific section of a specific profile
-17. **Live data connection** — Connect Individual View sections to real `structured_ratings`, `period_scores`, `ite_scores`, `imported_comments` tables instead of demo generators
+```typescript
+// Core profile (components/epiquotient/types.ts)
+interface Profile {
+  id: string;
+  name: string;
+  role: string;
+  graduationClass?: string;
+  graduationYear?: number;
+  eq: Record<string, number>;
+  pq: Record<string, number>;
+  iq: Record<string, number>;
+  eqScore: number;
+  pqScore: number;
+  iqScore: number;
+  composite: number;
+  history: HistoryPoint[];
+  archetype: Archetype | null;
+  narrative: string | null;
+  radar?: RadarData;
+  comparison?: ComparisonData;
+  trends?: TrendPoint[];
+  swot?: SwotData;
+  ite?: IteData;
+  ratings?: RatingsData;
+}
+
+// Lens props (shared by all 5 lenses)
+interface LensProps {
+  scope: 'program' | 'class' | 'individual';
+  profiles: Profile[];
+}
+
+// Program metadata from API
+interface ProgramMeta {
+  institution: string;
+  program: string;
+  programLength?: number;
+}
+
+// Section definition (section registry)
+interface SectionDef {
+  id: string;
+  group: 'overview' | 'deep-dive' | 'context';
+  component: ComponentType<{
+    profile: Profile;
+    pillar?: 'eq' | 'pq' | 'iq';
+    expanded?: boolean;
+    onToggleExpanded?: () => void;
+  }>;
+  pillar?: 'eq' | 'pq' | 'iq';
+}
+
+// Particle (page.tsx — extends Profile for canvas rendering)
+interface Particle extends Profile {
+  wIdx: number;
+  x: number;
+  targetX: number;
+  originX: number;
+  yScatter: number;
+  yScatterTarget: number;
+  yJitter: number;
+  baseRad: number;
+}
+```
+
+---
+
+## 13. Known Patterns & Development Notes
+
+### Canvas Rendering
+All visualization charts use HTML5 Canvas 2D for performance. The particle field renders 270 animated particles at 60fps. Canvas sections use `ResizeObserver` for responsive redrawing. No external charting library — all drawing logic is inline.
+
+### Inline Styles
+Uses inline `style` objects exclusively (not Tailwind) with dark theme constants from the `THEME` object. This avoids Tailwind class specificity issues in the deeply nested component tree and ensures pixel-perfect control over the dark theme.
+
+### Demo Data Architecture
+The 7 demo data generators in the API route produce deterministic output from profile UUIDs via `seededRandom(id, salt)`. This means:
+- Same profile always gets the same radar, comparison, trends, SWOT, ITE, and ratings data
+- No additional database storage needed for demo visualization data
+- Data regenerates identically on every API call
+
+### PostgREST Embedded Joins
+The API uses Supabase's embedded select syntax: `epiq_profile_scores(...)` and `epiq_profile_history(...)` as foreign-key joins. Unlike the `user_profiles` FK workaround needed elsewhere in the codebase, these joins work cleanly because the FK relationships are within the public schema.
+
+### Architecture Supports Multi-Specialty
+The current demo uses a 3-year EM residency. The architecture supports additional PGY levels (PGY 4, PGY 5) for other specialties via database/seed changes only — the `PERIOD_ORDER` in `primitives.tsx` already includes `PGY 4`, and the UI components adapt dynamically to available periods.
+
+---
+
+## 14. Future Enhancements
+
+### Completed
+- ~~**Lens section buildout**~~ — 5 lens components at all 3 scopes
+- ~~**Cross-view navigation**~~ — Class filter pills, particle click → side panel
+- ~~**Mobile responsive**~~ — 3 breakpoints (1024/768/480px) + touch mini-sheet
+- ~~**Individual view refinement**~~ — 13-section registry, graduate class sidebar, paired expand, share modal, timeline radar
+
+### Planned
+1. **Academic year scrubber** — Bottom timeline for time-aware roster filtering using `graduation_year` and `pgy-calculator.ts`
+2. **Real data integration** — Connect to live `structured_ratings` and `period_scores` tables instead of demo seed data
+3. **AI narratives** — Generate Claude-powered narrative summaries per profile based on trajectory and archetype
+4. **Cohort selector** — Dropdown to switch between cohorts/programs (multi-tenant support)
+5. **Time animation** — Animate the particle field across periods, showing how scores evolve
+6. **Export** — Screenshot or PDF export of the current view
+7. **Comparison mode** — Select two profiles to overlay their trajectories
+8. **Multi-specialty support** — Additional PGY levels (PGY 4, PGY 5, etc.) for specialties beyond EM
+9. **Authentication layer** — Program-specific data access with role-based visibility
+10. **Graduate class year scrubber** — Time-based filtering within the Individual sidebar
+11. **Sidebar search** — Text search across profile names in Individual view
+12. **Section permalinks** — Deep link to a specific section of a specific profile
+13. **Live data connection** — Connect Individual View sections to real `structured_ratings`, `period_scores`, `ite_scores`, `imported_comments` tables instead of demo generators
+14. **Cohort comparison** — Side-by-side analytics of two different class cohorts
+15. **Print-friendly view** — Optimized layout for printed reports from Individual View
+16. **Accessibility** — Screen reader support, keyboard navigation for particle field, ARIA labels on canvas elements

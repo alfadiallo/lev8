@@ -82,6 +82,8 @@ lev8/
 │   ├── admin/                    # Admin dashboard
 │   ├── eqpqiq-landing/           # EQ·PQ·IQ brand landing page (eqpqiq.com root)
 │   ├── epiquotient/              # EPI Quotient visualization (epiquotient.com)
+│   │   ├── layout.tsx            # Server layout — metadata, dark theme (#07121D)
+│   │   └── page.tsx              # Client component (~2760 lines) — particle canvas, views, transitions
 │   ├── interview/                # Interview tool pages
 │   ├── progress-check/           # Progress Check pages (surveys, admin)
 │   ├── pulsecheck/               # Pulse Check pages
@@ -91,7 +93,11 @@ lev8/
 │   ├── modules/                  # Learn module UIs
 │   ├── analytics/                # SWOT, ITE, radar charts
 │   ├── eqpqiq/                   # Shared EQ·PQ·IQ brand components
-│   ├── epiquotient/              # EPI Quotient particle field, lenses, individual view sections
+│   ├── epiquotient/              # Particle field, lenses, individual view (~4700 lines, 22 files)
+│   │   ├── types.ts              # Profile, LensProps, ProgramMeta, PILLAR_COLORS/LABELS, ATTR_LABELS
+│   │   ├── IndividualView.tsx    # Sidebar + profile header + 13 section cards (952 lines)
+│   │   ├── *Lens.tsx             # 5 analytical lenses (Overview, EqPqIq, Swot, Trajectory, Archetypes)
+│   │   └── sections/             # 13 section components, SectionCard, primitives (THEME), registry
 │   ├── forms/                    # EQ+PQ+IQ rating forms
 │   ├── pulsecheck/               # Sparkline, ProviderProfileModal, RatingSliders
 │   └── ui/                       # Shadcn/ui components
@@ -165,17 +171,90 @@ lev8/
 - Demo accounts for Regional Director, Medical Director, Admin Assistant
 
 ### EPI Quotient (Performance Fingerprint)
-- **Particle Wave Visualization:** Interactive canvas field where each particle represents a physician/medical student, colored by composite EQ/PQ/IQ score, positioned along sine waves grouped by training level
-- **Four View Modes:** Landing (particle field), Program (cohort analytics), Class (class-level analytics with role filter), Individual (deep-dive profile)
-- **5 Analytical Lens Sections:** Overview, EQ/PQ/IQ, SWOT, Trajectory, Archetypes — full-viewport scroll-snap sections at Program and Class scopes
-- **13-Section Individual View:** Radar (with timeline play/pause), Comparison (faculty vs self), Heatmap, Trends (Faculty/Self/Both toggle), ITE, EQ/PQ/IQ Drilldowns, Trajectory, SWOT, Archetype, Ratings, Comments — organized into Overview, Deep Dive, and Context & History groups
-- **Sorting & Filtering:** 6 sort modes (A-Z, EQ, PQ, IQ, EPIq, default), role filter pills, score band filter pills, gradient bar segments
-- **3D Transitions:** Perspective rotateY animation between landing and individual view; cross-dissolve between program/class
-- **Touch Support:** Mobile touch mini-sheet, 36px hit areas, responsive breakpoints (1024/768/480px)
-- **9 Trajectory Archetypes:** Elite Performer, Breakthrough, Late Bloomer, Steady Climber, etc. with risk classification
-- **Demo Data:** 270 seeded profiles (23 MS3, 35 MS4, 45 PGY 1-3, 75 active graduates across 5 classes, 92 archived)
-- **Domain:** www.epiquotient.com (public, no auth required)
-- **Database:** `epiq_profiles`, `epiq_profile_scores`, `epiq_profile_history` with public RLS
+
+**Domain:** www.epiquotient.com (public, no auth required)
+**Status:** Production (March 2026) — 270 demo profiles, all views implemented
+
+#### Particle Wave Visualization (Landing)
+- Interactive HTML5 Canvas field — each of 270 profiles is a particle on one of 6 sine waves (Graduate → MS3)
+- Particle color = composite score via 7-stop teal gradient (`scoreToRGB`); size scales with score
+- **Data-driven amplitudes:** Wave height computed from cohort min/max score spread, dynamically recalculated per sort mode
+- **Score-driven Y offset:** Vertical deviation from wave center encodes distance from cohort mean (max ±10px), with 2px jitter
+- Waves animate independently (frequency, speed, phase); particles drift via spring interpolation on sort
+- 6 sort modes: `A → Z | EQ | PQ | IQ | EPIq | default` — particles swarm to new X positions with staggered easing
+
+#### Four View Modes
+| Mode | Navigation | Content |
+|------|-----------|---------|
+| **Landing** | Default state; no pill active | Particle wave field with HUD, filters, tooltips |
+| **Program** | Click "Program" pill | 5 scroll-snap lens sections (program-wide analytics) |
+| **Class** | Click "Class" pill | 5 scroll-snap lens sections with role filter pills |
+| **Individual** | Click "Individual" pill or particle | Sidebar + profile header + 13 section cards |
+
+**Transitions:** Landing ↔ Program/Class: cross-dissolve (0.7s). Landing ↔ Individual: 3D perspective rotateY (1.5s, `perspective(1200px)`). Program ↔ Class: cross-dissolve with exitingScope management.
+
+#### 5 Analytical Lens Sections (Program & Class Scopes)
+Full-viewport (`100vw × 100vh`) scroll-snap sections with dot navigation (right edge, IntersectionObserver):
+
+| Lens | Component | Content |
+|------|-----------|---------|
+| Overview | `OverviewLens` | Profile count, composite/pillar averages, pillar bars, risk distribution, role badges, archetype frequency |
+| EQ/PQ/IQ | `EqPqIqLens` | 15-attribute canvas radar, 3 SVG pillar rings, per-attribute breakdown bars |
+| SWOT | `SwotLens` | Statistical SWOT from attribute mean/std — top 4 strengths, bottom 4 weaknesses, variance → opportunities |
+| Trajectory | `TrajectoryLens` | Period badges, composite trajectory canvas (faint individuals + bold cohort average) |
+| Archetypes | `ArchetypesLens` | Risk summary, scatter plot (composite vs trajectory delta), distribution bars, archetype detail cards |
+
+**Class filter:** Role pills in section headers filter all lenses to a single training level (e.g., "PGY 2 only").
+
+#### 13-Section Individual View
+Two-column layout: sidebar (260px, role groups + graduate class grouping) + main content.
+
+**Overview group:** Radar (timeline play/pause, Catmull-Rom smoothing, lerp transitions), Comparison (faculty vs self canvas bars), Heatmap (period × pillar grid with HeatCell + MiniSparkline), Trends (Faculty/Self/Both toggle canvas), ITE (exam table with percentile badges)
+
+**Deep Dive group:** EQ Drilldown, PQ Drilldown, IQ Drilldown (per-pillar attribute tables with progress bars + sparklines), Trajectory (composite + pillar canvas chart)
+
+**Context & History group:** SWOT (2×2 quadrant grid), Archetype (badge + narrative + confidence), Ratings (source counts + recent entries), Comments (evaluator comment list)
+
+**Paired expand:** Comparison + Heatmap share expand state; Trends + ITE share expand state.
+**Share modal:** Section checklist with Web Share API + clipboard fallback.
+
+#### Sorting & Filtering (Landing)
+- **Role filter pills:** 6 toggles (MS3–Graduate) with select/deselect all dots
+- **Score band pills:** 5 toggles (0–20, 21–40, 41–60, 61–80, 81–100)
+- **Gradient bar:** 5 clickable segments synced with score bands; hover tooltips
+- Filtered-out particles ghost to alpha 0.05; HUD stats update to `visible/total`
+- Selected particle: green glow (#3CF332) with concentric aura rings; matching pills/segments highlighted
+
+#### Interactive Elements
+- **Hover tooltip:** Name, role, composite, sparkline trajectory, archetype, "Click to view" CTA; edge-aware positioning
+- **Touch mini-sheet:** Bottom sheet on touch devices (36px hit area); tap-to-open
+- **Side panel:** Slide-in (380px) with score rings, archetype badge, sparkline, drill-down sub-panel (340px)
+- **Profile header (Individual):** Name, role, composite with grade label, EQ/PQ/IQ pillar cards, archetype badge, mail/share icons
+
+#### Responsive Breakpoints
+- **≤ 1024px:** Reduced padding, 340px side panel
+- **≤ 768px:** Stacked header, full-screen panel overlay, +60px wave offset, hidden hints
+- **≤ 480px:** Compact gradient bar, hidden tooltips, 14px logo
+- **Touch (`hover: none`):** Mini-sheet replaces tooltip, safe-area padding
+
+#### Architecture
+- **Page:** `app/epiquotient/page.tsx` (~2760 lines, client component) — particle canvas, all view modes, transitions, HUD
+- **Layout:** `app/epiquotient/layout.tsx` (server) — metadata, dark theme shell (#07121D)
+- **Components:** `components/epiquotient/` (~4700 lines across 22 files) — 5 lenses, IndividualView, 13 sections, types, primitives
+- **API:** Single endpoint `GET /api/epiquotient/profiles` with 7 deterministic demo data generators
+- **Theme:** Inline styles (not Tailwind) via `THEME` object in `primitives.tsx`; fonts: Sora + Space Mono
+- **Canvas rendering:** All charts use HTML5 Canvas 2D (not SVG/D3/Recharts)
+
+#### Database
+- `epiq_profiles` — 270 rows; role CHECK (MS3, MS4, PGY 1–3, Graduate); archetype_id, narrative, institution/program columns
+- `epiq_profile_scores` — 15 scores per profile (5 EQ + 5 PQ + 5 IQ); UNIQUE (profile_id, pillar, attribute_slug)
+- `epiq_profile_history` — Longitudinal composite + pillar scores by period; UNIQUE (profile_id, period)
+- All tables: public RLS (SELECT for all, no auth required)
+- 6 migrations: `20260313000001` through `20260317000001`
+- Graduate redistribution: `scripts/migrate-graduate-classes.js` — 75 active (5 classes × 15), 92 archived (`narrative = 'ARCHIVED'`)
+
+#### 9 Trajectory Archetypes
+Elite Performer, Elite → Late Struggle, Breakthrough, Peak & Decline, Slump → Recovery, Late Bloomer, Steady Climber, Continuous Decline, Variable — each with risk level (Low/Moderate/High) and action (Invest/Reinforce/Encourage/Maintain/Investigate/Intervene)
 
 ## Known Issues / TODOs
 
@@ -215,21 +294,30 @@ lev8/
 
 ## Key API Endpoints (EPI Quotient)
 
-- `/api/epiquotient/profiles` - EPI Quotient profiles with scores, history, archetypes, and seeded demo data (radar, comparison, trends, SWOT, ITE, ratings). Optional `?cohort=` filter. Returns `{ meta, profiles }` envelope.
+- `GET /api/epiquotient/profiles` - All profiles with scores, history, archetypes, and 7 demo data generators (radar, comparison, trends, SWOT, ITE, ratings, radar timeline). Returns `{ meta: { institution, program, programLength }, profiles[] }`. Optional `?cohort=` filter by `cohort_label`. Excludes archived profiles (`narrative = 'ARCHIVED'`). Uses Supabase service role (no auth). Fallback: retries without `institution_name`/`program_name` if columns missing.
 
 ## Recent Changes
 
 From git history:
 1. **EPI Quotient — Performance Fingerprint (March 2026)**
    - New product at www.epiquotient.com — interactive particle wave visualization of physician EQ/PQ/IQ scores
-   - 4 view modes: landing (particle field), program, class, individual with 3D perspective transitions
-   - 5 analytical lens sections (Overview, EQ/PQ/IQ, SWOT, Trajectory, Archetypes) at program/class scopes
-   - 13-section Individual View with sidebar, section registry (Radar with timeline, Comparison, Heatmap, Trends, ITE, EQ/PQ/IQ Drilldowns, Trajectory, SWOT, Archetype, Ratings, Comments)
-   - 6 sort modes, role/score-band filtering, data-driven wave amplitudes, touch mini-sheet
-   - API with 6 seeded demo data generators (deterministic by profile UUID)
-   - Graduate class redistribution: 75 active across 5 classes (2022-2026), 92 archived
-   - Database: `epiq_profiles`, `epiq_profile_scores`, `epiq_profile_history` with public RLS
-   - Middleware domain routing: epiquotient.com → /epiquotient with `x-lev8-context: epiquotient`
+   - 4 view modes: landing (particle field), program, class, individual with 3D perspective transitions (rotateY 1.5s) and cross-dissolve (0.7s)
+   - Landing: 6 sine waves (Graduate → MS3), data-driven amplitudes, score-driven Y offset (±10px), 6 sort modes with spring interpolation
+   - 5 analytical lens sections (Overview, EQ/PQ/IQ, SWOT, Trajectory, Archetypes) at program/class scopes — full-viewport scroll-snap with dot navigation
+   - Class scope: role filter pills in section headers filter all 5 lenses to single training level
+   - 13-section Individual View with sidebar (role groups + graduate class grouping), section registry across 3 groups (Overview, Deep Dive, Context & History)
+   - Radar section: timeline play/pause with Catmull-Rom smoothing and RAF lerp interpolation (250ms)
+   - Paired expand/collapse: Comparison + Heatmap share state; Trends + ITE share state
+   - Interactive elements: hover tooltip (edge-aware), touch mini-sheet (36px hit area), side panel (380px) with drill-down sub-panel (340px)
+   - Filtering: 6 role pills, 5 score band pills, gradient bar segments; ghosted particles (alpha 0.05); green selection glow (#3CF332)
+   - Responsive: 3 breakpoints (1024/768/480px) + touch support; full-screen panel overlay on mobile
+   - Share modal: section checklist with Web Share API + clipboard fallback
+   - API: single GET endpoint with 7 seeded demo data generators (deterministic by profile UUID)
+   - Graduate class redistribution: 75 active across 5 classes (2022-2026), 92 archived via `scripts/migrate-graduate-classes.js`
+   - Database: `epiq_profiles`, `epiq_profile_scores`, `epiq_profile_history` with public RLS; 6 migrations
+   - Middleware domain routing: epiquotient.com → 308 → www.epiquotient.com → rewrite `/` to `/epiquotient` with `x-lev8-context: epiquotient`
+   - All charts: HTML5 Canvas 2D (not SVG/D3); inline styles via THEME object (not Tailwind); fonts: Sora + Space Mono
+   - ~7500 lines across page.tsx (2760), 5 lenses, IndividualView (952), 13 section components, types, primitives
 
 2. **Daily Database Backup & Admin Enhancements (March 2026)**
    - Daily cron job (`/api/cron/daily-backup`) dumps 13 critical tables to CSV, emails as attachments via Resend to `BACKUP_EMAIL` env var (6 AM EST daily)

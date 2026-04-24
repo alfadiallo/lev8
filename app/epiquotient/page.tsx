@@ -60,9 +60,14 @@ interface Particle extends Profile {
   yScatterTarget: number;
   yJitter: number;
   baseRad: number;
+  vennX: number;
+  vennY: number;
+  y: number;
+  targetY: number;
 }
 
 type SortMode = 'default' | 'az' | 'eq' | 'pq' | 'iq' | 'epiq';
+type VizMode = 'sine' | 'venn';
 
 // ─── Constants ──────────────────────────────────────────────────
 const WAVES = [
@@ -98,6 +103,102 @@ const ROLE_TO_WAVE: Record<string, number> = {
   'MS4': 4,
   'MS3': 5,
 };
+
+// ─── Venn Diagram Constants ───────────────────────────────────
+const VENN_CIRCLE_COLORS = {
+  eq: { fill: 'rgba(47,230,222,0.05)', stroke: 'rgba(47,230,222,0.25)' },
+  pq: { fill: 'rgba(24,242,178,0.05)', stroke: 'rgba(24,242,178,0.25)' },
+  iq: { fill: 'rgba(123,200,248,0.05)', stroke: 'rgba(123,200,248,0.25)' },
+};
+
+function getVennLayout(W: number, H: number) {
+  const cx = W / 2;
+  const cy = H * 0.54;
+  const R = Math.min(W, H) * 0.26;
+  const sep = R * 0.62;
+  const angle120 = (2 * Math.PI) / 3;
+  return {
+    cx, cy, R, sep,
+    centers: {
+      eq: { x: cx + sep * Math.sin(0), y: cy - sep * Math.cos(0) },
+      pq: { x: cx + sep * Math.sin(-angle120), y: cy - sep * Math.cos(-angle120) },
+      iq: { x: cx + sep * Math.sin(angle120), y: cy - sep * Math.cos(angle120) },
+    },
+  };
+}
+
+function seededRandom(seed: number): number {
+  let x = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
+  x -= Math.floor(x);
+  return x;
+}
+
+function computeVennXY(
+  p: { eqScore: number; pqScore: number; iqScore: number; composite: number },
+  idx: number,
+  W: number,
+  H: number,
+): { vx: number; vy: number } {
+  const layout = getVennLayout(W, H);
+  const { centers, R } = layout;
+
+  const mean = (p.eqScore + p.pqScore + p.iqScore) / 3;
+  const dEQ = p.eqScore - mean;
+  const dPQ = p.pqScore - mean;
+  const dIQ = p.iqScore - mean;
+
+  const dirX = dEQ * (centers.eq.x - layout.cx) + dPQ * (centers.pq.x - layout.cx) + dIQ * (centers.iq.x - layout.cx);
+  const dirY = dEQ * (centers.eq.y - layout.cy) + dPQ * (centers.pq.y - layout.cy) + dIQ * (centers.iq.y - layout.cy);
+  const dirLen = Math.sqrt(dirX * dirX + dirY * dirY) || 1;
+  const normDirX = dirX / dirLen;
+  const normDirY = dirY / dirLen;
+
+  const maxDev = Math.max(Math.abs(dEQ), Math.abs(dPQ), Math.abs(dIQ));
+  const skewness = clamp(maxDev / 20, 0, 1);
+
+  const compositeNorm = clamp(p.composite / 100, 0, 1);
+  const innerRadius = R * 0.15;
+  const outerRadius = R * 1.15;
+  const baseRadius = outerRadius - compositeNorm * (outerRadius - innerRadius);
+  const skewBoost = baseRadius * (0.5 + skewness * 0.5);
+
+  const radialJitter = 0.6 + seededRandom(idx + 5555) * 0.8;
+  const dist = skewBoost * radialJitter;
+
+  let bx = layout.cx + normDirX * dist;
+  let by = layout.cy + normDirY * dist;
+
+  const tangentX = -normDirY;
+  const tangentY = normDirX;
+  const lateralJitter = (seededRandom(idx + 7777) - 0.5) * R * 0.4;
+  bx += tangentX * lateralJitter;
+  by += tangentY * lateralJitter;
+
+  const jitterR = 4 + seededRandom(idx) * 10;
+  const jitterA = seededRandom(idx + 9999) * Math.PI * 2;
+  bx += Math.cos(jitterA) * jitterR;
+  by += Math.sin(jitterA) * jitterR;
+
+  return { vx: bx, vy: by };
+}
+
+function computeVennStats(particles: { vennX: number; vennY: number; composite: number; role: string }[], activeRoles: Set<string>, activeBands: Set<number>, cx: number, cy: number) {
+  const visible = particles.filter(p =>
+    activeRoles.has(p.role) && activeBands.has(scoreToBandStatic(p.composite))
+  );
+  if (visible.length === 0) return { sigma: 0 };
+  const dists = visible.map(p => Math.sqrt((p.vennX - cx) ** 2 + (p.vennY - cy) ** 2));
+  const variance = dists.reduce((s, d) => s + d * d, 0) / dists.length;
+  return { sigma: Math.sqrt(variance) };
+}
+
+function scoreToBandStatic(s: number): number {
+  if (s <= 20) return 0;
+  if (s <= 40) return 1;
+  if (s <= 60) return 2;
+  if (s <= 80) return 3;
+  return 4;
+}
 
 const PILLAR_META: Record<string, { label: string; color: string; attrs: Record<string, string> }> = {
   eq: {
@@ -400,6 +501,15 @@ export default function EpiquotientPage() {
   const [sortMode, setSortMode] = useState<SortMode>('default');
   const sortModeRef = useRef<SortMode>('default');
 
+  // Viz mode: sine wave vs venn diagram
+  const [vizMode, setVizMode] = useState<VizMode>('sine');
+  const vizModeRef = useRef<VizMode>('sine');
+  const vennFadeRef = useRef(0);
+  type VennPillar = 'epiq' | 'eq' | 'pq' | 'iq';
+  const [vennPillar, setVennPillar] = useState<VennPillar>('epiq');
+  const vennPillarRef = useRef<VennPillar>('epiq');
+  const vennVisualRRef = useRef(0);
+
   // Program context metadata from API
   const [programMeta, setProgramMeta] = useState<ProgramMeta>({ institution: '', program: '' });
 
@@ -586,15 +696,43 @@ export default function EpiquotientPage() {
     }
   }
 
+  // ─── Switch particle targets based on viz mode ──────────────
+  function applyVizMode(mode: VizMode, W: number, H: number) {
+    const parts = particlesRef.current;
+    if (parts.length === 0) return;
+    if (mode === 'venn') {
+      const layout = getVennLayout(W, H);
+      let idx = 0;
+      for (const p of parts) {
+        const { vx, vy } = computeVennXY(p, idx, W, H);
+        p.vennX = vx;
+        p.vennY = vy;
+        p.targetX = vx;
+        p.targetY = vy;
+        idx++;
+      }
+      const stats = computeVennStats(parts, activeRolesRef.current, activeScoreBandsRef.current, layout.cx, layout.cy);
+      const twoSigma = stats.sigma * 2;
+      vennVisualRRef.current = twoSigma > 0 ? clamp(twoSigma * 1.1, layout.R * 0.6, layout.R) : layout.R;
+    } else {
+      if (sortModeRef.current !== 'default') {
+        applySortOrder(sortModeRef.current, W);
+      } else {
+        for (const p of parts) p.targetX = p.originX;
+      }
+    }
+  }
+
   // ─── Initialize particles when profiles or window size changes ──
   const initParticles = useCallback(
-    (W: number, _H: number) => {
+    (W: number, H: number) => {
       const byWave: Profile[][] = [[], [], [], [], [], []];
       for (const p of profiles) {
         const wIdx = ROLE_TO_WAVE[p.role] ?? (profiles.indexOf(p) % WAVES.length);
         byWave[wIdx].push(p);
       }
 
+      let globalIdx = 0;
       const allParticles: Particle[] = [];
       for (let wi = 0; wi < byWave.length; wi++) {
         const group = byWave[wi];
@@ -604,7 +742,14 @@ export default function EpiquotientPage() {
           const x = clamp(xBase + xJitter, 0, W);
           const yJitter = (Math.random() - 0.5) * 4;
           const baseRad = 2.8 + p.composite / 110;
-          allParticles.push({ ...p, wIdx: wi, x, targetX: x, originX: x, yScatter: 0, yScatterTarget: 0, yJitter, baseRad });
+          const { vx, vy } = computeVennXY(p, globalIdx, W, H);
+          const initY = getY({ wIdx: wi, x, yScatter: 0, yJitter } as Particle, 0, H, W, waveAmpsRef.current);
+          allParticles.push({
+            ...p, wIdx: wi, x, targetX: x, originX: x,
+            yScatter: 0, yScatterTarget: 0, yJitter, baseRad,
+            vennX: vx, vennY: vy, y: initY, targetY: initY,
+          });
+          globalIdx++;
         });
       }
       particlesRef.current = allParticles;
@@ -614,7 +759,10 @@ export default function EpiquotientPage() {
       waveAmpsRef.current = [...waveAmpsTargetRef.current];
       for (const p of allParticles) p.yScatter = p.yScatterTarget;
 
-      if (sortModeRef.current !== 'default') {
+      if (vizModeRef.current === 'venn') {
+        applyVizMode('venn', W, H);
+        for (const p of allParticles) { p.x = p.targetX; p.y = p.targetY; }
+      } else if (sortModeRef.current !== 'default') {
         applySortOrder(sortModeRef.current, W);
       }
     },
@@ -682,10 +830,104 @@ export default function EpiquotientPage() {
       });
     }
 
+    function drawVennCircles(fade: number) {
+      const layout = getVennLayout(W, H);
+      const baseR = layout.R;
+      const visR = vennVisualRRef.current > 0 ? vennVisualRRef.current : baseR;
+      const scale = visR / baseR;
+      const pillars = ['eq', 'pq', 'iq'] as const;
+      const labels = ['EQ', 'PQ', 'IQ'];
+      const labelAngles = [-Math.PI / 2, Math.PI * 5 / 6, Math.PI / 6];
+
+      for (let i = 0; i < 3; i++) {
+        const key = pillars[i];
+        const baseC = layout.centers[key];
+        const cx = layout.cx + (baseC.x - layout.cx) * scale;
+        const cy = layout.cy + (baseC.y - layout.cy) * scale;
+        const colors = VENN_CIRCLE_COLORS[key];
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, visR, 0, Math.PI * 2);
+        ctx.fillStyle = colors.fill.replace(/[\d.]+\)$/, `${0.05 * fade})`);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, visR, 0, Math.PI * 2);
+        ctx.strokeStyle = colors.stroke.replace(/[\d.]+\)$/, `${0.25 * fade})`);
+        ctx.lineWidth = 1;
+        ctx.setLineDash([]);
+        ctx.stroke();
+
+        const lx = cx + (visR - 20) * Math.cos(labelAngles[i]);
+        const ly = cy + (visR - 20) * Math.sin(labelAngles[i]);
+        ctx.font = '600 13px "Sora", system-ui, sans-serif';
+        ctx.fillStyle = colors.stroke.replace(/[\d.]+\)$/, `${0.6 * fade})`);
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(labels[i], lx, ly);
+      }
+
+      ctx.textAlign = 'start';
+      ctx.textBaseline = 'alphabetic';
+    }
+
+    function drawVennSdCircles(fade: number) {
+      const layout = getVennLayout(W, H);
+      const stats = computeVennStats(
+        particlesRef.current,
+        activeRolesRef.current,
+        activeScoreBandsRef.current,
+        layout.cx,
+        layout.cy,
+      );
+      if (stats.sigma > 0) {
+        ctx.beginPath();
+        ctx.arc(layout.cx, layout.cy, stats.sigma, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255,251,0,${1.0 * fade})`;
+        ctx.lineWidth = 1;
+        ctx.setLineDash([6, 4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.font = '400 9px "Space Mono", monospace';
+        ctx.fillStyle = `rgba(255,251,0,${1.0 * fade})`;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('1 s.d.', layout.cx + stats.sigma + 6, layout.cy);
+
+        const r2 = stats.sigma * 2;
+        ctx.beginPath();
+        ctx.arc(layout.cx, layout.cy, r2, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255,251,0,${0.5 * fade})`;
+        ctx.lineWidth = 0.7;
+        ctx.setLineDash([3, 6]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.font = '400 8px "Space Mono", monospace';
+        ctx.fillStyle = `rgba(255,251,0,${0.6 * fade})`;
+        ctx.fillText('2 s.d.', layout.cx + r2 + 6, layout.cy);
+
+        ctx.textAlign = 'start';
+        ctx.textBaseline = 'alphabetic';
+      }
+    }
+
     function render(ts: number) {
       const time = ts / 1000;
       timeRef.current = time;
       ctx.clearRect(0, 0, W, H);
+
+      const isVenn = vizModeRef.current === 'venn';
+      const fadeTarget = isVenn ? 1 : 0;
+      const fadeDiff = fadeTarget - vennFadeRef.current;
+      if (Math.abs(fadeDiff) > 0.005) {
+        vennFadeRef.current += fadeDiff * 0.06;
+      } else {
+        vennFadeRef.current = fadeTarget;
+      }
+      const vf = vennFadeRef.current;
+      const sf = 1 - vf;
 
       // Lerp wave amplitudes toward targets for smooth transitions
       const amps = waveAmpsRef.current;
@@ -699,7 +941,14 @@ export default function EpiquotientPage() {
         }
       }
 
-      drawWaveLines(time);
+      if (sf > 0.01) {
+        ctx.globalAlpha = sf;
+        drawWaveLines(time);
+        ctx.globalAlpha = 1;
+      }
+      if (vf > 0.01) {
+        drawVennCircles(vf);
+      }
 
       const parts = particlesRef.current;
       const hovId = hovIdRef.current;
@@ -710,19 +959,30 @@ export default function EpiquotientPage() {
         if (Math.abs(dx) > 0.3) {
           p.x += dx * (0.035 + Math.random() * 0.018);
         }
+        const waveYNow = getY(p, time, H, W, amps);
+        if (vf > 0.01) {
+          const dyT = p.targetY - p.y;
+          if (Math.abs(dyT) > 0.3) {
+            p.y += dyT * (0.035 + Math.random() * 0.018);
+          }
+        }
         const dy = p.yScatterTarget - p.yScatter;
         if (Math.abs(dy) > 0.1) {
           p.yScatter += dy * 0.04;
         }
+        if (!isVenn) p.y = waveYNow;
       }
 
       for (const p of parts) {
-        const py = getY(p, time, H, W, amps);
+        const waveYNow = getY(p, time, H, W, amps);
+        const py = vf < 0.01 ? waveYNow : vf > 0.99 ? p.y : waveYNow * (1 - vf) + p.y * vf;
         const isHov = p.id === hovId;
         const isSel = p.id === selId;
         const dimmed = selId !== null && !isSel && !isHov;
         const filtered = !activeScoreBandsRef.current.has(scoreToBand(p.composite)) || !activeRolesRef.current.has(p.role);
-        const { r, g, b } = scoreToRGB(p.composite);
+        const vp = vennPillarRef.current;
+        const colorScore = (isVenn && vf > 0.5) ? (vp === 'eq' ? p.eqScore : vp === 'pq' ? p.pqScore : vp === 'iq' ? p.iqScore : p.composite) : p.composite;
+        const { r, g, b } = scoreToRGB(colorScore);
         const alpha = filtered ? 0.05 : dimmed ? 0.18 : isHov ? 1 : 0.75;
         const rad = (isHov && !filtered) ? p.baseRad * 3 : isSel ? p.baseRad * 2.2 : p.baseRad;
 
@@ -754,6 +1014,10 @@ export default function EpiquotientPage() {
         ctx.fill();
       }
 
+      if (vf > 0.01) {
+        drawVennSdCircles(vf);
+      }
+
       animRef.current = requestAnimationFrame(render);
     }
 
@@ -772,9 +1036,10 @@ export default function EpiquotientPage() {
       let minD = thresh;
       const { W, H } = dimRef.current;
       const time = timeRef.current;
+      const isVenn = vizModeRef.current === 'venn';
       for (const p of particlesRef.current) {
         if (!activeScoreBandsRef.current.has(scoreToBand(p.composite)) || !activeRolesRef.current.has(p.role)) continue;
-        const py = getY(p, time, H, W, waveAmpsRef.current);
+        const py = isVenn ? p.y : getY(p, time, H, W, waveAmpsRef.current);
         const d = Math.hypot(p.x - mx, py - my);
         if (d < minD) {
           minD = d;
@@ -1626,9 +1891,14 @@ export default function EpiquotientPage() {
           transform: translateX(-50%);
           z-index: 60;
           display: flex;
+          flex-direction: column;
           align-items: center;
-          gap: 0;
+          gap: 3px;
           white-space: nowrap;
+        }
+        .epiq-viz-row {
+          display: flex;
+          justify-content: center;
         }
         .epiq-sort-btn {
           font-family: 'Space Mono', monospace;
@@ -1652,6 +1922,44 @@ export default function EpiquotientPage() {
           font-size: 10px;
           padding: 0 2px;
           user-select: none;
+        }
+
+        /* ─── Viz Mode Toggle ──────────────────────────────────── */
+        .epiq-viz-toggle {
+          display: inline-flex;
+          align-items: center;
+          background: rgba(10, 24, 38, 0.85);
+          border: 0.5px solid rgba(47, 230, 222, 0.18);
+          border-radius: 16px;
+          padding: 2px;
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          vertical-align: middle;
+        }
+        .epiq-viz-btn {
+          font-family: 'Space Mono', monospace;
+          font-size: 9px;
+          letter-spacing: 0.06em;
+          color: #4a7090;
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 3px 10px;
+          border-radius: 14px;
+          transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+          white-space: nowrap;
+          user-select: none;
+        }
+        .epiq-viz-btn:hover:not(.active) {
+          color: #7ab5cc;
+        }
+        .epiq-viz-btn.active {
+          background: rgba(47, 230, 222, 0.12);
+          color: #2fe6de;
+          font-weight: 500;
+        }
+        .epiq-sort-row .epiq-sort-btns {
+          display: inline;
         }
 
         /* ─── Landing / Scope Transitions ────────────────────── */
@@ -1951,6 +2259,10 @@ export default function EpiquotientPage() {
             font-size: 9px;
             padding: 3px 5px;
           }
+          .epiq-viz-btn {
+            font-size: 8px;
+            padding: 2px 7px;
+          }
 
           /* Legend: move to bottom, centered above filter pills */
           .epiq-legend {
@@ -2106,6 +2418,10 @@ export default function EpiquotientPage() {
           .epiq-sort-sep {
             font-size: 9px;
             padding: 0 1px;
+          }
+          .epiq-viz-btn {
+            font-size: 8px;
+            padding: 2px 6px;
           }
 
           /* Legend: bottom centered, above filter pills */
@@ -2301,30 +2617,87 @@ export default function EpiquotientPage() {
       {/* Sort Row — beneath pill, only on landing */}
       {viewMode === 'landing' && (
         <div className="epiq-sort-row">
-          {([
-            { mode: 'az' as SortMode, label: 'A → Z' },
-            { mode: 'eq' as SortMode, label: 'EQ' },
-            { mode: 'pq' as SortMode, label: 'PQ' },
-            { mode: 'iq' as SortMode, label: 'IQ' },
-            { mode: 'epiq' as SortMode, label: 'EPIq' },
-          ]).map((item, i, arr) => (
-            <span key={item.mode}>
-              <button
-                className={`epiq-sort-btn${sortMode === item.mode ? ' active' : ''}`}
-                onClick={() => {
-                  const next = sortMode === item.mode ? 'default' : item.mode;
-                  setSortMode(next);
-                  sortModeRef.current = next;
-                  applySortOrder(next, dimRef.current.W);
-                  computeAmplitudes(next);
-                  computeYOffsets(next);
-                }}
-              >
-                {item.label}
-              </button>
-              {i < arr.length - 1 && <span className="epiq-sort-sep">|</span>}
+          {vizMode === 'sine' ? (
+            <span className="epiq-sort-btns">
+            {([
+              { mode: 'az' as SortMode, label: 'A → Z' },
+              { mode: 'eq' as SortMode, label: 'EQ' },
+              { mode: 'pq' as SortMode, label: 'PQ' },
+              { mode: 'iq' as SortMode, label: 'IQ' },
+              { mode: 'epiq' as SortMode, label: 'EPIq' },
+            ]).map((item, i, arr) => (
+              <span key={item.mode}>
+                <button
+                  className={`epiq-sort-btn${sortMode === item.mode ? ' active' : ''}`}
+                  onClick={() => {
+                    const next = sortMode === item.mode ? 'default' : item.mode;
+                    setSortMode(next);
+                    sortModeRef.current = next;
+                    applySortOrder(next, dimRef.current.W);
+                    computeAmplitudes(next);
+                    computeYOffsets(next);
+                  }}
+                >
+                  {item.label}
+                </button>
+                {i < arr.length - 1 && <span className="epiq-sort-sep">|</span>}
+              </span>
+            ))}
             </span>
-          ))}
+          ) : (
+            <span className="epiq-sort-btns">
+            {([
+              { mode: 'eq' as VennPillar, label: 'EQ' },
+              { mode: 'pq' as VennPillar, label: 'PQ' },
+              { mode: 'iq' as VennPillar, label: 'IQ' },
+              { mode: 'epiq' as VennPillar, label: 'EPIq' },
+            ]).map((item, i, arr) => (
+              <span key={item.mode}>
+                <button
+                  className={`epiq-sort-btn${vennPillar === item.mode ? ' active' : ''}`}
+                  onClick={() => {
+                    setVennPillar(item.mode);
+                    vennPillarRef.current = item.mode;
+                  }}
+                >
+                  {item.label}
+                </button>
+                {i < arr.length - 1 && <span className="epiq-sort-sep">|</span>}
+              </span>
+            ))}
+            </span>
+          )}
+          <div className="epiq-viz-row">
+            <span className="epiq-viz-toggle">
+              <button
+                className={`epiq-viz-btn${vizMode === 'sine' ? ' active' : ''}`}
+                onClick={() => {
+                  if (vizMode === 'sine') return;
+                  setVizMode('sine');
+                  vizModeRef.current = 'sine';
+                  const { W, H } = dimRef.current;
+                  if (sortModeRef.current !== 'default') {
+                    applySortOrder(sortModeRef.current, W);
+                  } else {
+                    for (const p of particlesRef.current) p.targetX = p.originX;
+                  }
+                  for (const p of particlesRef.current) {
+                    p.targetY = getY(p, timeRef.current, H, W, waveAmpsRef.current);
+                  }
+                }}
+              >Composite</button>
+              <button
+                className={`epiq-viz-btn${vizMode === 'venn' ? ' active' : ''}`}
+                onClick={() => {
+                  if (vizMode === 'venn') return;
+                  setVizMode('venn');
+                  vizModeRef.current = 'venn';
+                  const { W, H } = dimRef.current;
+                  applyVizMode('venn', W, H);
+                }}
+              >Balance</button>
+            </span>
+          </div>
         </div>
       )}
 
